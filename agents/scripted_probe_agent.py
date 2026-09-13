@@ -26,7 +26,7 @@ sys.path.insert(0, str(AIOPSLAB_ROOT))
 from aiopslab.orchestrator import Orchestrator  # noqa: E402
 
 from run_manifest import collect_static_manifest, collect_cluster_images  # noqa: E402
-from pin_otel_chart import apply_pin as apply_otel_chart_pin  # noqa: E402
+from pin_otel_chart import PINNED_OTEL_CHART_VERSION, apply_pin as apply_otel_chart_pin  # noqa: E402
 
 apply_otel_chart_pin()
 
@@ -59,7 +59,16 @@ class ScriptedProbeAgent:
 
 
 async def run(problem_id: str, max_steps: int, run_tag: str) -> dict:
-    manifest = collect_static_manifest()
+    manifest = collect_static_manifest(
+        pins={"otel_demo_chart": PINNED_OTEL_CHART_VERSION},
+        run={
+            "agent": "scripted-probe",
+            "problem_id": problem_id,
+            "max_steps": max_steps,
+            "run_tag": run_tag,
+            "argv": sys.argv,
+        },
+    )
 
     orch = Orchestrator()
     agent = ScriptedProbeAgent()

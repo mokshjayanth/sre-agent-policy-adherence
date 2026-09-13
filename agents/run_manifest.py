@@ -1,10 +1,12 @@
 """Per-run provenance manifest.
 
-Records the things the commit-hash pin in CLAUDE.md doesn't cover: local
+Records the things the commit-hash pin in CLAUDE.md doesn't cover: this
+repo's own code state, whether the harness working tree is clean, local
 config.yml (gitignored upstream, changes what gets scored via
-qualitative_eval), the Python interpreter actually running, and the image
-digests actually running in the cluster during the run. Not a gate — just a
-debugging record, per notes/harness-pinning-hardening.md.
+qualitative_eval), the Python interpreter actually running, version pins
+applied from outside the harness, and the image digests actually running in
+the cluster during the run. Not a gate — just a debugging record, per
+notes/harness-pinning-hardening.md.
 """
 
 import hashlib
@@ -37,6 +39,18 @@ def _git_rev(repo_dir: Path) -> str | None:
         return None
 
 
+def _git_status(repo_dir: Path) -> list[str] | None:
+    """`git status --porcelain` lines; an empty list means a clean tree."""
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(repo_dir), "status", "--porcelain"],
+            capture_output=True, text=True, check=True,
+        ).stdout
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+    return [line for line in out.splitlines() if line]
+
+
 def _kind_node_image_digest() -> str | None:
     try:
         out = subprocess.run(
@@ -66,8 +80,13 @@ def harness_kube_context(config: dict | None) -> str | None:
     return None
 
 
-def collect_static_manifest() -> dict:
-    """Info known before a problem is deployed: harness, config, interpreter."""
+def collect_static_manifest(pins: dict | None = None, run: dict | None = None) -> dict:
+    """Info known before a problem is deployed.
+
+    `pins` are version pins applied from outside the harness (e.g. the OTel
+    chart version); `run` is whatever the caller wants recorded about the
+    invocation: arguments, agent, problem selection.
+    """
     config_path = AIOPSLAB_ROOT / "aiopslab" / "config.yml"
     config = yaml.safe_load(config_path.read_text()) if config_path.exists() else None
 
@@ -79,11 +98,18 @@ def collect_static_manifest() -> dict:
     except (subprocess.CalledProcessError, FileNotFoundError):
         pip_freeze = None
 
+    repo_status = _git_status(REPO_ROOT)
     return {
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "repo": {
+            "commit": _git_rev(REPO_ROOT),
+            "dirty": bool(repo_status) if repo_status is not None else None,
+            "status": repo_status,
+        },
         "harness": {
             "aiopslab_commit": _git_rev(AIOPSLAB_ROOT),
             "aiopslab_applications_commit": _git_rev(AIOPSLAB_ROOT / "aiopslab-applications"),
+            "status": _git_status(AIOPSLAB_ROOT),
             "config_yml": config,
         },
         "cluster": {
@@ -96,6 +122,8 @@ def collect_static_manifest() -> dict:
             "poetry_lock_sha256": _sha256_file(AIOPSLAB_ROOT / "poetry.lock"),
             "pip_freeze": pip_freeze,
         },
+        "pins": pins or {},
+        "run": run or {},
     }
 
 
