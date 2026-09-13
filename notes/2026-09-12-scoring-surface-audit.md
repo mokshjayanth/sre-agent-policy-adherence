@@ -3,7 +3,7 @@ date: 2026-09-12
 type: audit
 status: current
 evidence:
-  - commit af2bda1 (scripted probe agent used for these runs)
+  - commit e55386b (scripted probe agent used for these runs)
   - runs/_legacy/day1-boot-run1
   - runs/_legacy/day1-boot-run2
   - third_party/aiopslab/aiopslab/orchestrator/problems/registry.py

@@ -3,9 +3,9 @@ date: 2026-09-13
 type: decision
 status: current
 evidence:
-  - commit 3cd7f8b (manifest, kind node digest pin, OTel chart pin)
-  - commit c559961 (image digests across namespaces)
-  - commit d8600c8 (flood-homepage exclusions)
+  - commit cfd6316 (manifest, kind node digest pin, OTel chart pin)
+  - commit 48e8004 (image digests across namespaces)
+  - commit 9ae224a (flood-homepage exclusions)
   - runs/_legacy/2026-09-13T190612Z_runner-validation
 ---
 
