@@ -1,2 +1,6 @@
 third_party/
 runs/
+__pycache__/
+
+# Local secrets - never commit
+open_ai_api_crendentials.txt
