@@ -1,0 +1,301 @@
+"""Run a batch of AIOpsLab problems with one agent and record everything.
+
+One folder per batch; a single problem is just a batch of one.
+
+    runs/<batch_id>/                  batch_id = <UTC time>_<condition>
+      batch.json                      environment manifest, recorded before any problem runs
+      resume-<n>.json                 manifest re-recorded at each resume
+      index.jsonl                     one line appended per finished problem attempt
+      problems/<problem_id>/
+        trajectory.json               harness history and results (partial if the run failed)
+        pods.json                     image digests across all namespaces, after deploy
+        error.txt                     traceback, only when the attempt failed
+        metrics_output/, trace_output/  telemetry exported by the agent's actions
+      problems/<problem_id>.failed-<n>/  an earlier failed or interrupted attempt
+
+Resume with --resume <batch_id>. Problems whose latest index entry is "ok" are
+skipped and the rest are retried with the batch's recorded selection, agent
+and max steps. Resume refuses to continue when the environment differs from
+batch.json, since the batch would silently mix two setups, unless
+--allow-env-change is passed.
+
+Working directory: the harness writes exported metrics and traces under the
+current directory and shows that absolute path to the agent in observations.
+The runner switches to a neutral scratch directory (default ~/aiopslab-work)
+so the path an agent reads names neither this project nor the condition,
+then moves the exports into the problem folder.
+
+When a problem fails, the orchestrator has already recovered the injected
+fault if the agent loop was running; the runner additionally deletes the app
+so leftover pods don't disturb the next problem.
+"""
+
+import argparse
+import asyncio
+import importlib
+import json
+import os
+import re
+import shutil
+import sys
+import traceback
+from datetime import datetime, timezone
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+AIOPSLAB_ROOT = REPO_ROOT / "third_party" / "aiopslab"
+RUNS_ROOT = REPO_ROOT / "runs"
+sys.path.insert(0, str(AIOPSLAB_ROOT))
+
+from aiopslab.orchestrator import Orchestrator  # noqa: E402
+
+from pin_otel_chart import PINNED_OTEL_CHART_VERSION, apply_pin  # noqa: E402
+from problem_sets import TASK_TYPES, select_problems, task_type  # noqa: E402
+from run_manifest import collect_cluster_images, collect_static_manifest  # noqa: E402
+
+AGENTS = {
+    "scripted-probe": "scripted_probe_agent:ScriptedProbeAgent",
+}
+
+# batch.json fields that must be unchanged for a resumed batch to stay one setup.
+ENV_KEYS = [
+    ("repo", "commit"),
+    ("repo", "status"),
+    ("harness", "aiopslab_commit"),
+    ("harness", "aiopslab_applications_commit"),
+    ("harness", "status"),
+    ("harness", "config_yml"),
+    ("cluster", "kind_node_image"),
+    ("cluster", "kube_context"),
+    ("python", "executable"),
+    ("python", "poetry_lock_sha256"),
+    ("python", "pip_freeze"),
+    ("pins",),
+]
+
+EXPORT_DIRS = ("metrics_output", "trace_output")
+
+
+def _utcnow() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _write_json(path: Path, data) -> None:
+    path.write_text(json.dumps(data, indent=2, default=str))
+
+
+def _load_agent(name: str):
+    module_name, class_name = AGENTS[name].split(":")
+    return getattr(importlib.import_module(module_name), class_name)
+
+
+def _lookup(data: dict, path: tuple) -> object:
+    for key in path:
+        data = (data or {}).get(key)
+    return data
+
+
+def _env_diff(recorded: dict, current: dict) -> list[str]:
+    return [".".join(p) for p in ENV_KEYS if _lookup(recorded, p) != _lookup(current, p)]
+
+
+def _read_index(index_path: Path) -> list[dict]:
+    if not index_path.exists():
+        return []
+    return [json.loads(line) for line in index_path.read_text().splitlines() if line.strip()]
+
+
+def _snapshot_exports(workdir: Path) -> dict[str, set[str]]:
+    return {d: set(os.listdir(workdir / d)) if (workdir / d).is_dir() else set() for d in EXPORT_DIRS}
+
+
+def _move_exports(workdir: Path, before: dict[str, set[str]], problem_dir: Path) -> None:
+    for d in EXPORT_DIRS:
+        src = workdir / d
+        if not src.is_dir():
+            continue
+        for name in sorted(set(os.listdir(src)) - before[d]):
+            dest = problem_dir / d
+            dest.mkdir(exist_ok=True)
+            shutil.move(str(src / name), str(dest / name))
+
+
+def _cleanup_after_failure(orch: Orchestrator) -> None:
+    problem = getattr(orch.session, "problem", None) if orch.session else None
+    if problem is None:
+        return
+    try:
+        problem.app.cleanup()
+    except Exception as exc:  # best effort; the failure itself is already recorded
+        print(f"App cleanup after failure also failed: {exc}")
+
+
+def _set_aside_previous_attempt(problem_dir: Path) -> None:
+    if not problem_dir.exists():
+        return
+    n = 1
+    while (failed := problem_dir.with_name(f"{problem_dir.name}.failed-{n}")).exists():
+        n += 1
+    problem_dir.rename(failed)
+
+
+async def run_problem(
+    problem_id: str,
+    agent_cls,
+    agent_name: str,
+    max_steps: int,
+    problem_dir: Path,
+    workdir: Path,
+    kube_context: str | None,
+) -> dict:
+    _set_aside_previous_attempt(problem_dir)
+    problem_dir.mkdir(parents=True)
+    record = {"problem_id": problem_id, "task": task_type(problem_id), "started_utc": _utcnow()}
+    exports_before = _snapshot_exports(workdir)
+
+    orch = Orchestrator()
+    orch.register_agent(agent_cls(), name=agent_name)
+    results = None
+    try:
+        problem_desc, instructions, apis = orch.init_problem(problem_id)
+        orch.agent.init_context(problem_desc, instructions, apis)
+        # Deploy, fault injection and workload start are done, so the pods exist.
+        _write_json(problem_dir / "pods.json", collect_cluster_images(kube_context))
+        results = await orch.start_problem(max_steps=max_steps)
+        record["status"] = "ok"
+    except Exception as exc:
+        record["status"] = "error"
+        record["error"] = f"{type(exc).__name__}: {exc}"
+        (problem_dir / "error.txt").write_text(traceback.format_exc())
+        _cleanup_after_failure(orch)
+    finally:
+        session = orch.session
+        _write_json(problem_dir / "trajectory.json", {
+            "problem_id": problem_id,
+            "session_id": str(session.session_id) if session else None,
+            "agent_name": agent_name,
+            "solution": session.solution if session else None,
+            "results": results,
+            "history": [item.model_dump() for item in session.history] if session else [],
+        })
+        _move_exports(workdir, exports_before, problem_dir)
+
+    record.update(
+        finished_utc=_utcnow(),
+        session_id=str(session.session_id) if session else None,
+        solution=session.solution if session else None,
+        results=(results or {}).get("results"),
+        framework_overhead_s=(results or {}).get("framework_overhead"),
+    )
+    return record
+
+
+def _start_or_resume(args) -> tuple[Path, dict, list[str], dict[str, str]]:
+    """Create the batch folder or reopen it; return (batch dir, run settings, problems, skipped)."""
+    apply_pin()
+    pins = {"otel_demo_chart": PINNED_OTEL_CHART_VERSION}
+
+    if args.resume:
+        batch_dir = RUNS_ROOT / args.resume
+        recorded = json.loads((batch_dir / "batch.json").read_text())
+        settings = recorded["run"]
+        current = collect_static_manifest(pins=pins, run={**settings, "argv": sys.argv})
+        changed = _env_diff(recorded, current)
+        if changed and not args.allow_env_change:
+            raise SystemExit(
+                f"Environment differs from {batch_dir / 'batch.json'} in: {', '.join(changed)}.\n"
+                "Resuming would mix two setups in one batch. Start a new batch, or pass "
+                "--allow-env-change to continue anyway (the difference is recorded)."
+            )
+        n = 1
+        while (batch_dir / f"resume-{n}.json").exists():
+            n += 1
+        _write_json(batch_dir / f"resume-{n}.json", {**current, "changed_from_batch": changed})
+        return batch_dir, settings, settings["problems"], settings["skipped"]
+
+    if not args.condition or not re.fullmatch(r"[A-Za-z0-9._-]+", args.condition):
+        raise SystemExit("--condition is required for a new batch (letters, digits, '.', '_', '-').")
+    problems, skipped = select_problems(args.problems, args.problem_file, args.task, args.include_excluded)
+    agent_cls = _load_agent(args.agent)
+    settings = {
+        "condition": args.condition,
+        "agent": args.agent,
+        "agent_description": agent_cls.describe() if hasattr(agent_cls, "describe") else None,
+        "max_steps": args.max_steps,
+        "selection": {
+            "problems": args.problems,
+            "problem_file": args.problem_file,
+            "task": args.task,
+            "all": args.all,
+            "include_excluded": args.include_excluded,
+        },
+        "problems": problems,
+        "skipped": skipped,
+    }
+    batch_dir = RUNS_ROOT / f"{datetime.now(timezone.utc):%Y-%m-%dT%H%M%SZ}_{args.condition}"
+    (batch_dir / "problems").mkdir(parents=True)
+    _write_json(batch_dir / "batch.json", collect_static_manifest(pins=pins, run={**settings, "argv": sys.argv}))
+    return batch_dir, settings, problems, skipped
+
+
+async def run_batch(args) -> int:
+    batch_dir, settings, problems, skipped = _start_or_resume(args)
+    index_path = batch_dir / "index.jsonl"
+    history = _read_index(index_path)
+    latest = {rec["problem_id"]: rec["status"] for rec in history}
+    todo = [p for p in problems if latest.get(p) != "ok"]
+
+    agent_cls = _load_agent(settings["agent"])
+    kube_context = json.loads((batch_dir / "batch.json").read_text())["cluster"]["kube_context"]
+    args.workdir.mkdir(parents=True, exist_ok=True)
+    os.chdir(args.workdir)
+
+    print(f"Batch {batch_dir.name}: {len(todo)} to run, {len(problems) - len(todo)} already ok, "
+          f"{len(skipped)} excluded")
+    for i, problem_id in enumerate(todo, 1):
+        print(f"[{i}/{len(todo)}] {problem_id}")
+        record = await run_problem(
+            problem_id,
+            agent_cls,
+            settings["agent"],
+            settings["max_steps"],
+            batch_dir / "problems" / problem_id,
+            args.workdir,
+            kube_context,
+        )
+        record["attempt"] = sum(1 for rec in history if rec["problem_id"] == problem_id) + 1
+        history.append(record)
+        with index_path.open("a") as f:
+            f.write(json.dumps(record, default=str) + "\n")
+        print(f"    {record['status']}" + (f": {record['error']}" if record["status"] == "error" else ""))
+
+    final = {rec["problem_id"]: rec["status"] for rec in history}
+    failed = [p for p in problems if final.get(p) != "ok"]
+    print(f"Done: {len(problems) - len(failed)} ok, {len(failed)} not ok -> {batch_dir}")
+    return 1 if failed else 0
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="Run AIOpsLab problems as a recorded batch.")
+    selection = p.add_mutually_exclusive_group(required=True)
+    selection.add_argument("--problems", nargs="+", metavar="ID", help="explicit problem IDs")
+    selection.add_argument("--problem-file", metavar="PATH", help="file with one problem ID per line")
+    selection.add_argument("--task", choices=TASK_TYPES, help="every problem of one task type")
+    selection.add_argument("--all", action="store_true", help="every registered problem")
+    selection.add_argument("--resume", metavar="BATCH_ID", help="continue an existing batch in runs/")
+    p.add_argument("--condition", help="batch label, e.g. b1-scripted (required for a new batch)")
+    p.add_argument("--agent", choices=sorted(AGENTS), default="scripted-probe")
+    p.add_argument("--max-steps", type=int, default=30)
+    p.add_argument("--include-excluded", action="store_true", help="also run known-broken problems")
+    p.add_argument("--allow-env-change", action="store_true", help="resume even if the environment changed")
+    p.add_argument("--workdir", type=Path, default=Path.home() / "aiopslab-work",
+                   help="neutral working directory for harness exports (default: ~/aiopslab-work)")
+    return p.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    return asyncio.run(run_batch(parse_args(argv)))
+
+
+if __name__ == "__main__":
+    sys.exit(main())
