@@ -1,25 +1,30 @@
 # CLAUDE.md
 
-## Harness pin (ADR v3, Day 1 — 12 Sep 2026)
+## Harness pin (ADR v3, Day 1 — 12 Sep 2026; submodule since 13 Sep 2026)
 
 Benchmark harness: [AIOpsLab](https://github.com/microsoft/AIOpsLab), vendored
-unmodified at `third_party/aiopslab`. It is gitignored, not a submodule — there
-is no `.gitmodules` entry, so this file is the only record of which commit any
-run was scored against.
+unmodified as a git submodule at `third_party/aiopslab`. Git records the pinned
+commit; the apps under test come from the harness's own nested
+`aiopslab-applications` submodule, pinned by that commit.
 
 Pinned commit: `ddf7e40619689dad75eaf8f2174e263c4157ec76`
 (2026-08-19, "Pin GitHub Actions to full-length commit SHAs (#196)")
 
-Working tree at pin time: clean (`git -C third_party/aiopslab status --short`
-empty).
-
 A benchmark that moves under you invalidates every earlier run. Before
-trusting any result against a prior one, confirm `third_party/aiopslab` is
-still at the pinned commit:
+trusting any result against a prior one, confirm the harness is at the pinned
+commit with a clean tree:
 
 ```
-git -C third_party/aiopslab rev-parse HEAD
+git submodule status --recursive             # a leading + or - means moved or missing
+git -C third_party/aiopslab status --short   # must print nothing
 ```
 
-If it has moved, either reset it back to the pinned SHA or treat all prior
-runs as incomparable and re-pin here with the new hash.
+If it has moved, either return to the pin with
+`git submodule update --init --recursive`, or bump deliberately: check out the
+new commit inside `third_party/aiopslab`, commit the updated submodule here,
+update the hash above, and treat all prior runs as incomparable.
+
+Beyond the commit, see `notes/harness-pinning-hardening.md`. Create the kind
+cluster from `configs/kind-config-x86.yaml` (node image pinned by digest), not
+the harness's own config. Run problems through `agents/run_batch.py`; each
+batch records its environment in `runs/<batch>/batch.json`.
