@@ -25,7 +25,7 @@ sys.path.insert(0, str(AIOPSLAB_ROOT))
 
 from aiopslab.orchestrator import Orchestrator  # noqa: E402
 
-from run_manifest import collect_static_manifest, collect_pod_images  # noqa: E402
+from run_manifest import collect_static_manifest, collect_cluster_images  # noqa: E402
 from pin_otel_chart import apply_pin as apply_otel_chart_pin  # noqa: E402
 
 apply_otel_chart_pin()
@@ -69,10 +69,10 @@ async def run(problem_id: str, max_steps: int, run_tag: str) -> dict:
     agent.init_context(problem_desc, instructions, apis)
 
     # Deploy + fault injection + workload start have all happened by the time
-    # init_problem() returns, so the namespace's pods exist here. Capture
-    # image refs now -- they're gone once the run tears the namespace down.
-    namespace = getattr(orch.session.problem, "namespace", None)
-    manifest["pod_images"] = collect_pod_images(namespace) if namespace else {}
+    # init_problem() returns, so the pods exist here. Capture image digests
+    # across every namespace now: the app's pods are gone after teardown, and
+    # the wrk2 Job in `default` is re-pulled on every run.
+    manifest["pod_images"] = collect_cluster_images(manifest["cluster"]["kube_context"])
 
     results = await orch.start_problem(max_steps=max_steps)
 

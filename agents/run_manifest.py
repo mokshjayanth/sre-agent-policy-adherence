@@ -2,12 +2,14 @@
 
 Records the things the commit-hash pin in CLAUDE.md doesn't cover: local
 config.yml (gitignored upstream, changes what gets scored via
-qualitative_eval), the Python interpreter actually running, and the
-image IDs actually deployed for this run's namespace. Not a gate — just a
+qualitative_eval), the Python interpreter actually running, and the image
+digests actually running in the cluster during the run. Not a gate — just a
 debugging record, per notes/harness-pinning-hardening.md.
 """
 
 import hashlib
+import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -50,6 +52,20 @@ def _kind_node_image_digest() -> str | None:
         return None
 
 
+def harness_kube_context(config: dict | None) -> str | None:
+    """The kubeconfig context AIOpsLab's KubeCtl selects (aiopslab/service/kubectl.py).
+
+    None means "whatever the kubeconfig's current context is", which is what
+    KubeCtl does for non-kind clusters.
+    """
+    cluster_env = os.environ.get("AIOPSLAB_CLUSTER")
+    if cluster_env:
+        return f"kind-{cluster_env}"
+    if (config or {}).get("k8s_host", "kind") == "kind":
+        return "kind-kind"
+    return None
+
+
 def collect_static_manifest() -> dict:
     """Info known before a problem is deployed: harness, config, interpreter."""
     config_path = AIOPSLAB_ROOT / "aiopslab" / "config.yml"
@@ -72,6 +88,7 @@ def collect_static_manifest() -> dict:
         },
         "cluster": {
             "kind_node_image": _kind_node_image_digest(),
+            "kube_context": harness_kube_context(config),
         },
         "python": {
             "executable": sys.executable,
@@ -82,24 +99,36 @@ def collect_static_manifest() -> dict:
     }
 
 
-def collect_pod_images(namespace: str) -> dict:
-    """Image refs actually running in `namespace`. Call after deploy, before teardown."""
+def collect_cluster_images(context: str | None) -> dict:
+    """Images of every pod in the cluster, grouped by namespace then pod.
+
+    `image` is the reference the pod spec asked for, often a floating tag such
+    as `hashicorp/consul:latest`; `image_id` is the digest the container
+    runtime actually started, and is the only field that shows whether such a
+    tag moved between runs. `image_id` is None for containers that haven't
+    started yet. Call after deploy, before teardown.
+    """
+    cmd = ["kubectl"] + (["--context", context] if context else [])
+    cmd += ["get", "pods", "--all-namespaces", "-o", "json"]
     try:
-        out = subprocess.run(
-            [
-                "kubectl", "get", "pods", "-n", namespace,
-                "-o", "jsonpath={range .items[*]}{.metadata.name}{\"=\"}"
-                      "{range .spec.containers[*]}{.image}{\",\"}{end}{\"\\n\"}{end}",
-            ],
-            capture_output=True, text=True, check=True,
-        ).stdout.strip()
+        out = subprocess.run(cmd, capture_output=True, text=True, check=True).stdout
     except (subprocess.CalledProcessError, FileNotFoundError):
         return {}
 
-    images = {}
-    for line in out.splitlines():
-        if "=" not in line:
-            continue
-        pod, imgs = line.split("=", 1)
-        images[pod] = [i for i in imgs.split(",") if i]
+    images: dict = {}
+    for pod in json.loads(out).get("items", []):
+        meta, spec, status = pod["metadata"], pod["spec"], pod.get("status", {})
+        started = {
+            s["name"]: s
+            for s in (status.get("initContainerStatuses") or []) + (status.get("containerStatuses") or [])
+        }
+        containers = (spec.get("initContainers") or []) + spec["containers"]
+        images.setdefault(meta["namespace"], {})[meta["name"]] = [
+            {
+                "container": c["name"],
+                "image": c["image"],
+                "image_id": started.get(c["name"], {}).get("imageID") or None,
+            }
+            for c in containers
+        ]
     return images

@@ -57,8 +57,11 @@ the noise floor directly (below).
    alongside `trajectory.json`): AIOpsLab + `aiopslab-applications` commit hashes,
    `config.yml` contents (gitignored upstream — `qualitative_eval` lives here and changes
    what gets scored), the kind node image digest actually running, the Python interpreter
-   (`sys.executable`, `poetry.lock` hash, `pip freeze`), and the image refs of every pod
-   actually deployed for the run's namespace. Not a gate — a debugging record, so a future
+   (`sys.executable`, `poetry.lock` hash, `pip freeze`), the kube context the harness
+   targets, and for every pod in every namespace both the requested image reference and
+   the resolved `imageID` digest. The digest is what shows whether a floating tag like
+   `consul:latest` moved; the reference alone can't. All namespaces, not just the app's,
+   so the per-run re-pulled `wrk2-client` image in `default` is covered too. Not a gate — a debugging record, so a future
    discrepancy has something to check against.
 4. **OTel chart version pin** (`agents/pin_otel_chart.py`): monkeypatches
    `ProblemRegistry.get_problem_instance` from our own code (no edit to `third_party/aiopslab`)
