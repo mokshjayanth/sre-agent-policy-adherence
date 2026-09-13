@@ -20,7 +20,7 @@ reading `values.yaml` here checks a path that isn't wired up.
 
 | Input | Status | Evidence |
 |---|---|---|
-| `yinfangchen/hotelreservation:latest` (frontend/profile/rate/recommendation/reservation/search/user) | Floats, but `imagePullPolicy` isn't overridden in these raw manifests so it defaults to the k8s standard: `IfNotPresent` for a fixed tag, meaning cached-once-pulled in practice | `aiopslab-applications/hotelReservation/kubernetes/*/*-deployment.yaml` |
+| `yinfangchen/hotelreservation:latest` (frontend/profile/rate/recommendation/reservation/search/user) | Floats, but every container in these raw manifests sets `imagePullPolicy: IfNotPresent` explicitly (19 of 19 deployments), so a node pulls it once and reuses the cached copy. Left unset, Kubernetes would default `:latest` and untagged images to `Always` and re-pull every run | `aiopslab-applications/hotelReservation/kubernetes/*/*-deployment.yaml` |
 | `hashicorp/consul:latest` | Floats, same as above | `.../kubernetes/consul/consul-deployment.yaml` |
 | `memcached` (no tag = `:latest`) | Floats, same as above | `.../kubernetes/*/memcached-*-deployment.yaml` |
 | `mongo:4.4.6`, `jaegertracing/all-in-one:1.57` | Pinned | same manifests |
