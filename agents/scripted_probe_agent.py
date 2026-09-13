@@ -25,6 +25,11 @@ sys.path.insert(0, str(AIOPSLAB_ROOT))
 
 from aiopslab.orchestrator import Orchestrator  # noqa: E402
 
+from run_manifest import collect_static_manifest, collect_pod_images  # noqa: E402
+from pin_otel_chart import apply_pin as apply_otel_chart_pin  # noqa: E402
+
+apply_otel_chart_pin()
+
 
 class ScriptedProbeAgent:
     """Fixed action sequence, no randomness: get_logs -> get_metrics -> submit."""
@@ -54,12 +59,20 @@ class ScriptedProbeAgent:
 
 
 async def run(problem_id: str, max_steps: int, run_tag: str) -> dict:
+    manifest = collect_static_manifest()
+
     orch = Orchestrator()
     agent = ScriptedProbeAgent()
     orch.register_agent(agent, name="scripted-probe")
 
     problem_desc, instructions, apis = orch.init_problem(problem_id)
     agent.init_context(problem_desc, instructions, apis)
+
+    # Deploy + fault injection + workload start have all happened by the time
+    # init_problem() returns, so the namespace's pods exist here. Capture
+    # image refs now -- they're gone once the run tears the namespace down.
+    namespace = getattr(orch.session.problem, "namespace", None)
+    manifest["pod_images"] = collect_pod_images(namespace) if namespace else {}
 
     results = await orch.start_problem(max_steps=max_steps)
 
@@ -75,6 +88,7 @@ async def run(problem_id: str, max_steps: int, run_tag: str) -> dict:
         "history": [item.model_dump() for item in orch.session.history],
     }
     (out_dir / "trajectory.json").write_text(json.dumps(record, indent=2, default=str))
+    (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, default=str))
     print(json.dumps(record, indent=2, default=str))
     return record
 

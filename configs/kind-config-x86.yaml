@@ -1,0 +1,22 @@
+# Pinned copy of third_party/aiopslab/kind/kind-config-x86.yaml.
+#
+# Upstream floats the node image on `:latest`. Pinned here by digest so the
+# cluster itself doesn't drift between the baseline run and the trained-model
+# run near the 31 Oct anchor. Verified digest as of 2026-09-12 — see
+# notes/harness-pinning-hardening.md.
+#
+# Use this file (not the upstream one) when creating the cluster:
+#   kind create cluster --config configs/kind-config-x86.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    image: jacksonarthurclark/aiopslab-kind-x86@sha256:d631857278d3f8ce5c36364c75ec25695ceb22e311ec6621a4ebf5506b86774d
+    extraMounts:
+      - hostPath: /run/udev
+        containerPath: /run/udev
+  - role: worker
+    image: jacksonarthurclark/aiopslab-kind-x86@sha256:d631857278d3f8ce5c36364c75ec25695ceb22e311ec6621a4ebf5506b86774d
+    extraMounts:
+      - hostPath: /run/udev
+        containerPath: /run/udev
