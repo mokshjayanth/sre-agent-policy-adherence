@@ -4,14 +4,15 @@ Records the things the commit-hash pin in CLAUDE.md doesn't cover: this
 repo's own code state, whether the harness working tree is clean, local
 config.yml (gitignored upstream, changes what gets scored via
 qualitative_eval), the Python interpreter actually running, version pins
-applied from outside the harness, and the image digests actually running in
-the cluster during the run. Not a gate — just a debugging record, per
-notes/harness-pinning-hardening.md.
+applied from outside the harness, the cluster the harness targets, and the
+image digests actually running in it during the run. Not a gate — just a
+debugging record, per notes/harness-pinning-hardening.md.
+
+Cluster facts come from AIOpsLab's own KubeCtl client rather than a separate
+kubectl call, so they describe exactly the cluster the harness talks to.
 """
 
 import hashlib
-import json
-import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -66,18 +67,20 @@ def _kind_node_image_digest() -> str | None:
         return None
 
 
-def harness_kube_context(config: dict | None) -> str | None:
-    """The kubeconfig context AIOpsLab's KubeCtl selects (aiopslab/service/kubectl.py).
+def _harness_kubectl():
+    """AIOpsLab's KubeCtl, which selects the kube context the harness itself uses."""
+    if str(AIOPSLAB_ROOT) not in sys.path:
+        sys.path.insert(0, str(AIOPSLAB_ROOT))
+    from aiopslab.service.kubectl import KubeCtl
 
-    None means "whatever the kubeconfig's current context is", which is what
-    KubeCtl does for non-kind clusters.
-    """
-    cluster_env = os.environ.get("AIOPSLAB_CLUSTER")
-    if cluster_env:
-        return f"kind-{cluster_env}"
-    if (config or {}).get("k8s_host", "kind") == "kind":
-        return "kind-kind"
-    return None
+    return KubeCtl()
+
+
+def _harness_api_server() -> str | None:
+    try:
+        return _harness_kubectl().core_v1_api.api_client.configuration.host
+    except Exception:
+        return None
 
 
 def collect_static_manifest(pins: dict | None = None, run: dict | None = None) -> dict:
@@ -114,7 +117,9 @@ def collect_static_manifest(pins: dict | None = None, run: dict | None = None) -
         },
         "cluster": {
             "kind_node_image": _kind_node_image_digest(),
-            "kube_context": harness_kube_context(config),
+            # The API server the harness's KubeCtl is configured for. A rebuilt kind
+            # cluster gets a new host port, so this also changes when the cluster does.
+            "api_server": _harness_api_server(),
         },
         "python": {
             "executable": sys.executable,
@@ -127,7 +132,7 @@ def collect_static_manifest(pins: dict | None = None, run: dict | None = None) -
     }
 
 
-def collect_cluster_images(context: str | None) -> dict:
+def collect_cluster_images() -> dict:
     """Images of every pod in the cluster, grouped by namespace then pod.
 
     `image` is the reference the pod spec asked for, often a floating tag such
@@ -136,27 +141,19 @@ def collect_cluster_images(context: str | None) -> dict:
     tag moved between runs. `image_id` is None for containers that haven't
     started yet. Call after deploy, before teardown.
     """
-    cmd = ["kubectl"] + (["--context", context] if context else [])
-    cmd += ["get", "pods", "--all-namespaces", "-o", "json"]
     try:
-        out = subprocess.run(cmd, capture_output=True, text=True, check=True).stdout
-    except (subprocess.CalledProcessError, FileNotFoundError):
+        pods = _harness_kubectl().core_v1_api.list_pod_for_all_namespaces().items
+    except Exception:
         return {}
 
     images: dict = {}
-    for pod in json.loads(out).get("items", []):
-        meta, spec, status = pod["metadata"], pod["spec"], pod.get("status", {})
-        started = {
-            s["name"]: s
-            for s in (status.get("initContainerStatuses") or []) + (status.get("containerStatuses") or [])
-        }
-        containers = (spec.get("initContainers") or []) + spec["containers"]
-        images.setdefault(meta["namespace"], {})[meta["name"]] = [
-            {
-                "container": c["name"],
-                "image": c["image"],
-                "image_id": started.get(c["name"], {}).get("imageID") or None,
-            }
+    for pod in pods:
+        status = pod.status
+        statuses = ((status.init_container_statuses or []) + (status.container_statuses or [])) if status else []
+        started = {s.name: s.image_id for s in statuses}
+        containers = (pod.spec.init_containers or []) + pod.spec.containers
+        images.setdefault(pod.metadata.namespace, {})[pod.metadata.name] = [
+            {"container": c.name, "image": c.image, "image_id": started.get(c.name) or None}
             for c in containers
         ]
     return images

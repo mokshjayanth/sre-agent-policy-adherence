@@ -66,7 +66,7 @@ ENV_KEYS = [
     ("harness", "status"),
     ("harness", "config_yml"),
     ("cluster", "kind_node_image"),
-    ("cluster", "kube_context"),
+    ("cluster", "api_server"),
     ("python", "executable"),
     ("python", "poetry_lock_sha256"),
     ("python", "pip_freeze"),
@@ -97,6 +97,29 @@ def _lookup(data: dict, path: tuple) -> object:
 
 def _env_diff(recorded: dict, current: dict) -> list[str]:
     return [".".join(p) for p in ENV_KEYS if _lookup(recorded, p) != _lookup(current, p)]
+
+
+def _freeze_by_package(lines: list[str] | None) -> dict[str, str]:
+    by_package = {}
+    for line in lines or []:
+        if "#egg=" in line:
+            name = line.rsplit("#egg=", 1)[1]
+        else:
+            name = re.split(r"===|==| @ ", line, maxsplit=1)[0]
+        by_package[name.strip().lower()] = line
+    return by_package
+
+
+def _describe_change(key: str, recorded: dict, current: dict) -> str:
+    """The changed key, plus which packages moved when it's the pip freeze."""
+    if key != "python.pip_freeze":
+        return key
+    old = _freeze_by_package(_lookup(recorded, ("python", "pip_freeze")))
+    new = _freeze_by_package(_lookup(current, ("python", "pip_freeze")))
+    parts = [f"{old[n]} -> {new[n]}" for n in sorted(old.keys() & new.keys()) if old[n] != new[n]]
+    parts += [f"added {new[n]}" for n in sorted(new.keys() - old.keys())]
+    parts += [f"removed {old[n]}" for n in sorted(old.keys() - new.keys())]
+    return f"{key} ({'; '.join(parts) or 'order or formatting only'})"
 
 
 def _read_index(index_path: Path) -> list[dict]:
@@ -146,7 +169,6 @@ async def run_problem(
     max_steps: int,
     problem_dir: Path,
     workdir: Path,
-    kube_context: str | None,
 ) -> dict:
     _set_aside_previous_attempt(problem_dir)
     problem_dir.mkdir(parents=True)
@@ -160,7 +182,7 @@ async def run_problem(
         problem_desc, instructions, apis = orch.init_problem(problem_id)
         orch.agent.init_context(problem_desc, instructions, apis)
         # Deploy, fault injection and workload start are done, so the pods exist.
-        _write_json(problem_dir / "pods.json", collect_cluster_images(kube_context))
+        _write_json(problem_dir / "pods.json", collect_cluster_images())
         results = await orch.start_problem(max_steps=max_steps)
         record["status"] = "ok"
     except Exception as exc:
@@ -202,8 +224,9 @@ def _start_or_resume(args) -> tuple[Path, dict, list[str], dict[str, str]]:
         current = collect_static_manifest(pins=pins, run={**settings, "argv": sys.argv})
         changed = _env_diff(recorded, current)
         if changed and not args.allow_env_change:
+            details = "\n".join(f"  - {_describe_change(key, recorded, current)}" for key in changed)
             raise SystemExit(
-                f"Environment differs from {batch_dir / 'batch.json'} in: {', '.join(changed)}.\n"
+                f"Environment differs from {batch_dir / 'batch.json'} in:\n{details}\n"
                 "Resuming would mix two setups in one batch. Start a new batch, or pass "
                 "--allow-env-change to continue anyway (the difference is recorded)."
             )
@@ -246,7 +269,6 @@ async def run_batch(args) -> int:
     todo = [p for p in problems if latest.get(p) != "ok"]
 
     agent_cls = _load_agent(settings["agent"])
-    kube_context = json.loads((batch_dir / "batch.json").read_text())["cluster"]["kube_context"]
     args.workdir.mkdir(parents=True, exist_ok=True)
     os.chdir(args.workdir)
 
@@ -261,7 +283,6 @@ async def run_batch(args) -> int:
             settings["max_steps"],
             batch_dir / "problems" / problem_id,
             args.workdir,
-            kube_context,
         )
         record["attempt"] = sum(1 for rec in history if rec["problem_id"] == problem_id) + 1
         history.append(record)
