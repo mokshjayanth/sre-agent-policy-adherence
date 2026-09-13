@@ -18,12 +18,16 @@ image; on ARM, use the harness's own `kind/kind-config-arm.yaml` instead.
 
    Already cloned without submodules? Run `git submodule update --init --recursive`.
 
-2. Install the harness's Python environment:
+2. Install the harness's Python environment, skipping its `clients` group:
 
    ```
    poetry -C third_party/aiopslab env use python3.11
-   poetry -C third_party/aiopslab install
+   poetry -C third_party/aiopslab install --without clients
    ```
+
+   The `clients` group holds the harness's reference agents (vllm, autogen,
+   Azure ML) and pulls large CUDA wheels. Neither `agents/` nor the harness
+   package imports anything from it.
 
 3. Create the harness config from its template, then set `k8s_host: kind` and
    `k8s_user` to your username:
