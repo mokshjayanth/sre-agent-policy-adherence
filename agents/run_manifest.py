@@ -6,7 +6,7 @@ config.yml (gitignored upstream, changes what gets scored via
 qualitative_eval), the Python interpreter actually running, version pins
 applied from outside the harness, the cluster the harness targets, and the
 image digests actually running in it during the run. Not a gate — just a
-debugging record, per notes/harness-pinning-hardening.md.
+debugging record, per notes/2026-09-13-harness-pin-coverage.md.
 
 Cluster facts come from AIOpsLab's own KubeCtl client rather than a separate
 kubectl call, so they describe exactly the cluster the harness talks to.

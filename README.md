@@ -56,7 +56,7 @@ Activate the harness environment from the repo root, then run a batch:
 
 ```
 eval "$(poetry -C third_party/aiopslab env activate)"
-python agents/run_batch.py --problems misconfig_app_hotel_res-detection-1 --condition smoke --max-steps 5
+python agents/run_batch.py --problems misconfig_app_hotel_res-detection-1 --condition smoke-scripted --max-steps 5
 ```
 
 Avoid `poetry -C third_party/aiopslab run python agents/...`: `poetry -C`

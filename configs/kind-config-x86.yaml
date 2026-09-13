@@ -3,7 +3,7 @@
 # Upstream floats the node image on `:latest`. Pinned here by digest so the
 # cluster itself doesn't drift between the baseline run and the trained-model
 # run near the 31 Oct anchor. Verified digest as of 2026-09-12 — see
-# notes/harness-pinning-hardening.md.
+# notes/2026-09-13-harness-pin-coverage.md.
 #
 # Use this file (not the upstream one) when creating the cluster:
 #   kind create cluster --config configs/kind-config-x86.yaml

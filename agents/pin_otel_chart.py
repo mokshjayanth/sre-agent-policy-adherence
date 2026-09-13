@@ -5,7 +5,7 @@ Helm.install(**self.helm_configs) against the remote `open-telemetry` repo
 with no "version" key, so it floats onto whatever's newest at install time.
 That chart releases roughly monthly (13 times in 2026 as of this writing) —
 the one input in the harness that will almost certainly move mid-study. See
-notes/harness-pinning-hardening.md.
+notes/2026-09-13-harness-pin-coverage.md.
 
 Fix lives here, not in third_party/aiopslab: monkeypatch
 ProblemRegistry.get_problem_instance to set helm_configs["version"] on any

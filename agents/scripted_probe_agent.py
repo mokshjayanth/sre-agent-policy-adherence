@@ -61,7 +61,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(description="Run the scripted probe on one problem as a batch of one.")
     p.add_argument("--problem-id", default="misconfig_app_hotel_res-detection-1")
     p.add_argument("--max-steps", type=int, default=5)
-    p.add_argument("--condition", "--run-tag", dest="condition", default="scripted-probe",
+    p.add_argument("--condition", "--run-tag", dest="condition", default="smoke-scripted",
                    help="batch label under runs/ (--run-tag is the old name)")
     args = p.parse_args()
 

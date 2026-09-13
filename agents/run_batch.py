@@ -212,6 +212,13 @@ async def run_problem(
     return record
 
 
+# Batch labels are <purpose>-<agent>[-<variant>], lowercase; see CLAUDE.md.
+CONDITION_PURPOSES = ("smoke", "validation", "noise", "b1", "b2", "b3", "t1", "t2")
+CONDITION_PATTERN = re.compile(
+    rf"(?:{'|'.join(CONDITION_PURPOSES)})-[a-z0-9][a-z0-9.]*(?:-[a-z0-9][a-z0-9.]*)*"
+)
+
+
 def _start_or_resume(args) -> tuple[Path, dict, list[str], dict[str, str]]:
     """Create the batch folder or reopen it; return (batch dir, run settings, problems, skipped)."""
     apply_pin()
@@ -236,8 +243,12 @@ def _start_or_resume(args) -> tuple[Path, dict, list[str], dict[str, str]]:
         _write_json(batch_dir / f"resume-{n}.json", {**current, "changed_from_batch": changed})
         return batch_dir, settings, settings["problems"], settings["skipped"]
 
-    if not args.condition or not re.fullmatch(r"[A-Za-z0-9._-]+", args.condition):
-        raise SystemExit("--condition is required for a new batch (letters, digits, '.', '_', '-').")
+    if not args.condition or not CONDITION_PATTERN.fullmatch(args.condition):
+        raise SystemExit(
+            "--condition must be <purpose>-<agent>[-<variant>] in lowercase, with purpose one of "
+            f"{', '.join(CONDITION_PURPOSES)} (e.g. validation-scripted, b1-qwen3-1.7b); "
+            f"got {args.condition!r}."
+        )
     problems, skipped = select_problems(args.problems, args.problem_file, args.task, args.include_excluded)
     agent_cls = _load_agent(args.agent)
     settings = {

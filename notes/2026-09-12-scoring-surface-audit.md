@@ -1,3 +1,14 @@
+---
+date: 2026-09-12
+type: audit
+status: current
+evidence:
+  - commit af2bda1 (scripted probe agent used for these runs)
+  - runs/_legacy/day1-boot-run1
+  - runs/_legacy/day1-boot-run2
+  - third_party/aiopslab/aiopslab/orchestrator/problems/registry.py
+---
+
 # Day 1 — scoring-surface audit
 
 Date: 2026-09-12. Harness: AIOpsLab @ `ddf7e40619689dad75eaf8f2174e263c4157ec76` (pinned in
@@ -113,3 +124,15 @@ with a documented caveat about wall-clock metrics. Q3 surfaces a real bookkeepin
 ADR that should be fixed before the AOI-style fault-type split is finalized, but doesn't
 invalidate the approach. Recommendation: proceed past the gate; recompute the split from the
 live registry; treat TTD/token-count fields as non-reproducible telemetry, not scoring signal.
+
+## Correction (2026-09-13)
+
+- **15 problem IDs are disabled, not 14.** The list above misses
+  `redeploy_without_PV-localization-1`, commented out at
+  `third_party/aiopslab/aiopslab/orchestrator/problems/registry.py:198` with no
+  stated reason. The live total of 89 stands.
+- **Only four of them sit under the Chaos Mesh comment.** That comment
+  (`registry.py:165-167`) precedes the two `kernel_fault_hotel_reservation-*`
+  and two `disk_woreout-*` entries (`registry.py:168-171`). The ten
+  `operator_*` entries (`registry.py:207-216`) are commented out under a plain
+  "K8S operator misoperation" header with no reason given.

@@ -1,6 +1,17 @@
+---
+date: 2026-09-13
+type: decision
+status: current
+evidence:
+  - commit 3cd7f8b (manifest, kind node digest pin, OTel chart pin)
+  - commit c559961 (image digests across namespaces)
+  - commit d8600c8 (flood-homepage exclusions)
+  - runs/_legacy/2026-09-13T190612Z_runner-validation
+---
+
 # Harness pinning — hardening beyond the commit hash
 
-Follow-up to [`day1-scoring-surface-audit.md`](day1-scoring-surface-audit.md) and the
+Follow-up to [`2026-09-12-scoring-surface-audit.md`](2026-09-12-scoring-surface-audit.md) and the
 CLAUDE.md commit pin. The commit hash only proves which *code* is checked out; this covers
 what it doesn't.
 
@@ -36,8 +47,8 @@ Helm chart, was wrong and is retracted.
 
 The bigger source of run-to-run variance isn't any of these: two identical Day-1 runs of the
 same deterministic scripted agent got different observation text in 2 of 3 steps (`get_logs`
-596 vs 1402 chars, `get_metrics` 1418 vs 375 chars — see `runs/day1-boot-run1` vs
-`runs/day1-boot-run2`). A scripted agent ignores that; a real LLM agent conditions on it, so
+596 vs 1402 chars, `get_metrics` 1418 vs 375 chars — see `runs/_legacy/day1-boot-run1` vs
+`runs/_legacy/day1-boot-run2`). A scripted agent ignores that; a real LLM agent conditions on it, so
 "identical" reruns can diverge in *behavior*, not just telemetry, before sampling randomness
 is even in play. No amount of image pinning touches this — it has to be handled by measuring
 the noise floor directly (below).
