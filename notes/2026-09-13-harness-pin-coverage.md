@@ -97,3 +97,12 @@ the noise floor directly (below).
    run to run. This needs a real LLM, not the scripted probe agent — the scripted agent is
    deterministic by construction and can't reveal whether varying observation text actually
    changes what an agent decides to do. Next up, once the Bedrock-compatible key is wired in.
+
+## Correction (2026-09-13)
+
+The paragraph on the bigger source of run-to-run variance cites `get_metrics` at 1418 vs 375
+characters. The 375-character observation is an error: that `get_metrics` call failed. The
+failure occurs in 3 of the 7 runs recorded so far and is an environment fault, not variance;
+see `notes/2026-09-13-get-metrics-failures.md`. The `get_logs` difference (596 vs 1402
+characters) is genuine variation, and the point that an LLM agent conditions on observation
+text, so reruns can diverge, still stands, as does measuring the noise floor.

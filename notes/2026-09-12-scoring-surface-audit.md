@@ -136,3 +136,17 @@ live registry; treat TTD/token-count fields as non-reproducible telemetry, not s
   and two `disk_woreout-*` entries (`registry.py:168-171`). The ten
   `operator_*` entries (`registry.py:207-216`) are commented out under a plain
   "K8S operator misoperation" header with no reason given.
+
+## Correction (2026-09-13): the Q2 differences were a failed metrics call
+
+Q2 put the differences between the two runs down to infrastructure timing. They were mostly
+one failure. In `runs/_legacy/day1-boot-run2` the `get_metrics` call failed: its 375-character
+observation is `HTTPConnectionPool(host='localhost', port=32000): Max retries exceeded …`, not
+a metrics listing. Across all seven runs recorded so far, every failed `get_metrics` has a TTD
+of 9.12–9.18 s and every successful one 3.22–3.39 s, so the 3.33 s vs 9.12 s TTD gap here is
+that failure too. See `notes/2026-09-13-get-metrics-failures.md`.
+
+What still holds: the action sequence and the verdict reproduced, and TTD is not a scoring
+signal. What changes: the observation an agent receives can differ in kind, data versus an
+error, and that is an environment fault to count and control for, not noise. The `get_logs`
+length difference (596 vs 1402 characters) is unaffected.

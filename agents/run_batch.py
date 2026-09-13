@@ -37,7 +37,11 @@ import json
 import os
 import re
 import shutil
+import signal
+import subprocess
 import sys
+import threading
+import time
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
@@ -163,6 +167,70 @@ def _set_aside_previous_attempt(problem_dir: Path) -> None:
     problem_dir.rename(failed)
 
 
+def _alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+def _terminate_shell_process(process: subprocess.Popen) -> None:
+    """Terminate a `shell=True` process and the command it started.
+
+    /bin/sh is dash here, and `sh -c "kubectl ..."` forks kubectl rather than
+    exec'ing it, so terminating the shell alone leaves kubectl running as an
+    orphan. Children are listed before the shell dies, while they still have it
+    as their parent.
+    """
+    listed = subprocess.run(["pgrep", "-P", str(process.pid)], capture_output=True, text=True).stdout
+    children = [int(pid) for pid in listed.split()]
+    for pid in children:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    process.terminate()
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        process.kill()
+    deadline = time.monotonic() + 5
+    for pid in children:
+        while _alive(pid) and time.monotonic() < deadline:
+            time.sleep(0.1)
+        if _alive(pid):
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+
+def _stop_leaked_port_forwards() -> int:
+    """Stop harness port-forwards their owner never cleaned up; return how many.
+
+    AIOpsLab's PrometheusAPI and TraceAPI start `kubectl port-forward` plus two
+    non-daemon threads that read its output until the owner's stop_event is set.
+    When a metrics query raises, export_all_metrics exits before its cleanup(),
+    so the threads never stop and Python can't exit once the batch is done.
+    See notes/2026-09-13-get-metrics-failures.md.
+    """
+    owners = {}
+    for thread in threading.enumerate():
+        target = getattr(thread, "_target", None)
+        owner = getattr(target, "__self__", None)
+        if getattr(target, "__name__", None) == "print_output" and hasattr(owner, "stop_event"):
+            owners[id(owner)] = owner
+    for owner in owners.values():
+        owner.stop_event.set()
+        process = getattr(owner, "port_forward_process", None)
+        if process is not None and process.poll() is None:
+            _terminate_shell_process(process)
+        for thread in getattr(owner, "output_threads", []):
+            thread.join(timeout=5)
+    return len(owners)
+
+
 async def run_problem(
     problem_id: str,
     agent_cls,
@@ -202,6 +270,10 @@ async def run_problem(
             "history": [item.model_dump() for item in session.history] if session else [],
         })
         _move_exports(workdir, exports_before, problem_dir)
+        # A non-zero count also marks a problem whose get_metrics or get_traces call failed.
+        leaked = _stop_leaked_port_forwards()
+        if leaked:
+            print(f"    stopped {leaked} port-forward(s) the harness left running")
 
     record.update(
         finished_utc=_utcnow(),
@@ -209,6 +281,7 @@ async def run_problem(
         solution=session.solution if session else None,
         results=(results or {}).get("results"),
         framework_overhead_s=(results or {}).get("framework_overhead"),
+        leaked_port_forwards=leaked,
     )
     return record
 
