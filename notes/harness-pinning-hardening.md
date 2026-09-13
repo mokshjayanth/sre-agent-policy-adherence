@@ -53,8 +53,10 @@ the noise floor directly (below).
    `jacksonarthurclark/aiopslab-kind-x86@sha256:d631857278d3f8ce5c36364c75ec25695ceb22e311ec6621a4ebf5506b86774d`,
    verified as the currently-cached digest on 2026-09-12. Use this file, not upstream's, when
    (re-)creating the cluster.
-3. **Per-run manifest** (`agents/run_manifest.py`, written as `runs/<tag>/manifest.json`
-   alongside `trajectory.json`): AIOpsLab + `aiopslab-applications` commit hashes,
+3. **Per-run manifest** (`agents/run_manifest.py`, recorded by `agents/run_batch.py` as
+   `runs/<batch>/batch.json` once per batch and `problems/<id>/pods.json` per problem): this
+   repo's commit and dirty files, the harness's `git status`, the OTel chart pin, the run
+   arguments and agent description, AIOpsLab + `aiopslab-applications` commit hashes,
    `config.yml` contents (gitignored upstream — `qualitative_eval` lives here and changes
    what gets scored), the kind node image digest actually running, the Python interpreter
    (`sys.executable`, `poetry.lock` hash, `pip freeze`), the kube context the harness
@@ -69,7 +71,10 @@ the noise floor directly (below).
    `Helm.install` already turns a `"version"` key into `--version X`. Pinned to the latest
    release as of 2026-09-13; re-verify and bump deliberately if it's used later, never let it
    silently ride newest. Dormant for now — no Astronomy Shop problems are in scope yet
-   (Day 1 only used `misconfig_app_hotel_res-detection-1`).
+   (Day 1 only used `misconfig_app_hotel_res-detection-1`). The two
+   `astronomy_shop_loadgenerator_flood_homepage-*` problems are excluded by default in
+   `agents/problem_sets.py`: their feature flag is missing from charts 0.41.0 and 0.41.1,
+   so fault injection can only fail.
 5. **OpenEBS**: no hash-check/abort gate — decided against it, not worth the complexity for
    a manifest already 2024-vintage stable. Its live-fetched content isn't otherwise recorded
    per run; if it's ever suspected of drifting, check `openebs/charts` history directly rather

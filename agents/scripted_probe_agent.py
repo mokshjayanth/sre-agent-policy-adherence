@@ -8,27 +8,18 @@ job is to answer the three scoring-surface audit questions from the Day 1
 plan (tool-call recoverability, seed reproducibility, problem-ID/fault-type
 mapping). It must not be mistaken for a policy-adherence baseline.
 
+Running this file is a shortcut for a batch of one through agents/run_batch.py:
+
+    python agents/run_batch.py --problems <id> --condition <label> \
+        --agent scripted-probe --max-steps 5
+
 third_party/aiopslab is vendored unmodified; this script lives outside it and
 only imports from it.
 """
 
 import argparse
-import asyncio
-import json
 import re
 import sys
-from pathlib import Path
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-AIOPSLAB_ROOT = REPO_ROOT / "third_party" / "aiopslab"
-sys.path.insert(0, str(AIOPSLAB_ROOT))
-
-from aiopslab.orchestrator import Orchestrator  # noqa: E402
-
-from run_manifest import collect_static_manifest, collect_cluster_images  # noqa: E402
-from pin_otel_chart import PINNED_OTEL_CHART_VERSION, apply_pin as apply_otel_chart_pin  # noqa: E402
-
-apply_otel_chart_pin()
 
 
 class ScriptedProbeAgent:
@@ -39,6 +30,14 @@ class ScriptedProbeAgent:
         self.namespace = None
         self.faulty_service = None
         self.submit_value = submit_value
+
+    @classmethod
+    def describe(cls) -> dict:
+        """What batch.json records about this agent."""
+        return {
+            "kind": "scripted, not an LLM",
+            "sequence": ['get_logs(<namespace>, "geo")', "get_metrics(<namespace>, 5)", 'submit("Yes")'],
+        }
 
     def init_context(self, problem_desc: str, instructions: str, apis: dict):
         self.problem_desc = problem_desc
@@ -58,54 +57,20 @@ class ScriptedProbeAgent:
         return f'Action:\n```\nsubmit("{self.submit_value}")\n```'
 
 
-async def run(problem_id: str, max_steps: int, run_tag: str) -> dict:
-    manifest = collect_static_manifest(
-        pins={"otel_demo_chart": PINNED_OTEL_CHART_VERSION},
-        run={
-            "agent": "scripted-probe",
-            "problem_id": problem_id,
-            "max_steps": max_steps,
-            "run_tag": run_tag,
-            "argv": sys.argv,
-        },
-    )
-
-    orch = Orchestrator()
-    agent = ScriptedProbeAgent()
-    orch.register_agent(agent, name="scripted-probe")
-
-    problem_desc, instructions, apis = orch.init_problem(problem_id)
-    agent.init_context(problem_desc, instructions, apis)
-
-    # Deploy + fault injection + workload start have all happened by the time
-    # init_problem() returns, so the pods exist here. Capture image digests
-    # across every namespace now: the app's pods are gone after teardown, and
-    # the wrk2 Job in `default` is re-pulled on every run.
-    manifest["pod_images"] = collect_cluster_images(manifest["cluster"]["kube_context"])
-
-    results = await orch.start_problem(max_steps=max_steps)
-
-    out_dir = REPO_ROOT / "runs" / run_tag
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    record = {
-        "problem_id": problem_id,
-        "session_id": str(orch.session.session_id),
-        "agent_name": orch.agent_name,
-        "solution": orch.session.solution,
-        "results": results,
-        "history": [item.model_dump() for item in orch.session.history],
-    }
-    (out_dir / "trajectory.json").write_text(json.dumps(record, indent=2, default=str))
-    (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, default=str))
-    print(json.dumps(record, indent=2, default=str))
-    return record
-
-
 if __name__ == "__main__":
-    p = argparse.ArgumentParser()
+    p = argparse.ArgumentParser(description="Run the scripted probe on one problem as a batch of one.")
     p.add_argument("--problem-id", default="misconfig_app_hotel_res-detection-1")
     p.add_argument("--max-steps", type=int, default=5)
-    p.add_argument("--run-tag", required=True)
+    p.add_argument("--condition", "--run-tag", dest="condition", default="scripted-probe",
+                   help="batch label under runs/ (--run-tag is the old name)")
     args = p.parse_args()
-    asyncio.run(run(args.problem_id, args.max_steps, args.run_tag))
+
+    # Imported here, not at the top: run_batch loads this module by name to get the agent.
+    from run_batch import main
+
+    sys.exit(main([
+        "--problems", args.problem_id,
+        "--condition", args.condition,
+        "--agent", "scripted-probe",
+        "--max-steps", str(args.max_steps),
+    ]))
