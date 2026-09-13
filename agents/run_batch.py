@@ -175,6 +175,24 @@ def _alive(pid: int) -> bool:
     return True
 
 
+def _terminate_pids(pids: list[int], grace_s: float = 5) -> None:
+    """SIGTERM each process, then SIGKILL whatever is still alive after the grace period."""
+    for pid in pids:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    deadline = time.monotonic() + grace_s
+    for pid in pids:
+        while _alive(pid) and time.monotonic() < deadline:
+            time.sleep(0.1)
+        if _alive(pid):
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+
 def _terminate_shell_process(process: subprocess.Popen) -> None:
     """Terminate a `shell=True` process and the command it started.
 
@@ -184,26 +202,53 @@ def _terminate_shell_process(process: subprocess.Popen) -> None:
     as their parent.
     """
     listed = subprocess.run(["pgrep", "-P", str(process.pid)], capture_output=True, text=True).stdout
-    children = [int(pid) for pid in listed.split()]
-    for pid in children:
+    _terminate_pids([int(pid) for pid in listed.split()])
+    if process.poll() is None:
+        process.terminate()
         try:
-            os.kill(pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-    process.terminate()
-    try:
-        process.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        process.kill()
-    deadline = time.monotonic() + 5
-    for pid in children:
-        while _alive(pid) and time.monotonic() < deadline:
-            time.sleep(0.1)
-        if _alive(pid):
-            try:
-                os.kill(pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+
+
+# Exactly the port-forward commands AIOpsLab runs: PrometheusAPI (observer/metric_api.py)
+# and TraceAPI (observer/trace_api.py). Anything else, including their `sh -c` wrappers,
+# is left alone.
+HARNESS_PORT_FORWARD = re.compile(
+    r"kubectl port-forward (?:svc/prometheus-server \d+:80 -n observe"
+    r"|pod/\S+ 16686:16686 -n \S+"
+    r"|svc/jaeger 16686:16686 -n \S+)"
+)
+
+
+def _harness_port_forward_pids(listing: str | None = None) -> list[int]:
+    """PIDs of processes whose command line is exactly a harness port-forward command."""
+    if listing is None:
+        listing = subprocess.run(
+            ["pgrep", "-a", "-f", "kubectl port-forward"], capture_output=True, text=True
+        ).stdout
+    pids = []
+    for line in listing.splitlines():
+        pid, _, command = line.strip().partition(" ")
+        if pid.isdigit() and HARNESS_PORT_FORWARD.fullmatch(command):
+            pids.append(int(pid))
+    return pids
+
+
+def _stop_orphaned_port_forwards() -> int:
+    """Stop kubectl processes still running a harness port-forward; return how many.
+
+    Even when a query succeeds, the harness's stop_port_forward() terminates only
+    the `sh -c` wrapper, so kubectl keeps running and holding its local port. The
+    next PrometheusAPI then finds port 32000 taken and forwards another port, while
+    get_metrics still queries localhost:32000, so that call fails. Called before
+    and after every problem; batches run one at a time on one cluster, so no other
+    run can own a live harness port-forward. See
+    notes/2026-09-13-get-metrics-failures.md.
+    """
+    pids = _harness_port_forward_pids()
+    _terminate_pids(pids)
+    return len(pids)
 
 
 def _stop_leaked_port_forwards() -> int:
@@ -242,6 +287,10 @@ async def run_problem(
     _set_aside_previous_attempt(problem_dir)
     problem_dir.mkdir(parents=True)
     record = {"problem_id": problem_id, "task": task_type(problem_id), "started_utc": _utcnow()}
+    # A harness port-forward left from an earlier run would hold port 32000 and break get_metrics.
+    record["stale_port_forwards"] = _stop_orphaned_port_forwards()
+    if record["stale_port_forwards"]:
+        print(f"    stopped {record['stale_port_forwards']} port-forward(s) left over from an earlier run")
     exports_before = _snapshot_exports(workdir)
 
     orch = Orchestrator()
@@ -274,6 +323,10 @@ async def run_problem(
         leaked = _stop_leaked_port_forwards()
         if leaked:
             print(f"    stopped {leaked} port-forward(s) the harness left running")
+        # Expected to be non-zero whenever get_metrics or get_traces ran, even successfully.
+        orphaned = _stop_orphaned_port_forwards()
+        if orphaned:
+            print(f"    stopped {orphaned} orphaned kubectl port-forward(s)")
 
     record.update(
         finished_utc=_utcnow(),
@@ -282,6 +335,7 @@ async def run_problem(
         results=(results or {}).get("results"),
         framework_overhead_s=(results or {}).get("framework_overhead"),
         leaked_port_forwards=leaked,
+        orphaned_port_forwards=orphaned,
     )
     return record
 

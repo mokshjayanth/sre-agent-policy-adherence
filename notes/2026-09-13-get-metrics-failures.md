@@ -92,3 +92,27 @@ unverified.
   vanilla AIOpsLab, so it is a study-design decision, not a bug fix.
 - With a real LLM agent, how often a failed `get_metrics` changes the trajectory. Count failures
   per condition so they can't bias a baseline-versus-trained comparison.
+
+## Correction (2026-09-13): the cause is a port collision, not readiness
+
+The finding above left the refused connection unexplained, and Open floated Prometheus
+readiness. The harness's own logs show a port collision instead. `PrometheusAPI` forwards the
+first free local port from 32000 (`metric_api.py:142`, `find_free_port` at `156-161`), but its
+query client is built from the URL `get_metrics` passes, which is always
+`http://localhost:32000` (`metric_api.py:146`, `actions/base.py:115-129`). In every run whose
+`get_metrics` failed, kubectl logged `Forwarding from 127.0.0.1:32001`; in every successful run,
+`127.0.0.1:32000`.
+
+What held 32000: even when the query succeeds, `stop_port_forward()` terminates only the
+`sh -c` wrapper, so kubectl keeps listening. After `runs/2026-09-13T204443Z_smoke-scripted`
+succeeded, `kubectl port-forward svc/prometheus-server 32000:80 -n observe` was still running
+under PID 1 and listening on 127.0.0.1:32000. That settles the question above: the harness's
+own cleanup does orphan kubectl on the success path. Why a port that looked taken when the next
+run started then refused its query is still unverified.
+
+Decision, replacing the readiness idea: before and after every problem, `agents/run_batch.py`
+stops kubectl processes running exactly one of the harness's port-forward commands and records
+`stale_port_forwards` and `orphaned_port_forwards` in `index.jsonl`. In
+`runs/2026-09-13T210625Z_validation-scripted-sweep`, three problems ran back to back in one
+process: each post-problem sweep stopped one orphan, kubectl forwarded 32000 every time, and all
+three `get_metrics` calls returned metrics (TTD 3.22–3.32 s). No readiness wait is needed.
