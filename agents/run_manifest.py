@@ -122,6 +122,9 @@ def collect_static_manifest(pins: dict | None = None, run: dict | None = None) -
             "api_server": _harness_api_server(),
         },
         "python": {
+            # sys.prefix identifies the environment. sys.executable depends on the name the
+            # interpreter was launched by: `python` and `python3` are symlinks to one binary.
+            "prefix": sys.prefix,
             "executable": sys.executable,
             "version": sys.version,
             "poetry_lock_sha256": _sha256_file(AIOPSLAB_ROOT / "poetry.lock"),
