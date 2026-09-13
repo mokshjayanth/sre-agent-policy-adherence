@@ -19,7 +19,7 @@ Date: 2026-09-12. Harness: AIOpsLab @ `ddf7e40619689dad75eaf8f2174e263c4157ec76`
 No AWS/Bedrock or other LLM credentials are available in this environment (`aws sts
 get-caller-identity` → `NoCredentials`; no `OPENAI_API_KEY`/`ANTHROPIC_API_KEY`/etc.; no
 Bedrock-capable client exists in `third_party/aiopslab/clients/`). The boot + audit runs
-below used [`agents/scripted_probe_agent.py`](../agents/scripted_probe_agent.py) instead: a
+below used [`agents/scripted_probe.py`](../agents/scripted_probe.py) instead: a
 fixed, seedless `get_logs -> get_metrics -> submit("Yes")` sequence. It exercises the harness
 plumbing end to end but is **not** a policy-adherence baseline and must not be treated as one.
 The overnight ~20-task Bedrock detection run from the Day 1 plan is still blocked on
@@ -38,7 +38,7 @@ service misconfigured). Ran twice, back to back, same scripted agent, same clust
 | TTD (s) | 3.33 | 9.12 |
 | action sequence | get_logs, get_metrics, submit | get_logs, get_metrics, submit |
 
-Raw records: `runs/day1-boot-run1/trajectory.json`, `runs/day1-boot-run2/trajectory.json`
+Raw records: `runs/_legacy/day1-boot-run1/trajectory.json`, `runs/_legacy/day1-boot-run2/trajectory.json`
 (gitignored — telemetry, not source), plus AIOpsLab's own dump under
 `third_party/aiopslab/aiopslab/data/results/<session_id>_<ts>.json`.
 

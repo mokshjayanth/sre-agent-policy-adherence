@@ -26,7 +26,7 @@ image; on ARM, use the harness's own `kind/kind-config-arm.yaml` instead.
    ```
 
    The `clients` group holds the harness's reference agents (vllm, autogen,
-   Azure ML) and pulls large CUDA wheels. Neither `agents/` nor the harness
+   Azure ML) and pulls large CUDA wheels. Neither this repo nor the harness
    package imports anything from it.
 
 3. Create the harness config from its template, then set `k8s_host: kind` and
@@ -50,17 +50,29 @@ image; on ARM, use the harness's own `kind/kind-config-arm.yaml` instead.
    git submodule status --recursive
    ```
 
+## Repository layout
+
+| Path | What's there |
+|---|---|
+| `agents/` | Agents only: each turns an observation into one action |
+| `runner/` | Runs AIOpsLab problems and records them; `harness_fixes.py` holds every workaround for harness bugs |
+| `tests/` | Tests that need no cluster |
+| `configs/` | Pinned cluster config |
+| `notes/` | Dated findings and decisions |
+| `runs/` | Batch outputs (not committed) |
+| `third_party/aiopslab` | The harness, as a submodule at the pinned commit |
+
 ## Running problems
 
 Activate the harness environment from the repo root, then run a batch:
 
 ```
 eval "$(poetry -C third_party/aiopslab env activate)"
-python agents/run_batch.py --problems misconfig_app_hotel_res-detection-1 --condition smoke-scripted --max-steps 5
+python -m runner.run_batch --problems misconfig_app_hotel_res-detection-1 --condition smoke-scripted --agent scripted-probe --max-steps 5
 ```
 
-Avoid `poetry -C third_party/aiopslab run python agents/...`: `poetry -C`
-switches into the harness directory, so the relative script path isn't found.
+Avoid `poetry -C third_party/aiopslab run python -m runner.run_batch`:
+`poetry -C` switches into the harness directory, where `runner` isn't importable.
 
 Choose problems with exactly one of `--problems ID ...`, `--problem-file PATH`,
 `--task detection|localization|analysis|mitigation`, `--all`, or
@@ -68,7 +80,9 @@ Choose problems with exactly one of `--problems ID ...`, `--problem-file PATH`,
 time on the single cluster, and each spends roughly 1–4 minutes on setup and
 teardown before any agent time. Problems known to fail at the pinned chart
 version are skipped unless you pass `--include-excluded`; see
-`agents/problem_sets.py`.
+`runner/problem_sets.py`.
+
+Run the tests, which need no cluster, with `python -m pytest tests`.
 
 ## Where results go
 
@@ -77,12 +91,12 @@ Each batch writes one folder under `runs/`, which git ignores:
 ```
 runs/<UTC time>_<condition>/
   batch.json        environment: repo and harness commits, config, Python env, pins, run arguments
-  index.jsonl       one line per finished problem: status, results, timings
+  index.jsonl       one line per finished problem: status, results, timings, port-forward cleanup counts
   problems/<problem_id>/
     trajectory.json   agent and environment turns, plus harness results
     pods.json         image digests of every pod, captured after deploy
     error.txt         only if the problem failed
 ```
 
-Start from `index.jsonl`. The docstring in `agents/run_batch.py` covers the full
+Start from `index.jsonl`. The docstring in `runner/run_batch.py` covers the full
 layout, the resume rules, and why the runner works from `~/aiopslab-work`.

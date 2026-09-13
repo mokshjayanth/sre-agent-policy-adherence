@@ -8,7 +8,7 @@ evidence:
   - runs/_legacy/day1-boot-run2 (failed get_metrics)
   - runs/2026-09-13T194534Z_validation-scripted (failed get_metrics, process hung at exit)
   - runs/2026-09-13T200318Z_validation-scripted (failed get_metrics, hang captured with a stack dump)
-  - agents/run_batch.py _stop_leaked_port_forwards (committed with this note)
+  - runner/harness_fixes.py stop_leaked_port_forwards (committed with this note)
 ---
 
 # Why get_metrics sometimes fails, and why those runs hang at exit
@@ -77,7 +77,7 @@ unverified.
 
 ## Decision
 
-- After each problem, `agents/run_batch.py` stops any port-forward a harness object left running:
+- After each problem, `runner/run_batch.py` stops any port-forward a harness object left running:
   it sets the object's `stop_event`, terminates the shell's `kubectl` child and then the shell,
   and joins the reader threads. It records the count as `leaked_port_forwards` in `index.jsonl`.
   A non-zero count marks a problem whose metrics or traces call failed. The harness itself stays
@@ -110,7 +110,7 @@ under PID 1 and listening on 127.0.0.1:32000. That settles the question above: t
 own cleanup does orphan kubectl on the success path. Why a port that looked taken when the next
 run started then refused its query is still unverified.
 
-Decision, replacing the readiness idea: before and after every problem, `agents/run_batch.py`
+Decision, replacing the readiness idea: before and after every problem, `runner/run_batch.py`
 stops kubectl processes running exactly one of the harness's port-forward commands and records
 `stale_port_forwards` and `orphaned_port_forwards` in `index.jsonl`. In
 `runs/2026-09-13T210625Z_validation-scripted-sweep`, three problems ran back to back in one

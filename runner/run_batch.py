@@ -1,5 +1,9 @@
 """Run a batch of AIOpsLab problems with one agent and record everything.
 
+From the repo root, with the harness environment active:
+
+    python -m runner.run_batch --problems <id> ... --condition <purpose>-<agent> --agent scripted-probe
+
 One folder per batch; a single problem is just a batch of one.
 
     runs/<batch_id>/                  batch_id = <UTC time>_<condition>
@@ -27,7 +31,8 @@ then moves the exports into the problem folder.
 
 When a problem fails, the orchestrator has already recovered the injected
 fault if the agent loop was running; the runner additionally deletes the app
-so leftover pods don't disturb the next problem.
+so leftover pods don't disturb the next problem. Harness port-forward leaks
+are cleaned up before and after every problem (runner/harness_fixes.py).
 """
 
 import argparse
@@ -37,11 +42,7 @@ import json
 import os
 import re
 import shutil
-import signal
-import subprocess
 import sys
-import threading
-import time
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
@@ -49,16 +50,24 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 AIOPSLAB_ROOT = REPO_ROOT / "third_party" / "aiopslab"
 RUNS_ROOT = REPO_ROOT / "runs"
-sys.path.insert(0, str(AIOPSLAB_ROOT))
+# Importable as `python -m runner.run_batch` or by file path; the repo root wins name clashes.
+for _path in (AIOPSLAB_ROOT, REPO_ROOT):
+    if str(_path) not in sys.path:
+        sys.path.insert(0, str(_path))
 
 from aiopslab.orchestrator import Orchestrator  # noqa: E402
 
-from pin_otel_chart import PINNED_OTEL_CHART_VERSION, apply_pin  # noqa: E402
-from problem_sets import TASK_TYPES, select_problems, task_type  # noqa: E402
-from run_manifest import collect_cluster_images, collect_static_manifest  # noqa: E402
+from runner.harness_fixes import (  # noqa: E402
+    PINNED_OTEL_CHART_VERSION,
+    pin_otel_chart,
+    stop_leaked_port_forwards,
+    stop_orphaned_port_forwards,
+)
+from runner.manifest import collect_cluster_images, collect_static_manifest  # noqa: E402
+from runner.problem_sets import TASK_TYPES, select_problems, task_type  # noqa: E402
 
 AGENTS = {
-    "scripted-probe": "scripted_probe_agent:ScriptedProbeAgent",
+    "scripted-probe": "agents.scripted_probe:ScriptedProbeAgent",
 }
 
 # batch.json fields that must be unchanged for a resumed batch to stay one setup.
@@ -77,6 +86,12 @@ ENV_KEYS = [
     ("python", "pip_freeze"),
     ("pins",),
 ]
+
+# Batch labels are <purpose>-<agent>[-<variant>], lowercase; see CLAUDE.md.
+CONDITION_PURPOSES = ("smoke", "validation", "noise", "b1", "b2", "b3", "t1", "t2")
+CONDITION_PATTERN = re.compile(
+    rf"(?:{'|'.join(CONDITION_PURPOSES)})-[a-z0-9][a-z0-9.]*(?:-[a-z0-9][a-z0-9.]*)*"
+)
 
 EXPORT_DIRS = ("metrics_output", "trace_output")
 
@@ -167,115 +182,6 @@ def _set_aside_previous_attempt(problem_dir: Path) -> None:
     problem_dir.rename(failed)
 
 
-def _alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    return True
-
-
-def _terminate_pids(pids: list[int], grace_s: float = 5) -> None:
-    """SIGTERM each process, then SIGKILL whatever is still alive after the grace period."""
-    for pid in pids:
-        try:
-            os.kill(pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-    deadline = time.monotonic() + grace_s
-    for pid in pids:
-        while _alive(pid) and time.monotonic() < deadline:
-            time.sleep(0.1)
-        if _alive(pid):
-            try:
-                os.kill(pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-
-
-def _terminate_shell_process(process: subprocess.Popen) -> None:
-    """Terminate a `shell=True` process and the command it started.
-
-    /bin/sh is dash here, and `sh -c "kubectl ..."` forks kubectl rather than
-    exec'ing it, so terminating the shell alone leaves kubectl running as an
-    orphan. Children are listed before the shell dies, while they still have it
-    as their parent.
-    """
-    listed = subprocess.run(["pgrep", "-P", str(process.pid)], capture_output=True, text=True).stdout
-    _terminate_pids([int(pid) for pid in listed.split()])
-    if process.poll() is None:
-        process.terminate()
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
-
-
-# Exactly the port-forward commands AIOpsLab runs: PrometheusAPI (observer/metric_api.py)
-# and TraceAPI (observer/trace_api.py). Anything else, including their `sh -c` wrappers,
-# is left alone.
-HARNESS_PORT_FORWARD = re.compile(
-    r"kubectl port-forward (?:svc/prometheus-server \d+:80 -n observe"
-    r"|pod/\S+ 16686:16686 -n \S+"
-    r"|svc/jaeger 16686:16686 -n \S+)"
-)
-
-
-def _harness_port_forward_pids(listing: str | None = None) -> list[int]:
-    """PIDs of processes whose command line is exactly a harness port-forward command."""
-    if listing is None:
-        listing = subprocess.run(
-            ["pgrep", "-a", "-f", "kubectl port-forward"], capture_output=True, text=True
-        ).stdout
-    pids = []
-    for line in listing.splitlines():
-        pid, _, command = line.strip().partition(" ")
-        if pid.isdigit() and HARNESS_PORT_FORWARD.fullmatch(command):
-            pids.append(int(pid))
-    return pids
-
-
-def _stop_orphaned_port_forwards() -> int:
-    """Stop kubectl processes still running a harness port-forward; return how many.
-
-    Even when a query succeeds, the harness's stop_port_forward() terminates only
-    the `sh -c` wrapper, so kubectl keeps running and holding its local port. The
-    next PrometheusAPI then finds port 32000 taken and forwards another port, while
-    get_metrics still queries localhost:32000, so that call fails. Called before
-    and after every problem; batches run one at a time on one cluster, so no other
-    run can own a live harness port-forward. See
-    notes/2026-09-13-get-metrics-failures.md.
-    """
-    pids = _harness_port_forward_pids()
-    _terminate_pids(pids)
-    return len(pids)
-
-
-def _stop_leaked_port_forwards() -> int:
-    """Stop harness port-forwards their owner never cleaned up; return how many.
-
-    AIOpsLab's PrometheusAPI and TraceAPI start `kubectl port-forward` plus two
-    non-daemon threads that read its output until the owner's stop_event is set.
-    When a metrics query raises, export_all_metrics exits before its cleanup(),
-    so the threads never stop and Python can't exit once the batch is done.
-    See notes/2026-09-13-get-metrics-failures.md.
-    """
-    owners = {}
-    for thread in threading.enumerate():
-        target = getattr(thread, "_target", None)
-        owner = getattr(target, "__self__", None)
-        if getattr(target, "__name__", None) == "print_output" and hasattr(owner, "stop_event"):
-            owners[id(owner)] = owner
-    for owner in owners.values():
-        owner.stop_event.set()
-        process = getattr(owner, "port_forward_process", None)
-        if process is not None and process.poll() is None:
-            _terminate_shell_process(process)
-        for thread in getattr(owner, "output_threads", []):
-            thread.join(timeout=5)
-    return len(owners)
-
-
 async def run_problem(
     problem_id: str,
     agent_cls,
@@ -288,7 +194,7 @@ async def run_problem(
     problem_dir.mkdir(parents=True)
     record = {"problem_id": problem_id, "task": task_type(problem_id), "started_utc": _utcnow()}
     # A harness port-forward left from an earlier run would hold port 32000 and break get_metrics.
-    record["stale_port_forwards"] = _stop_orphaned_port_forwards()
+    record["stale_port_forwards"] = stop_orphaned_port_forwards()
     if record["stale_port_forwards"]:
         print(f"    stopped {record['stale_port_forwards']} port-forward(s) left over from an earlier run")
     exports_before = _snapshot_exports(workdir)
@@ -320,11 +226,11 @@ async def run_problem(
         })
         _move_exports(workdir, exports_before, problem_dir)
         # A non-zero count also marks a problem whose get_metrics or get_traces call failed.
-        leaked = _stop_leaked_port_forwards()
+        leaked = stop_leaked_port_forwards()
         if leaked:
             print(f"    stopped {leaked} port-forward(s) the harness left running")
         # Expected to be non-zero whenever get_metrics or get_traces ran, even successfully.
-        orphaned = _stop_orphaned_port_forwards()
+        orphaned = stop_orphaned_port_forwards()
         if orphaned:
             print(f"    stopped {orphaned} orphaned kubectl port-forward(s)")
 
@@ -340,16 +246,9 @@ async def run_problem(
     return record
 
 
-# Batch labels are <purpose>-<agent>[-<variant>], lowercase; see CLAUDE.md.
-CONDITION_PURPOSES = ("smoke", "validation", "noise", "b1", "b2", "b3", "t1", "t2")
-CONDITION_PATTERN = re.compile(
-    rf"(?:{'|'.join(CONDITION_PURPOSES)})-[a-z0-9][a-z0-9.]*(?:-[a-z0-9][a-z0-9.]*)*"
-)
-
-
 def _start_or_resume(args) -> tuple[Path, dict, list[str], dict[str, str]]:
     """Create the batch folder or reopen it; return (batch dir, run settings, problems, skipped)."""
-    apply_pin()
+    pin_otel_chart()
     pins = {"otel_demo_chart": PINNED_OTEL_CHART_VERSION}
 
     if args.resume:

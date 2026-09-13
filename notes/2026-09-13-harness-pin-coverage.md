@@ -24,7 +24,7 @@ never actually used. `HotelReservation` sets `self.helm_deploy = False`
 (`aiopslab/service/apps/hotelres.py`) and deploys via `kubectl.apply_configs` against raw
 manifests at `aiopslab-applications/hotelReservation/kubernetes/` instead — a completely
 different, unpinned set of YAML files living next to the unused Helm chart. Caught this by
-diffing what `agents/run_manifest.py` recorded from the *actual running pods* against what the
+diffing what `runner/manifest.py` recorded from the *actual running pods* against what the
 chart values implied; they didn't match at all. Lesson: for this app, only pod-level
 `kubectl get pods -o jsonpath=...image` (or the manifest, now automated) tells you the truth —
 reading `values.yaml` here checks a path that isn't wired up.
@@ -64,7 +64,7 @@ the noise floor directly (below).
    `jacksonarthurclark/aiopslab-kind-x86@sha256:d631857278d3f8ce5c36364c75ec25695ceb22e311ec6621a4ebf5506b86774d`,
    verified as the currently-cached digest on 2026-09-12. Use this file, not upstream's, when
    (re-)creating the cluster.
-3. **Per-run manifest** (`agents/run_manifest.py`, recorded by `agents/run_batch.py` as
+3. **Per-run manifest** (`runner/manifest.py`, recorded by `runner/run_batch.py` as
    `runs/<batch>/batch.json` once per batch and `problems/<id>/pods.json` per problem): this
    repo's commit and dirty files, the harness's `git status`, the OTel chart pin, the run
    arguments and agent description, AIOpsLab + `aiopslab-applications` commit hashes,
@@ -76,7 +76,7 @@ the noise floor directly (below).
    `consul:latest` moved; the reference alone can't. All namespaces, not just the app's,
    so the per-run re-pulled `wrk2-client` image in `default` is covered too. Not a gate — a debugging record, so a future
    discrepancy has something to check against.
-4. **OTel chart version pin** (`agents/pin_otel_chart.py`): monkeypatches
+4. **OTel chart version pin** (`runner/harness_fixes.py`): monkeypatches
    `ProblemRegistry.get_problem_instance` from our own code (no edit to `third_party/aiopslab`)
    to set `prob.app.helm_configs["version"] = "0.41.1"` for any Astronomy Shop problem.
    `Helm.install` already turns a `"version"` key into `--version X`. Pinned to the latest
@@ -84,7 +84,7 @@ the noise floor directly (below).
    silently ride newest. Dormant for now — no Astronomy Shop problems are in scope yet
    (Day 1 only used `misconfig_app_hotel_res-detection-1`). The two
    `astronomy_shop_loadgenerator_flood_homepage-*` problems are excluded by default in
-   `agents/problem_sets.py`: their feature flag is missing from charts 0.41.0 and 0.41.1,
+   `runner/problem_sets.py`: their feature flag is missing from charts 0.41.0 and 0.41.1,
    so fault injection can only fail.
 5. **OpenEBS**: no hash-check/abort gate — decided against it, not worth the complexity for
    a manifest already 2024-vintage stable. Its live-fetched content isn't otherwise recorded

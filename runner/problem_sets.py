@@ -11,7 +11,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 AIOPSLAB_ROOT = REPO_ROOT / "third_party" / "aiopslab"
-sys.path.insert(0, str(AIOPSLAB_ROOT))
+if str(AIOPSLAB_ROOT) not in sys.path:
+    sys.path.insert(0, str(AIOPSLAB_ROOT))
 
 from aiopslab.orchestrator.problems.registry import ProblemRegistry  # noqa: E402
 

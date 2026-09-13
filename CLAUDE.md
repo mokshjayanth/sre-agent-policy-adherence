@@ -26,8 +26,20 @@ update the hash above, and treat all prior runs as incomparable.
 
 Beyond the commit, see `notes/2026-09-13-harness-pin-coverage.md`. Create the
 kind cluster from `configs/kind-config-x86.yaml` (node image pinned by digest),
-not the harness's own config. Run problems through `agents/run_batch.py`; each
+not the harness's own config. Run problems through `runner/run_batch.py`; each
 batch records its environment in `runs/<batch>/batch.json`.
+
+## Layout
+
+- `agents/` holds agents only. Each exposes `init_context(...)` and
+  `async get_action(observation) -> str`, and is registered by name in
+  `runner/run_batch.py`. Agents never import `runner`.
+- `runner/` runs AIOpsLab problems and records them. Entry point:
+  `python -m runner.run_batch`. Every workaround for harness behaviour goes in
+  `runner/harness_fixes.py`, and nowhere else; revisit it whenever the harness
+  pin moves.
+- `tests/` needs no cluster: `python -m pytest tests`. Keep new tests there,
+  not in scratch folders.
 
 ## Notes (`notes/`)
 
@@ -54,7 +66,7 @@ frontmatter and dated names only.
 
 ## Runs (`runs/`, gitignored)
 
-- Only `agents/run_batch.py` creates run folders, named
+- Only `runner/run_batch.py` creates run folders, named
   `runs/<UTC timestamp>_<condition>/`. Never create, rename or restructure one
   by hand.
 - `condition` is `<purpose>-<agent>[-<variant>]`, lowercase. `purpose` is one
