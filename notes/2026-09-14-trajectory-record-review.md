@@ -59,7 +59,12 @@ hold against the code and data, and what changed because of them.
 4. **Runs can't repeat, and there's no seed to fix.** The `grep` above finds nothing, as the
    2026-09-12 audit's Q2 found. The geo pod's name suffix was `qb72m`, `m9d5k` and `dh89n` in
    the three smoke batches, and timestamps and metrics directory names vary too. With sampling
-   at temperature 0.5, several samples per problem are needed. The review's suggestion to fix a
+   at temperature 0.5, several samples per problem are needed. Direct evidence:
+   `runs/2026-09-14T114820Z_smoke-qwen3-32b-record` repeated the reviewed batch with the same
+   model, prompt hash (`a06bc4256898`), sampling settings and context limit. Its first action
+   already differed (service name `"hotel-reservation"` instead of `"Hotel Reservation"`). It
+   then read logs service by service, never inspected the geo pod, and ran out of its 10 steps
+   without submitting (`Invalid Format`), where the reviewed run scored `Correct`. The review's suggestion to fix a
    fault-injection seed doesn't apply. The audit's claim that actions reproduced came from the
    fixed-sequence scripted probe; a correction is appended there.
 5. **`results.history` is a broken duplicate.** It is a list of Python repr strings, because the
