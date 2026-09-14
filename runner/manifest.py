@@ -3,7 +3,7 @@
 Records the things the commit-hash pin in CLAUDE.md doesn't cover: this
 repo's own code state, whether the harness working tree is clean, local
 config.yml (gitignored upstream, changes what gets scored via
-qualitative_eval), the Python interpreter actually running, version pins
+qualitative_eval), the machine, the Python interpreter actually running, version pins
 applied from outside the harness, the cluster the harness targets, and the
 image digests actually running in it during the run. Not a gate — just a
 debugging record, per notes/2026-09-13-harness-pin-coverage.md.
@@ -13,8 +13,10 @@ kubectl call, so they describe exactly the cluster the harness talks to.
 """
 
 import hashlib
+import os
 import subprocess
 import sys
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -22,6 +24,42 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 AIOPSLAB_ROOT = REPO_ROOT / "third_party" / "aiopslab"
+
+
+def _ec2_metadata(path: str) -> str | None:
+    """An EC2 instance metadata value via IMDSv2, or None when not on EC2."""
+    base = "http://169.254.169.254/latest"
+    try:
+        token_request = urllib.request.Request(
+            f"{base}/api/token", method="PUT", headers={"X-aws-ec2-metadata-token-ttl-seconds": "60"}
+        )
+        token = urllib.request.urlopen(token_request, timeout=1).read().decode()
+        request = urllib.request.Request(f"{base}/meta-data/{path}", headers={"X-aws-ec2-metadata-token": token})
+        return urllib.request.urlopen(request, timeout=1).read().decode().strip()
+    except OSError:
+        return None
+
+
+def _memory_total_mb() -> int | None:
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            if line.startswith("MemTotal:"):
+                return int(line.split()[1]) // 1024
+    except OSError:
+        pass
+    return None
+
+
+def _gpus() -> list[str] | None:
+    """GPU names and memory from nvidia-smi; None when there is no usable NVIDIA driver."""
+    try:
+        out = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader"],
+            capture_output=True, text=True, check=True, timeout=10,
+        ).stdout
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    return [line.strip() for line in out.splitlines() if line.strip()]
 
 
 def _sha256_file(path: Path) -> str | None:
@@ -120,6 +158,15 @@ def collect_static_manifest(pins: dict | None = None, run: dict | None = None) -
             # The API server the harness's KubeCtl is configured for. A rebuilt kind
             # cluster gets a new host port, so this also changes when the cluster does.
             "api_server": _harness_api_server(),
+        },
+        "host": {
+            # Timings (TTD, framework overhead) and load-related setup failures depend on the
+            # machine. An instance-type change keeps the disk, the cluster and the Python
+            # environment, so without this, batches before and after a switch look identical.
+            "ec2_instance_type": _ec2_metadata("instance-type"),
+            "cpu_count": os.cpu_count(),
+            "memory_total_mb": _memory_total_mb(),
+            "gpus": _gpus(),
         },
         "python": {
             # sys.prefix identifies the environment. sys.executable depends on the name the

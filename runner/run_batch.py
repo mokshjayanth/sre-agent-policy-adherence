@@ -83,6 +83,10 @@ ENV_KEYS = [
     ("harness", "config_yml"),
     ("cluster", "kind_node_image"),
     ("cluster", "api_server"),
+    # host.memory_total_mb is recorded but not compared: kernel updates shift it slightly.
+    ("host", "ec2_instance_type"),
+    ("host", "cpu_count"),
+    ("host", "gpus"),
     ("python", "prefix"),
     ("python", "version"),
     ("python", "poetry_lock_sha256"),

@@ -91,6 +91,22 @@ def test_resume_refuses_a_changed_environment_and_names_changed_packages(run, tm
     assert changed == ["python.pip_freeze", "pins"]
 
 
+def test_resume_refuses_a_different_machine(run, tmp_path):
+    """An instance-type change keeps the disk, cluster and Python env, so only host shows it."""
+    run("--problems", P1, "--condition", "smoke-unit", "--max-steps", "1")
+    batch = _batch(tmp_path)
+    recorded = json.loads((batch / "batch.json").read_text())
+    recorded["host"]["ec2_instance_type"] = "g6e.xlarge"
+    recorded["host"]["cpu_count"] = 4
+    (batch / "batch.json").write_text(json.dumps(recorded))
+
+    with pytest.raises(SystemExit) as refusal:
+        run("--resume", batch.name)
+    message = str(refusal.value)
+    assert "host.ec2_instance_type" in message and "host.cpu_count" in message
+    assert not (batch / "resume-1.json").exists()
+
+
 class _ModelFromEnvAgent:
     """Describes itself from an environment variable, as the OpenAI-compatible agent does."""
 

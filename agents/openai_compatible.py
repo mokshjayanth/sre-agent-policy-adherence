@@ -32,8 +32,9 @@ drift from the pinned harness.
 import hashlib
 import os
 
+import httpx
 import tiktoken
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, OpenAI
 
 from clients.utils.templates import DOCS
 
@@ -103,21 +104,54 @@ def trim_keeping_task(history: list[dict], max_tokens: int = CONTEXT_TOKEN_LIMIT
     return head + trim_history_to_token_limit(turns, max_tokens=budget)
 
 
+def _api_key() -> str:
+    # A local vLLM server started without --api-key accepts any key.
+    return os.environ.get("OPENAI_API_KEY", "EMPTY")
+
+
+def serving_details(base_url: str, model: str) -> dict:
+    """What the endpoint itself reports about the served model.
+
+    Tells gateway serving from a local server and, for vLLM, pins what was
+    loaded: `root` is the weights path or Hugging Face ID, `max_model_len` the
+    context the server enforces, `server_version` the vLLM version. `created`
+    is left out because vLLM reports the request time. Raises if the endpoint
+    can't be reached, so a batch fails before any problem is deployed.
+    """
+    entries = OpenAI(api_key=_api_key(), base_url=base_url).models.list().data
+    entry = next((m.model_dump() for m in entries if m.id == model), None)
+    if entry is None:
+        raise RuntimeError(f"{base_url} does not serve model {model!r}")
+    try:
+        response = httpx.get(base_url.rstrip("/").removesuffix("/v1") + "/version", timeout=5)
+        version = response.json().get("version") if response.status_code == 200 else None
+    except (httpx.HTTPError, ValueError, AttributeError):
+        version = None
+    return {
+        "root": entry.get("root"),
+        "max_model_len": entry.get("max_model_len"),
+        "owned_by": entry.get("owned_by"),
+        "server_version": version,
+    }
+
+
 class OpenAICompatibleAgent:
     def __init__(self, model: str | None = None):
         self.model = model or os.environ.get("AGENT_MODEL", DEFAULT_MODEL)
-        self.client = AsyncOpenAI(
-            api_key=os.environ["OPENAI_API_KEY"],
-            base_url=os.environ["OPENAI_BASE_URL"],
-        )
+        self.client = AsyncOpenAI(api_key=_api_key(), base_url=os.environ["OPENAI_BASE_URL"])
         self.history: list[dict] = []
 
     @classmethod
     def describe(cls) -> dict:
         """What batch.json records about this agent; a resume must match it exactly."""
+        model = os.environ.get("AGENT_MODEL", DEFAULT_MODEL)
+        base_url = os.environ["OPENAI_BASE_URL"]
         return {
             "kind": "LLM via OpenAI-compatible endpoint",
-            "model": os.environ.get("AGENT_MODEL", DEFAULT_MODEL),
+            "model": model,
+            # Same model name, different serving stack (gateway vs local vLLM) is a different setup.
+            "base_url": base_url,
+            "serving": serving_details(base_url, model),
             "prompt": "AIOpsLab clients/react.py (DOCS + RESP_INSTR) + THOUGHT_PLACEMENT, task messages never trimmed",
             # A prompt edit changes the condition, so it must change what's recorded.
             "prompt_sha256": hashlib.sha256((DOCS + RESP_INSTR + THOUGHT_PLACEMENT).encode()).hexdigest()[:12],

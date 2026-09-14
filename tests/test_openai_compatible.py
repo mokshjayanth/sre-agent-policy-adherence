@@ -5,6 +5,7 @@ import asyncio
 import types
 from pathlib import Path
 
+import pytest
 import tiktoken
 
 from agents import openai_compatible as oc
@@ -108,7 +109,62 @@ def test_short_histories_are_untouched():
 
 def test_describe_records_everything_that_defines_the_condition(monkeypatch):
     monkeypatch.setenv("AGENT_MODEL", "model-x")
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://localhost:8000/v1")
+    monkeypatch.setattr(oc, "serving_details", lambda base_url, model: {"root": f"{base_url}|{model}"})
     described = oc.OpenAICompatibleAgent.describe()
     assert described["model"] == "model-x"
+    assert described["base_url"] == "http://localhost:8000/v1"
+    assert described["serving"] == {"root": "http://localhost:8000/v1|model-x"}
     for key in ("prompt_sha256", "temperature", "top_p", "max_tokens", "context_token_limit"):
         assert key in described
+
+
+class _FakeModels:
+    def __init__(self, entries):
+        self.entries = entries
+
+    def list(self):
+        return types.SimpleNamespace(data=self.entries)
+
+
+class _Entry:
+    def __init__(self, **fields):
+        self.id = fields["id"]
+        self.fields = fields
+
+    def model_dump(self):
+        return dict(self.fields)
+
+
+def _fake_endpoint(monkeypatch, entries, version_response):
+    monkeypatch.setattr(oc, "OpenAI", lambda **kwargs: types.SimpleNamespace(models=_FakeModels(entries)))
+    monkeypatch.setattr(oc.httpx, "get", version_response)
+
+
+def test_serving_details_reads_what_a_local_vllm_server_reports(monkeypatch):
+    entries = [_Entry(id="Qwen/Qwen3.5-2B", root="/models/qwen3.5-2b@abc123", max_model_len=65536,
+                      owned_by="vllm", created=1789380000)]
+    requested = []
+
+    def version(url, timeout):
+        requested.append(url)
+        return types.SimpleNamespace(status_code=200, json=lambda: {"version": "0.11.0"})
+
+    _fake_endpoint(monkeypatch, entries, version)
+    details = oc.serving_details("http://localhost:8000/v1", "Qwen/Qwen3.5-2B")
+    assert details == {"root": "/models/qwen3.5-2b@abc123", "max_model_len": 65536,
+                       "owned_by": "vllm", "server_version": "0.11.0"}
+    assert requested == ["http://localhost:8000/version"]
+
+
+def test_serving_details_tolerates_an_endpoint_without_a_version_route(monkeypatch):
+    entries = [_Entry(id="qwen.qwen3-32b", owned_by="system", created=1)]
+    _fake_endpoint(monkeypatch, entries, lambda url, timeout: types.SimpleNamespace(status_code=404))
+    details = oc.serving_details("https://gateway.example/v1", "qwen.qwen3-32b")
+    assert details == {"root": None, "max_model_len": None, "owned_by": "system", "server_version": None}
+
+
+def test_serving_details_fails_early_for_a_model_the_endpoint_does_not_serve(monkeypatch):
+    _fake_endpoint(monkeypatch, [_Entry(id="other-model")], lambda url, timeout: None)
+    with pytest.raises(RuntimeError, match="does not serve"):
+        oc.serving_details("http://localhost:8000/v1", "Qwen/Qwen3.5-2B")

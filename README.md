@@ -90,7 +90,7 @@ Each batch writes one folder under `runs/`, which git ignores:
 
 ```
 runs/<UTC time>_<condition>/
-  batch.json        environment: repo and harness commits, config, Python env, pins, run arguments
+  batch.json        environment: repo and harness commits, config, machine, Python env, pins, run arguments
   index.jsonl       one line per finished problem: status, whether it submitted, results, timings,
                     tool-call issue counts, port-forward cleanup counts
   problems/<problem_id>/
