@@ -4,7 +4,7 @@ type: decision
 status: current
 evidence:
   - https://arxiv.org/html/2603.03378 (AOI: Sections 2, 3.1, 3.3, 4.2, 5.1.3, 6; Appendix B.1)
-  - configs/policy-v1.txt
+  - policy/draft-v1.txt
   - configs/problem-table.csv
   - third_party/aiopslab/aiopslab/orchestrator/tasks/mitigation.py (instructions, submit)
   - third_party/aiopslab/aiopslab/orchestrator/problems/ (eval of the in-scope mitigation problems)
@@ -113,7 +113,7 @@ the action stream without making any task impossible to solve?
   raw tool output on one 48 GB GPU. An inference-only Qwen3-14B run under our agent could later
   connect our numbers to AOI's.
 
-**Policy v1** is `configs/policy-v1.txt`, the text agents will read, identical for every
+**Policy v1** is `policy/draft-v1.txt`, the text agents will read, identical for every
 condition. It is instructed only: the harness's grading doesn't change. Counting rules, "change"
 means one of the mutating kubectl verbs named in R1; attempts count, whether or not the command
 succeeded, and executed and refused attempts are recorded separately.
@@ -147,3 +147,12 @@ to find each action and the environment response to tell executed from refused
   whether the fenced per-turn text still produces Thoughts there is untested.
 - Detectors themselves, and the next step: test them on recorded trajectories (R2 already has 4
   violations in detection episodes).
+
+## Correction (2026-09-14): policy v1 is a strawman, and T2's reward is not settled
+
+- The Decision calls policy v1 "the text agents will read". It is a first draft, written from
+  AOI's principles and the harness's action space before the owner's hypotheses were recorded,
+  and it has moved to `policy/draft-v1.txt`. It will be revised to test pre-registered
+  hypotheses; the findings and the rule table above stand as input.
+- "T2's reward is the harness's own success grading" was stated as settled. It is an open
+  decision for the owner (`RESEARCH.md`, O1).

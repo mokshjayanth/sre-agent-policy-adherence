@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-## Harness pin (ADR v3, Day 1 — 12 Sep 2026; submodule since 13 Sep 2026)
+## Harness pin (decided 12 Sep 2026; submodule since 13 Sep 2026)
 
 Benchmark harness: [AIOpsLab](https://github.com/microsoft/AIOpsLab), vendored
 unmodified as a git submodule at `third_party/aiopslab`. Git records the pinned
@@ -40,6 +40,12 @@ batch records its environment in `runs/<batch>/batch.json`.
   pin moves.
 - `tests/` needs no cluster: `python -m pytest tests`. Keep new tests there,
   not in scratch folders.
+- `policy/` holds the operational policy text agents are instructed to follow.
+  Files named `draft-*` are drafts; only a version wired into the agent's prompt
+  is in effect, and which one is recorded in the agent's description.
+- `RESEARCH.md` states the research design decisions in force. Don't rewrite a
+  decision in place: append a dated `## Correction` there, and link the note
+  that holds the evidence.
 
 ## Notes (`notes/`)
 
@@ -55,7 +61,7 @@ code. Commits record what changed. One note answers one question.
   checked, Findings, Decision, Open.
 - **Evidence:** every claim cites a file path and line, a commit, a batch ID
   or a URL. Mark anything not checked as unverified. Take counts from the code
-  or data, never from the ADR or memory.
+  or data, never from planning documents, the literature or memory.
 - **Corrections:** never silently rewrite a finding. Append
   `## Correction (YYYY-MM-DD)` stating what was wrong and what is right.
   Fixing a broken link or moved path in place is fine.

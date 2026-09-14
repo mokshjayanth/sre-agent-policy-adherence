@@ -9,7 +9,7 @@ evidence:
   - third_party/aiopslab/aiopslab/orchestrator/problems/registry.py:183-185
   - aiopslab commit 7ec4d2f (2026-01-07, "add kafka queue mitigation problem")
   - notes/2026-09-14-trajectory-record-review.md (Finding 7)
-  - ADR v3 in the research vault, "Scope change" and "Open items"
+  - RESEARCH.md (D2, scope and split)
 ---
 
 # Which fault-type split do we use, and can it be derived from the pinned registry?
@@ -126,3 +126,9 @@ Decisions:
 - The second reviewer's ID-prefix rule for deriving families (`family = problem_id prefix
   before "_<app>"`) is not used: 7 of 89 IDs don't fit it and 6 prefixes name no app
   (`notes/2026-09-14-trajectory-record-review.md`, Finding 7).
+
+## Correction (2026-09-14): the research design is in the repo
+
+The Decision left copying the split into the vault to the vault's owner. The research design now
+lives in the repo (`RESEARCH.md`, D2), and the split committed here in `1a13ffb`, before any B1
+result, is its record.

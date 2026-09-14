@@ -1,0 +1,124 @@
+# Research design
+
+**Last updated:** 2026-09-14 · **Owner:** MJ
+
+The research design decisions currently in force. Evidence for each is in the linked notes.
+Changes are appended as dated `## Correction` sections, and git history keeps every revision.
+
+## Research question
+
+What does success-optimising post-training do to an SRE agent's adherence to an instructed
+operational policy that the training reward does not enforce? Measure the change, not the
+level. The question grew out of planning that began in August 2026.
+
+Why it's open: work that post-trains SRE agents optimises task success and doesn't measure
+compliance (AOI, arXiv:2603.03378), and work that measures compliance doesn't train (SOCpilot,
+arXiv:2605.05501; OpenSec, arXiv:2601.21083). REDAgentBench (arXiv:2608.10669) describes
+violations that follow the agent stating the constraint, the recognition–execution gap.
+JourneyBench (arXiv:2601.00596, identifier unverified) names training for adherence as
+unexplored.
+
+## Decisions
+
+### D1. Environment: AIOpsLab
+
+AIOpsLab, pinned as the `third_party/aiopslab` submodule, on a kind cluster created from
+`configs/kind-config-x86.yaml` (`CLAUDE.md`). Chosen over building a custom incident environment:
+SRE agent benchmarks already exist; AIOpsLab runs on a live cluster, with a mitigation tier in
+which agent actions change state; and the policy layer is a prompt plus detectors, so it doesn't
+need an environment of its own. Workarounds for harness bugs are confined to
+`runner/harness_fixes.py`.
+
+### D2. Scope and split
+
+- In scope: detection, localization and mitigation problems; analysis is out. Adherence is scored
+  on the action stream across all in-scope task types.
+- Split by fault type, adopting AOI's published partition: 31 training and 41 test problems in
+  scope, recorded per problem in `configs/problem-table.csv`. The claim is worded as "unseen fault
+  types, seen injection mechanisms". The no-op problems are reported separately, as a false-alarm
+  check (`notes/2026-09-14-fault-type-split.md`).
+- Tuning and model selection use training-split problems only. There is no validation set.
+- Counts come from the pinned registry (89 registered, 87 without the two Flower problems), not
+  from the literature.
+
+### D3. Conditions
+
+Every condition runs through the same unchanged instrument (D4).
+
+| Condition | Definition | Role | Status |
+|---|---|---|---|
+| B1 | Qwen3.5-4B, plain prompting, served locally with vLLM | Floor | Chosen (`notes/2026-09-14-b1-model-trial.md`) |
+| B2 | B1's model with engineered prompting | The "just prompt better" control; required | Not designed |
+| B3 | An open-weight model whose licence allows training on its outputs, built-in thinking off | Ceiling reference; source of T1's training data | Shortlist: Kimi-K2.5, GLM-5 |
+| T1 | B1's model with LoRA SFT on successful B3 trajectories | First training rung | Not started |
+| T2 | T1 with GRPO | Second training rung | Reward open (O1) |
+
+- B1 is larger than the 1–3B size first planned: the only 1–3B candidate tested, Qwen3.5-2B,
+  didn't produce actions the harness can parse.
+- T1 and T2 settings are fixed before training, following AOI: LoRA rank 64, alpha 128, learning
+  rate 1e-5, GRPO group size 4, batch 16, 3 epochs. Only the final checkpoint is evaluated, and
+  nothing is chosen on adherence (`notes/2026-09-14-operational-policy-v1.md`).
+- Training data comes only from runs of this instrument.
+
+### D4. Instrument
+
+- The agent (`agents/openai_compatible.py`) follows AIOpsLab's ReAct client, with four changes
+  applied identically to every condition: a per-turn line showing the action fenced, a
+  64,000-token context limit, a 16,000-token cap on each observation, and system and task
+  messages that are never trimmed (`notes/2026-09-14-agent-prompt-and-context.md`,
+  `notes/2026-09-14-observation-cap-and-context-budget.md`, `notes/2026-09-14-b1-model-trial.md`).
+- Sampling follows AIOpsLab's reference client: temperature 0.5, top_p 0.95, 1,024 output tokens.
+  Episodes run for up to 30 steps (`notes/2026-09-14-step-budget-and-termination.md`).
+- Every batch records its environment, and every episode records the messages the model received
+  and how the episode ended (`README.md`, `notes/2026-09-14-trajectory-record-review.md`).
+
+### D5. Policy layer
+
+- The policy is instructed in the prompt and enforced neither by the environment nor by grading.
+  It is identical for every condition.
+- Every rule is checkable mechanically from the action stream, and no rule may make a known fix
+  impossible.
+- Violations are counted per opportunity, or per episode for per-episode obligations. Attempts
+  count, with executed and refused attempts recorded separately.
+- The current text, `policy/draft-v1.txt`, is a draft (O3)
+  (`notes/2026-09-14-operational-policy-v1.md`).
+
+### D6. Metrics
+
+- Success: avg@k as the headline and best@k as secondary, over 5 runs per problem.
+- Adherence: violation rate per rule and per opportunity, for each condition.
+- Also reported per condition: how episodes end, steps, tokens, and how often the observation cap
+  fired. TTD is not compared across serving stacks.
+- Blast radius is not measured until post-episode cluster state is recorded.
+
+### D7. Rejected alternatives
+
+- Enforcing the policy architecturally, as AOI does with role separation and a command whitelist:
+  it would remove the variable under study.
+- LLM-judge step rewards, and AOI's Compressor and Evolver: each adds a model to the loop.
+- Qwen3-14B for the ladder: training at this agent's context length exceeds one 48 GB GPU. An
+  inference-only run could later connect results to AOI's.
+- Closed API models as the source of T1's training data, because of terms on training with their
+  outputs.
+- An instance-level split, which leaks variants of a fault; a mechanism-level split, which would put
+  whole apps on one side.
+- Agent traces from outside this instrument as training data: uncontrolled provenance.
+
+### D8. Standing rules
+
+- Negative results are results.
+- The policy layer and B2 are never cut.
+- Hypotheses and design choices are committed before the results they concern, and nothing is
+  backdated.
+
+## Open decisions
+
+- **O1. T2's reward:** task success only, or success combined with adherence. The research question
+  concerns a policy the reward does not enforce.
+- **O2. Pre-registered hypotheses,** committed before any policy run.
+- **O3. The policy's final text and placement.** Proposed placement: appended to the system message.
+- **O4. B2's design,** and B3's choice after a short trial on training-split problems.
+- **O5. Whether T2 fits one 48 GB GPU** with vLLM's sleep mode, to be measured on the g6e.
+- **O6. `redeploy_without_pv`'s fix path** against the policy's namespace-scope and deletion rules.
+- **O7. Instrumentation not yet designed:** post-episode cluster state (for blast radius) and
+  gameability probes.
