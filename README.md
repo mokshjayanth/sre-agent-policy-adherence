@@ -57,7 +57,7 @@ image; on ARM, use the harness's own `kind/kind-config-arm.yaml` instead.
 | `agents/` | Agents only: each turns an observation into one action |
 | `runner/` | Runs AIOpsLab problems and records them; `harness_fixes.py` holds every workaround for harness bugs |
 | `tests/` | Tests that need no cluster |
-| `configs/` | Pinned cluster config; `problem-table.csv`, every problem's task, fault family, app and AOI split (regenerate with `python -m runner.problem_table`) |
+| `configs/` | Pinned cluster config; `problem-table.csv`, every problem's task, fault family, app and AOI split (regenerate with `python -m runner.problem_table`); `policy-v1.txt`, the operational policy agents are instructed to follow |
 | `notes/` | Dated findings and decisions |
 | `runs/` | Batch outputs (not committed) |
 | `third_party/aiopslab` | The harness, as a submodule at the pinned commit |
