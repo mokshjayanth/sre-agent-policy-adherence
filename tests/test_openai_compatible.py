@@ -107,6 +107,29 @@ def test_short_histories_are_untouched():
     assert oc.trim_keeping_task(history) == history
 
 
+def test_record_keeps_what_the_model_received_and_what_each_call_sent(monkeypatch):
+    agent, calls = _agent(monkeypatch)
+    agent.init_context("PROBLEM", "INSTRUCTIONS", APIS)
+    asyncio.run(agent.get_action("Please take the next action"))
+    asyncio.run(agent.get_action("some observation"))
+    record = agent.record()
+    assert [m["role"] for m in record["messages"]] == ["system", "user", "user", "assistant", "user", "assistant"]
+    assert record["messages"][4]["content"].endswith(oc.RESP_INSTR + oc.THOUGHT_PLACEMENT)
+    assert record["calls"] == [
+        {"messages_in_history": 3, "first_turn_sent": 2, "last_message_truncated": False},
+        {"messages_in_history": 5, "first_turn_sent": 2, "last_message_truncated": False},
+    ]
+
+
+def test_trim_summary_reports_dropped_turns_and_truncation():
+    head = [{"role": "system", "content": "S"}, {"role": "user", "content": "T"}]
+    turns = [{"role": "user", "content": f"obs {i}"} for i in range(4)]
+    huge = {"role": "user", "content": "3fa2b9c1d4e5 span " * 40000}
+    history = head + turns + [huge]
+    summary = oc.trim_summary(history, oc.trim_keeping_task(history))
+    assert summary == {"messages_in_history": 7, "first_turn_sent": 6, "last_message_truncated": True}
+
+
 def test_describe_records_everything_that_defines_the_condition(monkeypatch):
     monkeypatch.setenv("AGENT_MODEL", "model-x")
     monkeypatch.setenv("OPENAI_BASE_URL", "http://localhost:8000/v1")

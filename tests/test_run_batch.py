@@ -56,6 +56,32 @@ def test_failed_problems_are_recorded_and_the_batch_continues(run, tmp_path):
     assert (batch / "problems" / P1 / "error.txt").exists()
     trajectory = json.loads((batch / "problems" / P1 / "trajectory.json").read_text())
     assert trajectory["history"] == [] and trajectory["results"] is None
+    assert trajectory["batch_id"] == batch.name and trajectory["condition"] == "smoke-unit"
+    assert trajectory["agent_description"]["kind"] == "scripted, not an LLM"
+    assert trajectory["agent_record"] is None  # the scripted probe has no record()
+
+
+def test_trajectory_is_self_describing_and_drops_the_repr_history_copy():
+    item = types.SimpleNamespace(model_dump=lambda: {"role": "assistant", "content": "Action: ..."})
+    session = types.SimpleNamespace(session_id="s-1", solution="Yes", history=[item])
+    agent = types.SimpleNamespace(record=lambda: {"messages": [{"role": "system", "content": "S"}], "calls": []})
+    results = {
+        "history": ["role='assistant' content='Action: ...'"],  # what the harness hands back
+        "final_state": "SubmissionStatus.VALID_SUBMISSION",
+        "results": {"Detection Accuracy": "Correct"},
+        "framework_overhead": 1.0,
+    }
+    batch_info = {"batch_id": "B", "condition": "smoke-unit", "agent_description": {"model": "m"}}
+
+    trajectory = rb._trajectory("P", "openai-compatible", batch_info, session, agent, results)
+    assert "history" not in trajectory["results"]
+    assert trajectory["results"]["results"] == {"Detection Accuracy": "Correct"}
+    assert trajectory["history"] == [{"role": "assistant", "content": "Action: ..."}]
+    assert trajectory["agent_record"]["messages"][0]["role"] == "system"
+    assert (trajectory["batch_id"], trajectory["condition"], trajectory["agent_description"]) == (
+        "B", "smoke-unit", {"model": "m"}
+    )
+    assert "history" in results  # the harness's own dict is left alone
 
 
 def test_resume_retries_failures_and_keeps_earlier_attempts(run, tmp_path):

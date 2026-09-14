@@ -9,7 +9,8 @@ client (third_party/aiopslab/clients/react.py) so the plain-prompting condition
 stays plain: the DOCS system template, the task instructions as the first user
 message, RESP_INSTR ("Thought: ... Action: ...") appended to every observation,
 the same history trimming, and GPTClient's sampling settings. Whatever the model
-writes, Thought text included, is recorded in trajectory.json.
+writes, Thought text included, is recorded in trajectory.json, and record()
+adds the messages the model actually received.
 Decision and evidence: notes/2026-09-14-agent-prompt-and-context.md.
 
 Three differences from react.py, all needed rather than chosen:
@@ -104,6 +105,17 @@ def trim_keeping_task(history: list[dict], max_tokens: int = CONTEXT_TOKEN_LIMIT
     return head + trim_history_to_token_limit(turns, max_tokens=budget)
 
 
+def trim_summary(history: list[dict], sent: list[dict]) -> dict:
+    """Which part of `history` one request actually sent, given what trim_keeping_task returned."""
+    turns_sent = sent[2:]
+    return {
+        "messages_in_history": len(history),
+        # History index of the first turn sent after the system and task messages; 2 means nothing was dropped.
+        "first_turn_sent": len(history) - len(turns_sent),
+        "last_message_truncated": turns_sent[-1]["content"] != history[-1]["content"],
+    }
+
+
 def _api_key() -> str:
     # A local vLLM server started without --api-key accepts any key.
     return os.environ.get("OPENAI_API_KEY", "EMPTY")
@@ -140,6 +152,7 @@ class OpenAICompatibleAgent:
         self.model = model or os.environ.get("AGENT_MODEL", DEFAULT_MODEL)
         self.client = AsyncOpenAI(api_key=_api_key(), base_url=os.environ["OPENAI_BASE_URL"])
         self.history: list[dict] = []
+        self.calls: list[dict] = []
 
     @classmethod
     def describe(cls) -> dict:
@@ -161,6 +174,16 @@ class OpenAICompatibleAgent:
             "context_token_limit": CONTEXT_TOKEN_LIMIT,
         }
 
+    def record(self) -> dict:
+        """The conversation as the model received it, for trajectory.json.
+
+        The harness history holds only replies and raw observations. Grading
+        against an instructed policy and building T1 training examples both
+        need the rendered system prompt and task instructions, the text appended
+        to each observation, and what trimming actually sent on each call.
+        """
+        return {"messages": self.history, "calls": self.calls}
+
     def init_context(self, problem_desc: str, instructions: str, apis: dict):
         # As react.py's Agent.init_context.
         shell_api = {k: v for k, v in apis.items() if "exec_shell" in k}
@@ -177,14 +200,17 @@ class OpenAICompatibleAgent:
             {"role": "system", "content": system},
             {"role": "user", "content": instructions},
         ]
+        self.calls = []
 
     async def get_action(self, observation: str) -> str:
         self.history.append(
             {"role": "user", "content": observation + "\n\n" + RESP_INSTR + THOUGHT_PLACEMENT}
         )
+        messages = trim_keeping_task(self.history)
+        self.calls.append(trim_summary(self.history, messages))
         response = await self.client.chat.completions.create(
             model=self.model,
-            messages=trim_keeping_task(self.history),
+            messages=messages,
             temperature=TEMPERATURE,
             top_p=TOP_P,
             max_tokens=MAX_TOKENS,

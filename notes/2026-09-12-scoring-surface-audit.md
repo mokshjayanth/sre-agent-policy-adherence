@@ -150,3 +150,13 @@ What still holds: the action sequence and the verdict reproduced, and TTD is not
 signal. What changes: the observation an agent receives can differ in kind, data versus an
 error, and that is an environment fault to count and control for, not noise. The `get_logs`
 length difference (596 vs 1402 characters) is unaffected.
+
+## Correction (2026-09-14): identical actions here say nothing about reproducibility
+
+Q2, and the correction above, say the action sequence and the verdict reproduced. Both runs
+used `agents/scripted_probe.py` (see Reference-agent substitution), which always sends the same
+three actions, so identical actions were guaranteed, not observed. The finding that there is no
+seed to fix stands. For an LLM agent, observations differ between runs (the geo pod's name
+suffix was `qb72m`, `m9d5k` and `dh89n` in three Qwen3-32B smoke runs; timestamps and metrics
+directory names differ too) and sampling runs at temperature 0.5, so trajectories are expected
+to diverge. See `notes/2026-09-14-trajectory-record-review.md`.

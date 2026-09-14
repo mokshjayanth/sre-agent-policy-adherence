@@ -94,7 +94,8 @@ runs/<UTC time>_<condition>/
   index.jsonl       one line per finished problem: status, whether it submitted, results, timings,
                     tool-call issue counts, port-forward cleanup counts
   problems/<problem_id>/
-    trajectory.json   agent and environment turns, plus harness results
+    trajectory.json   batch ID, condition and agent settings; agent and environment turns; harness
+                      results; the messages the model actually received
     pods.json         image digests of every pod, captured after deploy
     error.txt         only if the problem failed
 ```

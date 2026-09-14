@@ -11,7 +11,8 @@ One folder per batch; a single problem is just a batch of one.
       resume-<n>.json                 manifest re-recorded at each resume
       index.jsonl                     one line appended per finished problem attempt
       problems/<problem_id>/
-        trajectory.json               harness history and results (partial if the run failed)
+        trajectory.json               batch ID, condition and agent settings; harness history and
+                                      results; the agent's own messages (partial if the run failed)
         pods.json                     image digests across all namespaces, after deploy
         error.txt                     traceback, only when the attempt failed
         metrics_output/, trace_output/  telemetry exported by the agent's actions
@@ -200,6 +201,29 @@ def _set_aside_previous_attempt(problem_dir: Path) -> None:
     problem_dir.rename(failed)
 
 
+def _trajectory(problem_id: str, agent_name: str, batch_info: dict, session, agent, results) -> dict:
+    """trajectory.json, self-describing so it stays interpretable when copied out of its batch.
+
+    `batch_info` carries batch_id, condition and agent_description.
+    """
+    record = getattr(agent, "record", None)
+    return {
+        "problem_id": problem_id,
+        **batch_info,
+        "agent_name": agent_name,
+        "session_id": str(session.session_id) if session else None,
+        "solution": session.solution if session else None,
+        # The harness's results also repeat the session history, as Python repr strings
+        # once serialised; `history` below holds the same turns as proper objects.
+        "results": {k: v for k, v in results.items() if k != "history"} if results else results,
+        # What the harness recorded: the agent's replies and the raw observations.
+        "history": [item.model_dump() for item in session.history] if session else [],
+        # What the model received: rendered prompts, per-turn suffixes, trimming per call.
+        # None for agents that don't expose record().
+        "agent_record": record() if callable(record) else None,
+    }
+
+
 async def run_problem(
     problem_id: str,
     agent_cls,
@@ -207,6 +231,7 @@ async def run_problem(
     max_steps: int,
     problem_dir: Path,
     workdir: Path,
+    batch_info: dict,
 ) -> dict:
     _set_aside_previous_attempt(problem_dir)
     problem_dir.mkdir(parents=True)
@@ -234,14 +259,10 @@ async def run_problem(
         _cleanup_after_failure(orch)
     finally:
         session = orch.session
-        _write_json(problem_dir / "trajectory.json", {
-            "problem_id": problem_id,
-            "session_id": str(session.session_id) if session else None,
-            "agent_name": agent_name,
-            "solution": session.solution if session else None,
-            "results": results,
-            "history": [item.model_dump() for item in session.history] if session else [],
-        })
+        _write_json(
+            problem_dir / "trajectory.json",
+            _trajectory(problem_id, agent_name, batch_info, session, orch.agent, results),
+        )
         _move_exports(workdir, exports_before, problem_dir)
         # A non-zero count also marks a problem whose get_metrics or get_traces call failed.
         leaked = stop_leaked_port_forwards()
@@ -270,7 +291,7 @@ async def run_problem(
 
 
 def _start_or_resume(args) -> tuple[Path, dict, list[str], dict[str, str]]:
-    """Create the batch folder or reopen it; return (batch dir, run settings, problems, skipped)."""
+    """Create the batch folder or reopen it; return (batch dir, current run settings, problems, skipped)."""
     pin_otel_chart()
     pins = {
         "otel_demo_chart": PINNED_OTEL_CHART_VERSION,
@@ -296,7 +317,8 @@ def _start_or_resume(args) -> tuple[Path, dict, list[str], dict[str, str]]:
         while (batch_dir / f"resume-{n}.json").exists():
             n += 1
         _write_json(batch_dir / f"resume-{n}.json", {**current, "changed_from_batch": changed})
-        return batch_dir, settings, settings["problems"], settings["skipped"]
+        # Current, not recorded, agent description: with --allow-env-change the two can differ.
+        return batch_dir, current_run, settings["problems"], settings["skipped"]
 
     if not args.condition or not CONDITION_PATTERN.fullmatch(args.condition):
         raise SystemExit(
@@ -334,6 +356,11 @@ async def run_batch(args) -> int:
     todo = [p for p in problems if latest.get(p) != "ok"]
 
     agent_cls = _load_agent(settings["agent"])
+    batch_info = {
+        "batch_id": batch_dir.name,
+        "condition": settings["condition"],
+        "agent_description": settings.get("agent_description"),
+    }
     args.workdir.mkdir(parents=True, exist_ok=True)
     os.chdir(args.workdir)
 
@@ -348,6 +375,7 @@ async def run_batch(args) -> int:
             settings["max_steps"],
             batch_dir / "problems" / problem_id,
             args.workdir,
+            batch_info,
         )
         record["attempt"] = sum(1 for rec in history if rec["problem_id"] == problem_id) + 1
         history.append(record)
