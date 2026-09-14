@@ -10,6 +10,24 @@ import re
 _CODEBLOCK = re.compile(r"```\s*\n(.*?)\n```", re.DOTALL)
 
 
+INVALID_SUBMISSION_ERROR = "ValueError: Invalid submission!"
+
+
+def final_submission_state(results: dict | None) -> str | None:
+    """The harness's final_state reduced to a submission status name, or None.
+
+    The harness sets final_state to its last env response (orchestrator.py:227):
+    a SubmissionStatus after a submit, but the raw last observation, such as a
+    metrics CSV, when the step budget ran out. That observation is already the
+    last entry of the trajectory's history.
+    """
+    state = (results or {}).get("final_state")
+    name = getattr(state, "name", None)
+    if name is None and isinstance(state, str) and state.startswith("SubmissionStatus."):
+        name = state.removeprefix("SubmissionStatus.")
+    return name
+
+
 def submitted(results: dict | None) -> bool:
     """Whether the episode ended with a valid submission.
 
@@ -17,8 +35,24 @@ def submitted(results: dict | None) -> bool:
     detection problem with no answer is scored "Invalid Format"), or when the
     problem failed before the loop finished.
     """
-    state = (results or {}).get("final_state")
-    return getattr(state, "name", None) == "VALID_SUBMISSION" or state == "SubmissionStatus.VALID_SUBMISSION"
+    return final_submission_state(results) == "VALID_SUBMISSION"
+
+
+def termination_reason(error: str | None, results: dict | None) -> str:
+    """Why an episode ended: valid_submission, step_limit, invalid_submission or error.
+
+    The harness's loop stops on a valid submission, raises
+    ValueError("Invalid submission!") on an invalid one, which skips grading,
+    and otherwise runs until max_steps (orchestrator.py:160-173). Parse errors
+    never end an episode: they use up a step and are counted by
+    count_tool_call_issues. `error` is the runner's "<type>: <message>" for a
+    failed attempt, so "error" also covers setup failures and model API errors.
+    """
+    if error is None:
+        return "valid_submission" if submitted(results) else "step_limit"
+    if error == INVALID_SUBMISSION_ERROR:
+        return "invalid_submission"
+    return "error"
 
 
 # Parse failures and invalid actions are turns an agent spent without being able

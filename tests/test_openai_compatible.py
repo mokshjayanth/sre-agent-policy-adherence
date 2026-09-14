@@ -138,8 +138,39 @@ def test_describe_records_everything_that_defines_the_condition(monkeypatch):
     assert described["model"] == "model-x"
     assert described["base_url"] == "http://localhost:8000/v1"
     assert described["serving"] == {"root": "http://localhost:8000/v1|model-x"}
-    for key in ("prompt_sha256", "temperature", "top_p", "max_tokens", "context_token_limit"):
+    for key in ("prompt_variant", "prompt_template_sha256", "temperature", "top_p", "max_tokens",
+                "context_token_limit"):
         assert key in described
+
+
+def test_prompt_template_hash_matches_its_documented_preimage(monkeypatch):
+    import hashlib
+
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://localhost:8000/v1")
+    monkeypatch.setattr(oc, "serving_details", lambda base_url, model: {})
+    preimage = oc.DOCS + oc.RESP_INSTR + oc.THOUGHT_PLACEMENT
+    expected = hashlib.sha256(preimage.encode()).hexdigest()[:12]
+    assert oc.OpenAICompatibleAgent.describe()["prompt_template_sha256"] == expected
+
+
+def test_truncation_flag_matches_what_was_actually_sent(monkeypatch):
+    agent, calls = _agent(monkeypatch)
+    agent.init_context("PROBLEM", "INSTRUCTIONS", APIS)
+    asyncio.run(agent.get_action("small observation"))
+    asyncio.run(agent.get_action("3fa2b9c1d4e5 span " * 40000))
+    small, huge = agent.record()["calls"]
+    sent_small, sent_huge = calls[0]["messages"], calls[1]["messages"]
+
+    assert small["last_message_truncated"] is False
+    assert sent_small == agent.history[:3]
+
+    # history: system, task, obs 1, reply 1, huge obs 2, reply 2
+    assert huge["last_message_truncated"] is True
+    assert sent_huge[:2] == agent.history[:2]
+    assert sent_huge[2:-1] == agent.history[huge["first_turn_sent"]:4]
+    assert sent_huge[-1]["content"] != agent.history[4]["content"]
+    assert agent.history[4]["content"].startswith(sent_huge[-1]["content"])
+    assert _tokens(sent_huge) <= oc.CONTEXT_TOKEN_LIMIT
 
 
 class _FakeModels:

@@ -165,9 +165,12 @@ class OpenAICompatibleAgent:
             # Same model name, different serving stack (gateway vs local vLLM) is a different setup.
             "base_url": base_url,
             "serving": serving_details(base_url, model),
-            "prompt": "AIOpsLab clients/react.py (DOCS + RESP_INSTR) + THOUGHT_PLACEMENT, task messages never trimmed",
-            # A prompt edit changes the condition, so it must change what's recorded.
-            "prompt_sha256": hashlib.sha256((DOCS + RESP_INSTR + THOUGHT_PLACEMENT).encode()).hexdigest()[:12],
+            "prompt_variant": "AIOpsLab clients/react.py (DOCS + RESP_INSTR) + THOUGHT_PLACEMENT, task messages never trimmed",
+            # First 12 hex characters of sha256(DOCS + RESP_INSTR + THOUGHT_PLACEMENT), the unformatted
+            # templates: it identifies the prompt variant across problems, so a template edit changes the
+            # recorded condition. Each problem's rendered prompt isn't hashed; trajectory.json stores it
+            # in full as agent_record.messages[0] and [1].
+            "prompt_template_sha256": hashlib.sha256((DOCS + RESP_INSTR + THOUGHT_PLACEMENT).encode()).hexdigest()[:12],
             "temperature": TEMPERATURE,
             "top_p": TOP_P,
             "max_tokens": MAX_TOKENS,

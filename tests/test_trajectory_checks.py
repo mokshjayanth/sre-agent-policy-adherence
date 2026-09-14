@@ -4,7 +4,12 @@ import enum
 
 import pytest
 
-from runner.trajectory_checks import count_tool_call_issues, submitted
+from runner.trajectory_checks import (
+    count_tool_call_issues,
+    final_submission_state,
+    submitted,
+    termination_reason,
+)
 
 
 def _turn(role, content):
@@ -14,6 +19,9 @@ def _turn(role, content):
 class _SubmissionStatus(enum.Enum):  # shaped like aiopslab.utils.status.SubmissionStatus
     VALID_SUBMISSION = 1
     INVALID_SUBMISSION = 2
+
+
+METRICS_CSV = " timestamp   cmdb_id   kpi_name   value\n1789380833  kind-worker  cpu  0.1"
 
 
 @pytest.mark.parametrize(
@@ -29,6 +37,34 @@ class _SubmissionStatus(enum.Enum):  # shaped like aiopslab.utils.status.Submiss
 )
 def test_submitted(results, expected):
     assert submitted(results) is expected
+
+
+@pytest.mark.parametrize(
+    ("results", "expected"),
+    [
+        ({"final_state": _SubmissionStatus.VALID_SUBMISSION}, "VALID_SUBMISSION"),
+        ({"final_state": "SubmissionStatus.INVALID_SUBMISSION"}, "INVALID_SUBMISSION"),
+        ({"final_state": METRICS_CSV}, None),  # the last observation when the step budget ran out
+        ({}, None),
+        (None, None),
+    ],
+)
+def test_final_submission_state(results, expected):
+    assert final_submission_state(results) == expected
+
+
+@pytest.mark.parametrize(
+    ("error", "results", "expected"),
+    [
+        (None, {"final_state": _SubmissionStatus.VALID_SUBMISSION}, "valid_submission"),
+        (None, {"final_state": METRICS_CSV}, "step_limit"),
+        ("ValueError: Invalid submission!", None, "invalid_submission"),
+        ("RuntimeError: simulated init failure", None, "error"),
+        ("APIConnectionError: Connection error.", None, "error"),
+    ],
+)
+def test_termination_reason(error, results, expected):
+    assert termination_reason(error, results) == expected
 
 
 def test_count_tool_call_issues_on_a_clean_run():

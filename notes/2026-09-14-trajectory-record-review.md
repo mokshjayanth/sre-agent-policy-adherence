@@ -47,7 +47,8 @@ hold against the code and data, and what changed because of them.
    executor. A command in an action also may not have run: `exec_shell` refuses `kubectl edit`,
    `edit svc` and `kubectl port-forward` by substring (`actions/base.py:94-96`).
 2. **The trajectory didn't record what the model was told.** Its roles are only `assistant` and
-   `env`. `batch.json` holds `prompt_sha256`, but that hashes the template constants
+   `env`. `batch.json` holds `prompt_sha256` (renamed `prompt_template_sha256` later on
+   2026-09-14; see `notes/2026-09-14-step-budget-and-termination.md`), but that hashes the template constants
    (`DOCS + RESP_INSTR + THOUGHT_PLACEMENT`), not each problem's rendered prompt with its
    description, task instructions and API docs. The per-turn text appended to observations
    and what trimming sent weren't recorded either, and T1 training examples need exactly that.

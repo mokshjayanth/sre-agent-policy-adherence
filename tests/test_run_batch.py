@@ -59,6 +59,8 @@ def test_failed_problems_are_recorded_and_the_batch_continues(run, tmp_path):
     assert trajectory["batch_id"] == batch.name and trajectory["condition"] == "smoke-unit"
     assert trajectory["agent_description"]["kind"] == "scripted, not an LLM"
     assert trajectory["agent_record"] is None  # the scripted probe has no record()
+    assert trajectory["termination_reason"] == "error"
+    assert records[0]["termination_reason"] == "error"
 
 
 def test_trajectory_is_self_describing_and_drops_the_repr_history_copy():
@@ -73,7 +75,9 @@ def test_trajectory_is_self_describing_and_drops_the_repr_history_copy():
     }
     batch_info = {"batch_id": "B", "condition": "smoke-unit", "agent_description": {"model": "m"}}
 
-    trajectory = rb._trajectory("P", "openai-compatible", batch_info, session, agent, results)
+    trajectory = rb._trajectory("P", "openai-compatible", batch_info, session, agent, results, "valid_submission")
+    assert trajectory["termination_reason"] == "valid_submission"
+    assert trajectory["results"]["final_state"] == "VALID_SUBMISSION"
     assert "history" not in trajectory["results"]
     assert trajectory["results"]["results"] == {"Detection Accuracy": "Correct"}
     assert trajectory["history"] == [{"role": "assistant", "content": "Action: ..."}]

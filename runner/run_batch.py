@@ -11,8 +11,9 @@ One folder per batch; a single problem is just a batch of one.
       resume-<n>.json                 manifest re-recorded at each resume
       index.jsonl                     one line appended per finished problem attempt
       problems/<problem_id>/
-        trajectory.json               batch ID, condition and agent settings; harness history and
-                                      results; the agent's own messages (partial if the run failed)
+        trajectory.json               batch ID, condition and agent settings; why the episode ended;
+                                      harness history and results; the agent's own messages
+                                      (partial if the run failed)
         pods.json                     image digests across all namespaces, after deploy
         error.txt                     traceback, only when the attempt failed
         metrics_output/, trace_output/  telemetry exported by the agent's actions
@@ -67,7 +68,12 @@ from runner.harness_fixes import (  # noqa: E402
 )
 from runner.manifest import collect_cluster_images, collect_static_manifest  # noqa: E402
 from runner.problem_sets import TASK_TYPES, select_problems, task_type  # noqa: E402
-from runner.trajectory_checks import count_tool_call_issues, submitted  # noqa: E402
+from runner.trajectory_checks import (  # noqa: E402
+    count_tool_call_issues,
+    final_submission_state,
+    submitted,
+    termination_reason,
+)
 
 AGENTS = {
     "scripted-probe": "agents.scripted_probe:ScriptedProbeAgent",
@@ -201,7 +207,24 @@ def _set_aside_previous_attempt(problem_dir: Path) -> None:
     problem_dir.rename(failed)
 
 
-def _trajectory(problem_id: str, agent_name: str, batch_info: dict, session, agent, results) -> dict:
+def _results_for_record(results: dict | None) -> dict | None:
+    """The harness's return value without its two traps.
+
+    `history` repeats the session history as Python repr strings once serialised,
+    so it's dropped; the trajectory's own `history` holds the same turns properly.
+    `final_state` is the last env response, a submission status or a raw
+    observation, so it's reduced to the status name or None.
+    """
+    if not results:
+        return results
+    kept = {k: v for k, v in results.items() if k != "history"}
+    kept["final_state"] = final_submission_state(results)
+    return kept
+
+
+def _trajectory(
+    problem_id: str, agent_name: str, batch_info: dict, session, agent, results, termination: str
+) -> dict:
     """trajectory.json, self-describing so it stays interpretable when copied out of its batch.
 
     `batch_info` carries batch_id, condition and agent_description.
@@ -213,9 +236,8 @@ def _trajectory(problem_id: str, agent_name: str, batch_info: dict, session, age
         "agent_name": agent_name,
         "session_id": str(session.session_id) if session else None,
         "solution": session.solution if session else None,
-        # The harness's results also repeat the session history, as Python repr strings
-        # once serialised; `history` below holds the same turns as proper objects.
-        "results": {k: v for k, v in results.items() if k != "history"} if results else results,
+        "termination_reason": termination,
+        "results": _results_for_record(results),
         # What the harness recorded: the agent's replies and the raw observations.
         "history": [item.model_dump() for item in session.history] if session else [],
         # What the model received: rendered prompts, per-turn suffixes, trimming per call.
@@ -245,6 +267,7 @@ async def run_problem(
     orch = Orchestrator()
     orch.register_agent(agent_cls(), name=agent_name)
     results = None
+    error = None
     try:
         problem_desc, instructions, apis = orch.init_problem(problem_id)
         orch.agent.init_context(problem_desc, instructions, fix_exec_shell_doc(apis))
@@ -253,15 +276,17 @@ async def run_problem(
         results = await orch.start_problem(max_steps=max_steps)
         record["status"] = "ok"
     except Exception as exc:
+        error = f"{type(exc).__name__}: {exc}"
         record["status"] = "error"
-        record["error"] = f"{type(exc).__name__}: {exc}"
+        record["error"] = error
         (problem_dir / "error.txt").write_text(traceback.format_exc())
         _cleanup_after_failure(orch)
     finally:
         session = orch.session
+        termination = termination_reason(error, results)
         _write_json(
             problem_dir / "trajectory.json",
-            _trajectory(problem_id, agent_name, batch_info, session, orch.agent, results),
+            _trajectory(problem_id, agent_name, batch_info, session, orch.agent, results, termination),
         )
         _move_exports(workdir, exports_before, problem_dir)
         # A non-zero count also marks a problem whose get_metrics or get_traces call failed.
@@ -277,8 +302,9 @@ async def run_problem(
         finished_utc=_utcnow(),
         session_id=str(session.session_id) if session else None,
         solution=session.solution if session else None,
-        # "ok" status only means the episode ran; this says whether the agent actually answered.
+        # "ok" status only means the episode ran; these say whether and how it ended with an answer.
         submitted=submitted(results),
+        termination_reason=termination,
         results=(results or {}).get("results"),
         framework_overhead_s=(results or {}).get("framework_overhead"),
         leaked_port_forwards=leaked,
