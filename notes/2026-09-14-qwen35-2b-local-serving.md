@@ -124,3 +124,9 @@ available, so this ran on a g5.xlarge.
   distribution by different kernels. Keep the sampler the same across B1, T1 and T2.
 - The serving flags and environment variables aren't recorded in `batch.json`; only what the
   server reports is.
+
+## Correction (2026-09-14): the format floor is decided
+
+The first Open item is decided in `notes/2026-09-14-b1-model-trial.md`: the per-turn text now
+shows the action fenced, and B1 is Qwen3.5-4B, since Qwen3.5-2B parsed only 13 of 20 replayed
+first turns even with that change.

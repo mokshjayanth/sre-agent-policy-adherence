@@ -163,3 +163,10 @@ limit every condition shares.
   Thought citing 5xx errors on `/geo.Geo/Nearby` and `/search.Search/Nearby` from the visible
   part of the trace, and the harness's `ResponseParser` parsed its action as `submit("Yes")`.
   One replay on one model; the cap has not yet fired inside a live episode.
+
+## Correction (2026-09-14): the cap has fired in a live episode
+
+In `runs/2026-09-14T171156Z_smoke-qwen3.5-4b`, call 10 followed a `read_traces` and recorded
+`observation_tokens_omitted: 61140`, `first_turn_sent: 2`, `last_message_truncated: false`. The
+sent message ended with the per-turn instructions, and the reply had a Thought and a parseable
+`submit("Yes")`, scored `Correct`. See `notes/2026-09-14-b1-model-trial.md`, Finding 4.

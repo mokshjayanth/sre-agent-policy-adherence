@@ -203,3 +203,13 @@ tokens, and each observation is capped at 16,000 tokens before the per-turn text
 appended. The smoke model is now `qwen.qwen3-next-80b-a3b-instruct`. The Open item "The
 context limit depends on B1" is resolved there too: see
 `notes/2026-09-14-observation-cap-and-context-budget.md`.
+
+## Correction (2026-09-14): the Thought-placement line now shows a fenced action
+
+Finding 7 held for Qwen3-32B, but not for small models. With the line as written ("Write the
+Thought as plain text before the code block; only the action goes inside the code block."),
+Qwen3.5-2B, Qwen3-4B-Instruct-2507 and Qwen3.5-4B mostly wrote the action inline after
+`Action:`, with no code block, and the harness couldn't parse it: 2, 0 and 6 of 20 replayed
+first turns parsed. The line now shows the action fenced on its own lines, reusing the
+harness's `exec_shell("ls -l")` example; Qwen3.5-4B then parsed 20 of 20 and Qwen3-Next-80B
+stayed at 20 of 20. See `notes/2026-09-14-b1-model-trial.md`.

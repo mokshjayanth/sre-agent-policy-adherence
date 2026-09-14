@@ -11,8 +11,9 @@ message, RESP_INSTR ("Thought: ... Action: ...") appended to every observation,
 the same history trimming, and GPTClient's sampling settings. Whatever the model
 writes, Thought text included, is recorded in trajectory.json, and record()
 adds the messages the model actually received.
-Decisions and evidence: notes/2026-09-14-agent-prompt-and-context.md and
-notes/2026-09-14-observation-cap-and-context-budget.md.
+Decisions and evidence: notes/2026-09-14-agent-prompt-and-context.md,
+notes/2026-09-14-observation-cap-and-context-budget.md and
+notes/2026-09-14-b1-model-trial.md.
 
 Four differences from react.py, all needed rather than chosen, and identical for
 every condition:
@@ -24,7 +25,10 @@ every condition:
   management rather than by the model.
 - THOUGHT_PLACEMENT follows RESP_INSTR. The task instructions every problem
   sends demand a bare code block, which overrides RESP_INSTR's request for a
-  Thought; this line resolves that contradiction so reasoning gets recorded.
+  Thought; and RESP_INSTR's "Action: <your action>" leads small models to write
+  the action inline, with no code block, so the harness can't parse it. The line
+  asks for the Thought as plain text and shows the action fenced on its own lines,
+  reusing the harness's own exec_shell("ls -l") example.
 - Each observation is capped at OBSERVATION_TOKEN_CAP tokens, with a visible
   marker, before the per-turn instructions are appended. Without it, one trace
   read larger than the whole limit makes react.py's trimming send only that
@@ -109,7 +113,10 @@ def trim_history_to_token_limit(history, max_tokens=120000, model="gpt-4"):
 
 # --- End of copy -----------------------------------------------------------------
 
-THOUGHT_PLACEMENT = "Write the Thought as plain text before the code block; only the action goes inside the code block.\n"
+THOUGHT_PLACEMENT = (
+    "Write the Thought as plain text. Then write Action: and put only the action inside a markdown "
+    "code block on its own lines, for example:\nAction:\n```\nexec_shell(\"ls -l\")\n```\n"
+)
 
 
 def cap_observation(observation: str, cap: int = OBSERVATION_TOKEN_CAP) -> tuple[str, int]:
