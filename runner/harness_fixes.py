@@ -1,13 +1,18 @@
 """Workarounds for the vendored AIOpsLab harness, applied from outside it.
 
 third_party/aiopslab stays unmodified, so everything that compensates for its
-behaviour lives here. Revisit this file whenever the harness pin moves.
+behaviour lives here, and this file is the complete list of places where a run
+deviates from stock AIOpsLab. Revisit it whenever the harness pin moves.
 
 - OTel demo chart pin: AstronomyShop installs its Helm chart unpinned.
   See notes/2026-09-13-harness-pin-coverage.md.
 - Port-forward cleanup: a failed metrics query leaks `kubectl port-forward` and
   two reader threads, and even a successful one orphans kubectl on port 32000.
   See notes/2026-09-13-get-metrics-failures.md.
+- exec_shell doc fix: its docstring advertises a `timeout` parameter the parser
+  can never accept, and a quoted-timeout variant parses silently into a
+  mangled shell command instead of raising. See
+  notes/2026-09-14-exec-shell-timeout-unreachable.md.
 """
 
 import os
@@ -160,3 +165,28 @@ def stop_orphaned_port_forwards() -> int:
     pids = harness_port_forward_pids()
     terminate_pids(pids)
     return len(pids)
+
+
+# --- exec_shell doc fix -------------------------------------------------------
+#
+# exec_shell(command: str, timeout: int = 30) documents a timeout parameter
+# (actions/base.py) that ResponseParser.parse_args can never accept: its
+# is_shell_command branch requires the entire argument string to be exactly one
+# quoted string, with no path for a second argument. Worse, a quoted timeout
+# value (timeout="60") passes that check and parses silently into a mangled
+# command instead of raising -- e.g. exec_shell("cmd", timeout="60") becomes
+# the single argument 'cmd", timeout="60'. Every agent sees this docstring
+# verbatim (runner hands `apis` straight to init_context), so this is a
+# condition-independent trap, not a quirk of one model. Fixed here, once, for
+# every agent -- not in an agent's prompt, which would only cover one agent and
+# would make B1 (plain prompting) stop being plain for the others.
+
+_EXEC_SHELL_TIMEOUT_LINE = re.compile(r"\n[ \t]*timeout \(int\):[^\n]*")
+
+
+def fix_exec_shell_doc(apis: dict) -> dict:
+    """Return `apis` with the unusable `timeout` parameter removed from exec_shell's doc."""
+    fixed = dict(apis)
+    if "exec_shell" in fixed:
+        fixed["exec_shell"] = _EXEC_SHELL_TIMEOUT_LINE.sub("", fixed["exec_shell"])
+    return fixed

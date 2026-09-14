@@ -7,6 +7,7 @@ so nothing here touches the cluster or any running process.
 import json
 import subprocess
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -51,6 +52,7 @@ def test_failed_problems_are_recorded_and_the_batch_continues(run, tmp_path):
     records = _index(batch)
     assert [r["status"] for r in records] == ["error", "error"]
     assert records[0]["error"] == "RuntimeError: simulated init failure"
+    assert records[0]["submitted"] is False
     assert (batch / "problems" / P1 / "error.txt").exists()
     trajectory = json.loads((batch / "problems" / P1 / "trajectory.json").read_text())
     assert trajectory["history"] == [] and trajectory["results"] is None
@@ -87,6 +89,38 @@ def test_resume_refuses_a_changed_environment_and_names_changed_packages(run, tm
     assert run("--resume", batch.name, "--allow-env-change") == 1
     changed = json.loads((batch / "resume-1.json").read_text())["changed_from_batch"]
     assert changed == ["python.pip_freeze", "pins"]
+
+
+class _ModelFromEnvAgent:
+    """Describes itself from an environment variable, as the OpenAI-compatible agent does."""
+
+    @classmethod
+    def describe(cls):
+        import os
+
+        return {"model": os.environ.get("FAKE_AGENT_MODEL")}
+
+
+def test_resume_refuses_a_different_agent_model(run, tmp_path, monkeypatch):
+    module = types.ModuleType("fake_model_agent")
+    module.ModelFromEnvAgent = _ModelFromEnvAgent
+    monkeypatch.setitem(sys.modules, "fake_model_agent", module)
+    monkeypatch.setitem(rb.AGENTS, "fake-model", "fake_model_agent:ModelFromEnvAgent")
+
+    monkeypatch.setenv("FAKE_AGENT_MODEL", "model-a")
+    run("--problems", P1, "--condition", "smoke-unit", "--agent", "fake-model", "--max-steps", "1")
+    batch = _batch(tmp_path)
+
+    monkeypatch.setenv("FAKE_AGENT_MODEL", "model-b")
+    with pytest.raises(SystemExit) as refusal:
+        run("--resume", batch.name)
+    message = str(refusal.value)
+    assert "run.agent_description" in message and "model-a" in message and "model-b" in message
+    assert not (batch / "resume-1.json").exists()
+
+    monkeypatch.setenv("FAKE_AGENT_MODEL", "model-a")
+    assert run("--resume", batch.name) == 1
+    assert json.loads((batch / "resume-1.json").read_text())["changed_from_batch"] == []
 
 
 @pytest.mark.parametrize("label", ["smoke-scripted", "validation-scripted", "noise-sonnet5",

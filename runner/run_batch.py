@@ -19,9 +19,9 @@ One folder per batch; a single problem is just a batch of one.
 
 Resume with --resume <batch_id>. Problems whose latest index entry is "ok" are
 skipped and the rest are retried with the batch's recorded selection, agent
-and max steps. Resume refuses to continue when the environment differs from
-batch.json, since the batch would silently mix two setups, unless
---allow-env-change is passed.
+and max steps. Resume refuses to continue when the environment or the agent's
+recorded description (model, sampling settings) differs from batch.json, since
+the batch would silently mix two setups, unless --allow-env-change is passed.
 
 Working directory: the harness writes exported metrics and traces under the
 current directory and shows that absolute path to the agent in observations.
@@ -59,15 +59,18 @@ from aiopslab.orchestrator import Orchestrator  # noqa: E402
 
 from runner.harness_fixes import (  # noqa: E402
     PINNED_OTEL_CHART_VERSION,
+    fix_exec_shell_doc,
     pin_otel_chart,
     stop_leaked_port_forwards,
     stop_orphaned_port_forwards,
 )
 from runner.manifest import collect_cluster_images, collect_static_manifest  # noqa: E402
 from runner.problem_sets import TASK_TYPES, select_problems, task_type  # noqa: E402
+from runner.trajectory_checks import count_tool_call_issues, submitted  # noqa: E402
 
 AGENTS = {
     "scripted-probe": "agents.scripted_probe:ScriptedProbeAgent",
+    "openai-compatible": "agents.openai_compatible:OpenAICompatibleAgent",
 }
 
 # batch.json fields that must be unchanged for a resumed batch to stay one setup.
@@ -85,6 +88,9 @@ ENV_KEYS = [
     ("python", "poetry_lock_sha256"),
     ("python", "pip_freeze"),
     ("pins",),
+    # Agents read their model and settings from the environment (e.g. AGENT_MODEL), so
+    # without this a resume could continue a batch with a different model.
+    ("run", "agent_description"),
 ]
 
 # Batch labels are <purpose>-<agent>[-<variant>], lowercase; see CLAUDE.md.
@@ -109,6 +115,11 @@ def _load_agent(name: str):
     return getattr(importlib.import_module(module_name), class_name)
 
 
+def _agent_description(name: str) -> dict | None:
+    agent_cls = _load_agent(name)
+    return agent_cls.describe() if hasattr(agent_cls, "describe") else None
+
+
 def _lookup(data: dict, path: tuple) -> object:
     for key in path:
         data = (data or {}).get(key)
@@ -131,7 +142,10 @@ def _freeze_by_package(lines: list[str] | None) -> dict[str, str]:
 
 
 def _describe_change(key: str, recorded: dict, current: dict) -> str:
-    """The changed key, plus which packages moved when it's the pip freeze."""
+    """The changed key, plus what moved for the keys where that's short enough to show."""
+    if key == "run.agent_description":
+        path = ("run", "agent_description")
+        return f"{key} (batch: {_lookup(recorded, path)}; now: {_lookup(current, path)})"
     if key != "python.pip_freeze":
         return key
     old = _freeze_by_package(_lookup(recorded, ("python", "pip_freeze")))
@@ -204,7 +218,7 @@ async def run_problem(
     results = None
     try:
         problem_desc, instructions, apis = orch.init_problem(problem_id)
-        orch.agent.init_context(problem_desc, instructions, apis)
+        orch.agent.init_context(problem_desc, instructions, fix_exec_shell_doc(apis))
         # Deploy, fault injection and workload start are done, so the pods exist.
         _write_json(problem_dir / "pods.json", collect_cluster_images())
         results = await orch.start_problem(max_steps=max_steps)
@@ -238,10 +252,15 @@ async def run_problem(
         finished_utc=_utcnow(),
         session_id=str(session.session_id) if session else None,
         solution=session.solution if session else None,
+        # "ok" status only means the episode ran; this says whether the agent actually answered.
+        submitted=submitted(results),
         results=(results or {}).get("results"),
         framework_overhead_s=(results or {}).get("framework_overhead"),
         leaked_port_forwards=leaked,
         orphaned_port_forwards=orphaned,
+        tool_call_issues=count_tool_call_issues(
+            [item.model_dump() for item in session.history] if session else []
+        ),
     )
     return record
 
@@ -249,13 +268,18 @@ async def run_problem(
 def _start_or_resume(args) -> tuple[Path, dict, list[str], dict[str, str]]:
     """Create the batch folder or reopen it; return (batch dir, run settings, problems, skipped)."""
     pin_otel_chart()
-    pins = {"otel_demo_chart": PINNED_OTEL_CHART_VERSION}
+    pins = {
+        "otel_demo_chart": PINNED_OTEL_CHART_VERSION,
+        # A stable ID; the reason is in notes/2026-09-14-exec-shell-timeout-unreachable.md.
+        "exec_shell_doc": "timeout-line-removed",
+    }
 
     if args.resume:
         batch_dir = RUNS_ROOT / args.resume
         recorded = json.loads((batch_dir / "batch.json").read_text())
         settings = recorded["run"]
-        current = collect_static_manifest(pins=pins, run={**settings, "argv": sys.argv})
+        current_run = {**settings, "agent_description": _agent_description(settings["agent"]), "argv": sys.argv}
+        current = collect_static_manifest(pins=pins, run=current_run)
         changed = _env_diff(recorded, current)
         if changed and not args.allow_env_change:
             details = "\n".join(f"  - {_describe_change(key, recorded, current)}" for key in changed)
@@ -277,11 +301,10 @@ def _start_or_resume(args) -> tuple[Path, dict, list[str], dict[str, str]]:
             f"got {args.condition!r}."
         )
     problems, skipped = select_problems(args.problems, args.problem_file, args.task, args.include_excluded)
-    agent_cls = _load_agent(args.agent)
     settings = {
         "condition": args.condition,
         "agent": args.agent,
-        "agent_description": agent_cls.describe() if hasattr(agent_cls, "describe") else None,
+        "agent_description": _agent_description(args.agent),
         "max_steps": args.max_steps,
         "selection": {
             "problems": args.problems,

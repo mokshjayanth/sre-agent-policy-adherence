@@ -56,3 +56,28 @@ def test_stop_leaked_port_forwards_stops_reader_threads_and_process():
     assert harness_fixes.stop_leaked_port_forwards() == 1
     assert not leak.output_threads[0].is_alive()
     assert leak.port_forward_process.poll() is not None
+
+
+EXEC_SHELL_DOC = """Execute any shell command in a predefined debugging environment.
+        Note: this is NOT A STATEFUL OR INTERACTIVE shell session. So you cannot
+        execute commands like "kubectl edit".
+
+        Args:
+            command (str): The command to execute.
+            timeout (int): Timeout in seconds for the command execution. Default is 30.
+
+        Returns:
+            str: The output of the command."""
+
+
+def test_fix_exec_shell_doc_removes_only_the_timeout_line():
+    apis = {"exec_shell": EXEC_SHELL_DOC, "get_logs": "some other doc"}
+    fixed = harness_fixes.fix_exec_shell_doc(apis)
+    assert "timeout" not in fixed["exec_shell"]
+    assert "command (str): The command to execute." in fixed["exec_shell"]
+    assert fixed["get_logs"] == "some other doc"
+    assert apis["exec_shell"] == EXEC_SHELL_DOC  # original dict untouched
+
+
+def test_fix_exec_shell_doc_is_a_noop_without_exec_shell():
+    assert harness_fixes.fix_exec_shell_doc({"submit": "doc"}) == {"submit": "doc"}
