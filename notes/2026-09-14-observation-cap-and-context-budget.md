@@ -143,3 +143,23 @@ limit every condition shares.
 - Tokenizer ratios for Kimi-K2.5 and GLM-5 are unmeasured; their limits leave a wide margin.
 - For grading, a `history` env entry is no longer a substring of the agent's message when the
   cap fired; the capped part is then a prefix of it.
+
+## Verification (2026-09-14)
+
+- **Smoke batches with the new agent and smoke model:**
+  `runs/2026-09-14T142739Z_smoke-qwen3-next-80b-cap`, `runs/2026-09-14T143008Z_smoke-qwen3-next-80b-cap`
+  and `runs/2026-09-14T143253Z_smoke-qwen3-next-80b-cap` (commit `0b4c7d2`, 30-step budget). All
+  three submitted `"Yes"`, scored `Correct`, after 7, 13 and 7 steps. All 27 replies had a
+  Thought and there were no parse errors. Each episode inspected the geo pod. None called
+  `read_traces`, so the cap never fired and nothing was trimmed. These runs check the model and
+  the recording, not the cap.
+- **Replay of the call that wiped an episode.** The agent was given
+  `runs/2026-09-14T130112Z_noise-qwen3-32b-steps30`'s recorded history up to call 10 and that
+  call's raw observation (219,914 characters, the trace dump plus the harness's request), with
+  the new default model on the gateway. The call record was `first_turn_sent: 2`,
+  `last_message_truncated: false`, `observation_tokens_omitted: 56178`. It sent all 21 messages,
+  27,995 tokens; before the fix the same call sent 3 messages, 18,000 tokens. The sent message
+  ended with the marker, the harness's request and the per-turn instructions. The reply had a
+  Thought citing 5xx errors on `/geo.Geo/Nearby` and `/search.Search/Nearby` from the visible
+  part of the trace, and the harness's `ResponseParser` parsed its action as `submit("Yes")`.
+  One replay on one model; the cap has not yet fired inside a live episode.
