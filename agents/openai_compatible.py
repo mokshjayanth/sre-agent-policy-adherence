@@ -9,18 +9,19 @@ client (third_party/aiopslab/clients/react.py) so the plain-prompting condition
 stays plain: the DOCS system template, the task instructions as the first user
 message, RESP_INSTR ("Thought: ... Action: ...") appended to every observation,
 the same history trimming, and GPTClient's sampling settings. Whatever the model
-writes, Thought text included, is recorded in trajectory.json -- but the task
-instructions every problem sends demand a bare code block, and Qwen3-32B obeys
-them, so with this prompt it writes no Thought at all. How to keep reasoning is
-undecided. Decision and evidence: notes/2026-09-14-agent-prompt-and-context.md.
+writes, Thought text included, is recorded in trajectory.json.
+Decision and evidence: notes/2026-09-14-agent-prompt-and-context.md.
 
-Two differences from react.py, both needed rather than chosen:
+Three differences from react.py, all needed rather than chosen:
 - The token limit is CONTEXT_TOKEN_LIMIT, not 120000: the smallest models in
   scope have a 32,768-token context, and one limit applies to every condition.
 - The system and task messages are never trimmed. react.py's trimming drops the
   oldest messages first, so a long episode would lose the problem description,
   the API docs and any instructed policy -- a policy "forgotten" by context
   management rather than by the model.
+- THOUGHT_PLACEMENT follows RESP_INSTR. The task instructions every problem
+  sends demand a bare code block, which overrides RESP_INSTR's request for a
+  Thought; this line resolves that contradiction so reasoning gets recorded.
 
 react.py can't be imported here (its module imports groq and azure-identity,
 from the harness's skipped `clients` group), so RESP_INSTR and the trimming
@@ -91,6 +92,8 @@ def trim_history_to_token_limit(history, max_tokens=120000, model="gpt-4"):
 
 # --- End of copy -----------------------------------------------------------------
 
+THOUGHT_PLACEMENT = "Write the Thought as plain text before the code block; only the action goes inside the code block.\n"
+
 
 def trim_keeping_task(history: list[dict], max_tokens: int = CONTEXT_TOKEN_LIMIT) -> list[dict]:
     """react.py's trimming applied to the turns only; the system and task messages always stay."""
@@ -115,9 +118,9 @@ class OpenAICompatibleAgent:
         return {
             "kind": "LLM via OpenAI-compatible endpoint",
             "model": os.environ.get("AGENT_MODEL", DEFAULT_MODEL),
-            "prompt": "AIOpsLab clients/react.py (DOCS + RESP_INSTR), task messages never trimmed",
+            "prompt": "AIOpsLab clients/react.py (DOCS + RESP_INSTR) + THOUGHT_PLACEMENT, task messages never trimmed",
             # A prompt edit changes the condition, so it must change what's recorded.
-            "prompt_sha256": hashlib.sha256((DOCS + RESP_INSTR).encode()).hexdigest()[:12],
+            "prompt_sha256": hashlib.sha256((DOCS + RESP_INSTR + THOUGHT_PLACEMENT).encode()).hexdigest()[:12],
             "temperature": TEMPERATURE,
             "top_p": TOP_P,
             "max_tokens": MAX_TOKENS,
@@ -142,7 +145,9 @@ class OpenAICompatibleAgent:
         ]
 
     async def get_action(self, observation: str) -> str:
-        self.history.append({"role": "user", "content": observation + "\n\n" + RESP_INSTR})
+        self.history.append(
+            {"role": "user", "content": observation + "\n\n" + RESP_INSTR + THOUGHT_PLACEMENT}
+        )
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=trim_keeping_task(self.history),

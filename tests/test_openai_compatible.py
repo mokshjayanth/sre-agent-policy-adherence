@@ -68,7 +68,9 @@ def test_get_action_appends_resp_instr_and_uses_the_shipped_sampling(monkeypatch
     agent.init_context("PROBLEM", "INSTRUCTIONS", APIS)
     reply = asyncio.run(agent.get_action("Please take the next action"))
     [call] = calls
-    assert call["messages"][-1]["content"] == "Please take the next action\n\n" + oc.RESP_INSTR
+    assert call["messages"][-1]["content"] == (
+        "Please take the next action\n\n" + oc.RESP_INSTR + oc.THOUGHT_PLACEMENT
+    )
     assert (call["temperature"], call["top_p"], call["max_tokens"]) == (0.5, 0.95, 1024)
     assert "extra_body" not in call
     assert agent.history[-1] == {"role": "assistant", "content": reply}

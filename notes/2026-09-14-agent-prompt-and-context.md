@@ -10,7 +10,8 @@ evidence:
   - third_party/aiopslab/aiopslab/orchestrator/orchestrator.py:109 (full response recorded)
   - third_party/aiopslab/aiopslab/orchestrator/tasks/detection.py:40-43 (and the same lines in analysis.py, localization.py, mitigation.py)
   - runs/2026-09-14T091300Z_smoke-qwen3-32b-fix (earlier agent prompt)
-  - runs/2026-09-14T095605Z_smoke-qwen3-32b-react (this decision)
+  - runs/2026-09-14T095605Z_smoke-qwen3-32b-react (shipped react.py prompt)
+  - runs/2026-09-14T101254Z_smoke-qwen3-32b-react-thought (shipped prompt + THOUGHT_PLACEMENT)
   - https://huggingface.co/Qwen/Qwen3-1.7B
   - agents/openai_compatible.py
 ---
@@ -69,6 +70,9 @@ characters. Two questions follow, and both define the plain-prompting condition
     end of the system prompt, two times each. The line: "Write the Thought as
     plain text before the code block; only the action goes inside the code
     block."
+- A smoke batch with that line after `RESP_INSTR`,
+  `runs/2026-09-14T101254Z_smoke-qwen3-32b-react-thought`: same problem and step
+  limit again.
 
 ## Findings
 
@@ -103,9 +107,9 @@ characters. Two questions follow, and both define the plain-prompting condition
    32,768-token context. Qwen3-1.7B, a candidate at the planned 1-3B B1 size,
    lists the same ("Context Length: 32,768",
    https://huggingface.co/Qwen/Qwen3-1.7B). Other B1 candidates are unchecked.
-   Trace data counts about 1.5x higher in Qwen tokens than in tiktoken. The
-   react batch never came near the limit (`in_tokens` 2,818), so trimming wasn't
-   exercised on the cluster; `tests/test_openai_compatible.py` covers it.
+   Trace data counts about 1.5x higher in Qwen tokens than in tiktoken. Neither
+   react batch hit the limit, so trimming wasn't exercised on the cluster;
+   `tests/test_openai_compatible.py` covers it.
 5. **react.py's trimming drops the task.** It keeps the newest messages and drops
    the oldest first, system prompt included. When one observation exceeds the
    limit, it returns only that observation, truncated. A long episode would
@@ -121,6 +125,14 @@ characters. Two questions follow, and both define the plain-prompting condition
    deploys and cleans up anyway. A `test-social-network` namespace with no
    resources, created 2026-09-14T08:29:13Z, may have the same cause
    (unverified).
+7. **The added line holds over a full episode.** In
+   `runs/2026-09-14T101254Z_smoke-qwen3-32b-react-thought`, all 10 assistant
+   turns start with a `Thought:` and end with a parseable code block:
+   `parse_errors: 0`, `invalid_actions: 0`. The agent traced the geo pod's
+   crash to MongoDB port 27777 versus 27017, submitted `"Yes"`, and the harness
+   scored it `Correct` (`submitted: true`, 10 steps, `in_tokens` 17,852,
+   `out_tokens` 841). This is one episode on one problem; it shows the format
+   works, not how accurate the agent is.
 
 ## Decision
 
@@ -138,38 +150,38 @@ for every condition:
 be imported. `tests/test_openai_compatible.py` compares them with the pinned
 harness source.
 
-Two deviations, both needed:
+Three deviations, all needed:
 
 - **Limit.** `CONTEXT_TOKEN_LIMIT = 18000` tiktoken tokens for all conditions.
   At the worst measured ratio plus margin (1.6x) that's 28,800 Qwen tokens, plus
-  1,024 for output: under 32,768.
+  1,024 for output: under 32,768. This is sized for the smoke model and is
+  provisional until B1 is chosen (see Open).
 - **Task messages are never trimmed.** react.py's function is applied to the
   turns after the system and task messages, with whatever budget those two
   leave.
+- **Reasoning placement (option b, chosen 2026-09-14).** `THOUGHT_PLACEMENT`
+  ("Write the Thought as plain text before the code block; only the action goes
+  inside the code block.") follows `RESP_INSTR` on every turn, for every
+  condition. It resolves the contradiction in Finding 3 rather than adding
+  guidance, and Finding 7 shows it works. Rejected: (a) accepting action-only
+  trajectories, which leaves the recognised-but-violated measure with nothing
+  to read; (c) reading reasoning from a separate channel of the serving stack,
+  which this gateway doesn't have and which would make conditions record
+  reasoning differently.
 
-`describe()` records the prompt hash, sampling settings and limit, so resume
-refuses to mix them within a batch.
-
-**Not yet decided: how to keep reasoning (Finding 3).** With the shipped
-prompt, trajectories record actions only. Adherence can still be graded from
-actions, but the secondary measure (the agent recognising a rule and breaking
-it anyway) has nothing to read. Options:
-
-- (a) Accept action-only trajectories. No deviation; reasoning coverage is zero
-  for this model.
-- (b) Append the one reconciling line after `RESP_INSTR` for every condition. It
-  clears up a contradiction inside the harness rather than adding guidance, and
-  it worked in 2 of 2 replays. It is still a prompt change, and asking for
-  reasoning may itself change behaviour; it applies equally to all conditions.
-- (c) Take reasoning out of band where the serving stack returns it separately
-  (for example a local vLLM with a reasoning parser, for the B1 1-3B models).
-  This leaves the prompt as shipped but can't be used on this gateway, and it
-  would make the frontier and open-model conditions record reasoning
-  differently.
+`describe()` records the prompt hash (`DOCS + RESP_INSTR + THOUGHT_PLACEMENT`),
+sampling settings and limit, so resume refuses to mix them within a batch.
 
 ## Open
 
-- The reasoning decision above.
+- **The context limit depends on B1.** One limit applies to every condition, so
+  the ladder's smallest context sets it, and B1 (with B2, T1 and T2 derived from
+  it) is that model. Once B1 is chosen, set `CONTEXT_TOKEN_LIMIT` from its
+  context window and re-measure the tokenizer ratio with its own tokenizer.
+  B3 runs at the same limit even if its window is larger.
+- **B3 with native reasoning.** If the chosen B3 model has built-in thinking,
+  decide whether it's on and record that like any other setting. The visible
+  Thought stays the channel that's graded and used for T1 distillation.
 - `RESP_INSTR` says "DO NOT REPEAT ACTIONS!". A policy that requires re-checking
   after a change could conflict with it. Revisit when the policy text is
   written.
@@ -177,5 +189,5 @@ it anyway) has nothing to read. Options:
   CSVs, is unmeasured.
 - A policy longer than about a few thousand tokens would leave little budget for
   turns. Check when the policy text exists.
-- The reconciling line was tested on one first turn, 2 samples. A full batch
-  would be needed before relying on it.
+- `THOUGHT_PLACEMENT` has been checked on one model and one problem. Check the
+  parse-error rate again on the B1 and B3 models.
