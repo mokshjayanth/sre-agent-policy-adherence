@@ -148,3 +148,10 @@ Step budget:
   reported per condition. Decide when the policy rules are written.
 - Grading code for other problems may treat malformed answers differently from Finding 2.
 - The budget curve at B1 size.
+
+## Correction (2026-09-14): the trimming decision is made
+
+The first Open item is decided. Each observation is now capped at 16,000 tokens before the
+per-turn text is appended, and the shared limit is 64,000 tokens, so the truncate-everything
+branch in Finding 11 can no longer fire. See
+`notes/2026-09-14-observation-cap-and-context-budget.md`.

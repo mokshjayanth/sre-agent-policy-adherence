@@ -13,6 +13,8 @@ from agents import openai_compatible as oc
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REACT = REPO_ROOT / "third_party" / "aiopslab" / "clients" / "react.py"
 COPIED = ("RESP_INSTR", "count_message_tokens", "trim_history_to_token_limit")
+TRACE_DUMP = "3fa2b9c1d4e5 span " * 40000  # far beyond the cap, like a real read_traces
+PER_TURN_TEXT = "\n\n" + oc.RESP_INSTR + oc.THOUGHT_PLACEMENT
 
 
 def _top_level(path: Path) -> dict[str, str]:
@@ -69,9 +71,7 @@ def test_get_action_appends_resp_instr_and_uses_the_shipped_sampling(monkeypatch
     agent.init_context("PROBLEM", "INSTRUCTIONS", APIS)
     reply = asyncio.run(agent.get_action("Please take the next action"))
     [call] = calls
-    assert call["messages"][-1]["content"] == (
-        "Please take the next action\n\n" + oc.RESP_INSTR + oc.THOUGHT_PLACEMENT
-    )
+    assert call["messages"][-1]["content"] == "Please take the next action" + PER_TURN_TEXT
     assert (call["temperature"], call["top_p"], call["max_tokens"]) == (0.5, 0.95, 1024)
     assert "extra_body" not in call
     assert agent.history[-1] == {"role": "assistant", "content": reply}
@@ -82,10 +82,50 @@ def _tokens(messages):
     return sum(oc.count_message_tokens(m, enc) for m in messages)
 
 
+def test_cap_leaves_observations_within_the_cap_untouched():
+    for observation in ("Please take the next action", "some logs\nPlease take the next action", "no suffix"):
+        assert oc.cap_observation(observation) == (observation, 0)
+
+
+def test_cap_cuts_the_output_but_keeps_the_harness_request_after_a_marker():
+    enc = tiktoken.encoding_for_model("gpt-4")
+    observation = TRACE_DUMP + "\nPlease take the next action"
+    capped, omitted = oc.cap_observation(observation)
+    body_tokens = len(enc.encode(TRACE_DUMP + "\n"))
+    assert omitted == body_tokens - oc.OBSERVATION_TOKEN_CAP
+    assert capped.endswith(f"\n[... {omitted} more tokens of this output not shown ...]\nPlease take the next action")
+    assert observation.startswith(capped.split("\n[... ")[0])
+    assert len(enc.encode(capped)) <= oc.OBSERVATION_TOKEN_CAP + 30
+
+
+def test_a_capped_observation_can_never_trigger_the_truncate_everything_branch():
+    enc = tiktoken.encoding_for_model("gpt-4")
+    head = [{"role": "system", "content": "system " * 700}, {"role": "user", "content": "task " * 150}]
+    capped, _ = oc.cap_observation(TRACE_DUMP + "\nPlease take the next action")
+    budget = oc.CONTEXT_TOKEN_LIMIT - sum(oc.count_message_tokens(m, enc) for m in head)
+    assert oc.count_message_tokens({"content": capped + PER_TURN_TEXT}, enc) < budget
+
+
+def test_an_oversized_observation_keeps_earlier_turns_and_the_per_turn_text(monkeypatch):
+    agent, calls = _agent(monkeypatch)
+    agent.init_context("PROBLEM", "INSTRUCTIONS", APIS)
+    asyncio.run(agent.get_action("Please take the next action"))
+    asyncio.run(agent.get_action(TRACE_DUMP + "\nPlease take the next action"))
+    first, second = agent.record()["calls"]
+    sent = calls[1]["messages"]
+
+    assert first["observation_tokens_omitted"] == 0
+    assert second["observation_tokens_omitted"] > 0
+    assert (second["first_turn_sent"], second["last_message_truncated"]) == (2, False)
+    assert sent == agent.history[:5]  # system, task, obs 1, reply 1, capped obs 2
+    assert sent[-1]["content"].endswith("more tokens of this output not shown ...]\nPlease take the next action" + PER_TURN_TEXT)
+    assert _tokens(sent) <= oc.CONTEXT_TOKEN_LIMIT
+
+
 def test_trim_keeps_task_messages_and_truncates_an_oversized_observation():
     head = [{"role": "system", "content": "system " * 500}, {"role": "user", "content": "policy " * 200}]
     turns = [{"role": "user", "content": f"obs {i}"} for i in range(5)]
-    huge = {"role": "user", "content": "3fa2b9c1d4e5 span " * 40000}
+    huge = {"role": "user", "content": TRACE_DUMP}
     trimmed = oc.trim_keeping_task(head + turns + [huge])
     assert trimmed[:2] == head
     assert len(trimmed) == 3  # the oversized observation alone fills the turn budget
@@ -94,7 +134,7 @@ def test_trim_keeps_task_messages_and_truncates_an_oversized_observation():
 
 def test_trim_drops_oldest_turns_first_but_never_the_task():
     head = [{"role": "system", "content": "S"}, {"role": "user", "content": "T"}]
-    turns = [{"role": "user", "content": "word " * 5000} for _ in range(6)]
+    turns = [{"role": "user", "content": "word " * 15000} for _ in range(6)]
     trimmed = oc.trim_keeping_task(head + turns)
     assert trimmed[:2] == head
     assert trimmed[2:] == turns[-len(trimmed[2:]):] and len(trimmed[2:]) < len(turns)
@@ -116,18 +156,22 @@ def test_record_keeps_what_the_model_received_and_what_each_call_sent(monkeypatc
     assert [m["role"] for m in record["messages"]] == ["system", "user", "user", "assistant", "user", "assistant"]
     assert record["messages"][4]["content"].endswith(oc.RESP_INSTR + oc.THOUGHT_PLACEMENT)
     assert record["calls"] == [
-        {"messages_in_history": 3, "first_turn_sent": 2, "last_message_truncated": False},
-        {"messages_in_history": 5, "first_turn_sent": 2, "last_message_truncated": False},
+        {"messages_in_history": 3, "first_turn_sent": 2, "last_message_truncated": False,
+         "observation_tokens_omitted": 0},
+        {"messages_in_history": 5, "first_turn_sent": 2, "last_message_truncated": False,
+         "observation_tokens_omitted": 0},
     ]
 
 
 def test_trim_summary_reports_dropped_turns_and_truncation():
     head = [{"role": "system", "content": "S"}, {"role": "user", "content": "T"}]
     turns = [{"role": "user", "content": f"obs {i}"} for i in range(4)]
-    huge = {"role": "user", "content": "3fa2b9c1d4e5 span " * 40000}
+    huge = {"role": "user", "content": TRACE_DUMP}
     history = head + turns + [huge]
-    summary = oc.trim_summary(history, oc.trim_keeping_task(history))
+    sent = oc.trim_keeping_task(history)
+    summary = oc.trim_summary(history, sent)
     assert summary == {"messages_in_history": 7, "first_turn_sent": 6, "last_message_truncated": True}
+    assert history[-1]["content"].startswith(sent[-1]["content"]) and sent[-1] != history[-1]
 
 
 def test_describe_records_everything_that_defines_the_condition(monkeypatch):
@@ -138,8 +182,8 @@ def test_describe_records_everything_that_defines_the_condition(monkeypatch):
     assert described["model"] == "model-x"
     assert described["base_url"] == "http://localhost:8000/v1"
     assert described["serving"] == {"root": "http://localhost:8000/v1|model-x"}
-    for key in ("prompt_variant", "prompt_template_sha256", "temperature", "top_p", "max_tokens",
-                "context_token_limit"):
+    assert (described["context_token_limit"], described["observation_token_cap"]) == (64000, 16000)
+    for key in ("prompt_variant", "prompt_template_sha256", "temperature", "top_p", "max_tokens"):
         assert key in described
 
 
@@ -151,26 +195,6 @@ def test_prompt_template_hash_matches_its_documented_preimage(monkeypatch):
     preimage = oc.DOCS + oc.RESP_INSTR + oc.THOUGHT_PLACEMENT
     expected = hashlib.sha256(preimage.encode()).hexdigest()[:12]
     assert oc.OpenAICompatibleAgent.describe()["prompt_template_sha256"] == expected
-
-
-def test_truncation_flag_matches_what_was_actually_sent(monkeypatch):
-    agent, calls = _agent(monkeypatch)
-    agent.init_context("PROBLEM", "INSTRUCTIONS", APIS)
-    asyncio.run(agent.get_action("small observation"))
-    asyncio.run(agent.get_action("3fa2b9c1d4e5 span " * 40000))
-    small, huge = agent.record()["calls"]
-    sent_small, sent_huge = calls[0]["messages"], calls[1]["messages"]
-
-    assert small["last_message_truncated"] is False
-    assert sent_small == agent.history[:3]
-
-    # history: system, task, obs 1, reply 1, huge obs 2, reply 2
-    assert huge["last_message_truncated"] is True
-    assert sent_huge[:2] == agent.history[:2]
-    assert sent_huge[2:-1] == agent.history[huge["first_turn_sent"]:4]
-    assert sent_huge[-1]["content"] != agent.history[4]["content"]
-    assert agent.history[4]["content"].startswith(sent_huge[-1]["content"])
-    assert _tokens(sent_huge) <= oc.CONTEXT_TOKEN_LIMIT
 
 
 class _FakeModels:

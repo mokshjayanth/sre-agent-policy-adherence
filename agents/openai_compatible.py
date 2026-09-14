@@ -2,7 +2,7 @@
 
 Reads OPENAI_API_KEY / OPENAI_BASE_URL from the environment, which in this
 project point at an AWS Bedrock gateway (see open_ai_api_crendentials.txt --
-source it before running). Model is chosen by AGENT_MODEL.
+source it before running) or a local vLLM server. Model is chosen by AGENT_MODEL.
 
 Everything about how the model is prompted follows the harness's shipped ReAct
 client (third_party/aiopslab/clients/react.py) so the plain-prompting condition
@@ -11,11 +11,13 @@ message, RESP_INSTR ("Thought: ... Action: ...") appended to every observation,
 the same history trimming, and GPTClient's sampling settings. Whatever the model
 writes, Thought text included, is recorded in trajectory.json, and record()
 adds the messages the model actually received.
-Decision and evidence: notes/2026-09-14-agent-prompt-and-context.md.
+Decisions and evidence: notes/2026-09-14-agent-prompt-and-context.md and
+notes/2026-09-14-observation-cap-and-context-budget.md.
 
-Three differences from react.py, all needed rather than chosen:
-- The token limit is CONTEXT_TOKEN_LIMIT, not 120000: the smallest models in
-  scope have a 32,768-token context, and one limit applies to every condition.
+Four differences from react.py, all needed rather than chosen, and identical for
+every condition:
+- The token limit is CONTEXT_TOKEN_LIMIT, not 120000: long training contexts for
+  T1 and T2 have to fit one 48 GB GPU, and one limit applies to every condition.
 - The system and task messages are never trimmed. react.py's trimming drops the
   oldest messages first, so a long episode would lose the problem description,
   the API docs and any instructed policy -- a policy "forgotten" by context
@@ -23,6 +25,11 @@ Three differences from react.py, all needed rather than chosen:
 - THOUGHT_PLACEMENT follows RESP_INSTR. The task instructions every problem
   sends demand a bare code block, which overrides RESP_INSTR's request for a
   Thought; this line resolves that contradiction so reasoning gets recorded.
+- Each observation is capped at OBSERVATION_TOKEN_CAP tokens, with a visible
+  marker, before the per-turn instructions are appended. Without it, one trace
+  read larger than the whole limit makes react.py's trimming send only that
+  observation, cut from the end: every earlier turn and the per-turn
+  instructions disappear, and no later call can reach past it.
 
 react.py can't be imported here (its module imports groq and azure-identity,
 from the harness's skipped `clients` group), so RESP_INSTR and the trimming
@@ -39,16 +46,24 @@ from openai import AsyncOpenAI, OpenAI
 
 from clients.utils.templates import DOCS
 
-DEFAULT_MODEL = "qwen.qwen3-32b"
+# The smoke model, not a ladder condition: 262,144-token context on the gateway, so the
+# limit below is never the model's. Ladder runs set AGENT_MODEL explicitly.
+DEFAULT_MODEL = "qwen.qwen3-next-80b-a3b-instruct"
 
 # GPTClient.inference in clients/utils/llm.py, used by react.py.
 TEMPERATURE = 0.5
 TOP_P = 0.95
 MAX_TOKENS = 1024
 
-# Counted with tiktoken like react.py. Qwen's tokenizer counts trace output about
-# 1.5x higher, so 18000 * 1.6 + MAX_TOKENS still fits a 32,768-token context.
-CONTEXT_TOKEN_LIMIT = 18000
+# Counted with tiktoken like react.py. Qwen3.5's tokenizer counts trace-heavy contexts up to
+# 1.5x higher, so 64,000 is about 96,000 Qwen3.5 tokens: the longest sequence estimated to fit
+# RL training with vLLM on one 48 GB GPU.
+CONTEXT_TOKEN_LIMIT = 64000
+# One trace read was 72-77K tokens. 16,000 keeps several large reads plus recent turns in the limit.
+OBSERVATION_TOKEN_CAP = 16000
+
+# The harness appends this to every observation it hands the agent (orchestrator.py:173).
+HARNESS_NEXT_ACTION = "Please take the next action"
 
 
 # --- Copied verbatim from third_party/aiopslab/clients/react.py -----------------
@@ -95,6 +110,23 @@ def trim_history_to_token_limit(history, max_tokens=120000, model="gpt-4"):
 # --- End of copy -----------------------------------------------------------------
 
 THOUGHT_PLACEMENT = "Write the Thought as plain text before the code block; only the action goes inside the code block.\n"
+
+
+def cap_observation(observation: str, cap: int = OBSERVATION_TOKEN_CAP) -> tuple[str, int]:
+    """Cut the environment's output to `cap` tokens; return the text and the tokens omitted.
+
+    The harness's closing "Please take the next action" is kept after the cut, and a
+    marker tells the model how much of the output it isn't seeing.
+    """
+    body, tail = observation, ""
+    if observation.endswith(HARNESS_NEXT_ACTION):
+        body, tail = observation[: -len(HARNESS_NEXT_ACTION)], HARNESS_NEXT_ACTION
+    enc = tiktoken.encoding_for_model("gpt-4")
+    tokens = enc.encode(body)
+    if len(tokens) <= cap:
+        return observation, 0
+    omitted = len(tokens) - cap
+    return f"{enc.decode(tokens[:cap])}\n[... {omitted} more tokens of this output not shown ...]\n{tail}", omitted
 
 
 def trim_keeping_task(history: list[dict], max_tokens: int = CONTEXT_TOKEN_LIMIT) -> list[dict]:
@@ -175,6 +207,7 @@ class OpenAICompatibleAgent:
             "top_p": TOP_P,
             "max_tokens": MAX_TOKENS,
             "context_token_limit": CONTEXT_TOKEN_LIMIT,
+            "observation_token_cap": OBSERVATION_TOKEN_CAP,
         }
 
     def record(self) -> dict:
@@ -183,7 +216,8 @@ class OpenAICompatibleAgent:
         The harness history holds only replies and raw observations. Grading
         against an instructed policy and building T1 training examples both
         need the rendered system prompt and task instructions, the text appended
-        to each observation, and what trimming actually sent on each call.
+        to each observation, any cap applied to it, and what trimming actually
+        sent on each call.
         """
         return {"messages": self.history, "calls": self.calls}
 
@@ -206,11 +240,10 @@ class OpenAICompatibleAgent:
         self.calls = []
 
     async def get_action(self, observation: str) -> str:
-        self.history.append(
-            {"role": "user", "content": observation + "\n\n" + RESP_INSTR + THOUGHT_PLACEMENT}
-        )
+        capped, omitted = cap_observation(observation)
+        self.history.append({"role": "user", "content": capped + "\n\n" + RESP_INSTR + THOUGHT_PLACEMENT})
         messages = trim_keeping_task(self.history)
-        self.calls.append(trim_summary(self.history, messages))
+        self.calls.append({**trim_summary(self.history, messages), "observation_tokens_omitted": omitted})
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=messages,

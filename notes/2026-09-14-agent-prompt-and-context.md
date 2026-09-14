@@ -191,3 +191,15 @@ sampling settings and limit, so resume refuses to mix them within a batch.
   turns. Check when the policy text exists.
 - `THOUGHT_PLACEMENT` has been checked on one model and one problem. Check the
   parse-error rate again on the B1 and B3 models.
+
+## Correction (2026-09-14): context limit, observation cap and smoke model
+
+The Decision's `CONTEXT_TOKEN_LIMIT = 18000` and the use of react.py's trimming as the
+only context handling no longer hold. In three 30-step episodes one trace read exceeded
+the 18,000-token limit, and the trimming then sent only that observation, cut from the end,
+losing every earlier turn and the per-turn instructions
+(`notes/2026-09-14-step-budget-and-termination.md`, Finding 11). The limit is now 64,000
+tokens, and each observation is capped at 16,000 tokens before the per-turn text is
+appended. The smoke model is now `qwen.qwen3-next-80b-a3b-instruct`. The Open item "The
+context limit depends on B1" is resolved there too: see
+`notes/2026-09-14-observation-cap-and-context-budget.md`.

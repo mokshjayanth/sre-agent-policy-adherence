@@ -90,3 +90,39 @@ a table built another way.
   runs, and it sets the size of T1's training data.
 - Whether counting the three no-op problems as separate types (so "zero overlap" holds) suits
   a policy-adherence study, where no-op problems test restraint rather than diagnosis.
+
+## Addendum (2026-09-14): mechanisms, claim wording, no-ops and validation
+
+Added after vetting a second reviewer's split proposal.
+
+**Held-out types share injection mechanisms with training types.** Each problem package uses
+one fault injector class (`grep` for `*FaultInjector` under
+`third_party/aiopslab/aiopslab/orchestrator/problems/`), and every one of them appears on both
+sides:
+
+| Injector | Training types | Test types |
+|---|---|---|
+| `OtelFaultInjector` | cart, payment, product-catalog, recommendation-cache failures | ad-service failure, high CPU, manual GC; image slow load; Kafka queue; flood homepage; payment unreachable |
+| `ApplicationFaultInjector` | `misconfig_app`, `auth_miss_mongodb` | `revoke_auth`, `storage_user_unregistered` |
+| `VirtualizationFaultInjector` | `k8s_target_port_misconfig`, `scale_pod`, `redeploy_without_pv` | `assign_non_existent_node`, `wrong_bin_usage` |
+| `SymptomFaultInjector` | `network_loss` | `network_delay`, `pod_failure`, `pod_kill`, `container_kill` |
+| `NoopFaultInjector` | hotel no-op | social and astronomy no-ops |
+
+Some pairs are close: `payment_service_failure` (training) and `payment_service_unreachable`
+(test) share an app, a service and an injector; `network_loss` and `network_delay` are both
+Chaos Mesh network faults on the same app.
+
+Decisions:
+
+- **Keep AOI's partition, and word the claim as "unseen fault types, seen injection
+  mechanisms."** A mechanism-level split would lose comparability with AOI, and it would put
+  whole apps on one side: every Astronomy Shop problem uses `OtelFaultInjector`.
+- **Report the three no-op problems separately**, as a false-alarm check, not as fault types in
+  the train/test contrast.
+- **No validation split.** In-scope training has 31 problems; holding out about 5 would cost
+  about 16% of T1's data. T1 and T2 hyperparameters and training length are fixed before
+  training, only the final checkpoint is evaluated, and no checkpoint or setting is chosen by
+  adherence.
+- The second reviewer's ID-prefix rule for deriving families (`family = problem_id prefix
+  before "_<app>"`) is not used: 7 of 89 IDs don't fit it and 6 prefixes name no app
+  (`notes/2026-09-14-trajectory-record-review.md`, Finding 7).
