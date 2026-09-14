@@ -114,7 +114,11 @@ unmeasurable. Which candidate should B1 be, chosen on whether it can act, never 
 
 ## Open
 
-- Confirming episode with Qwen3.5-4B under the new per-turn text: pending.
+- Confirming episode with Qwen3.5-4B under the new per-turn text: done.
+  `runs/2026-09-14T175256Z_smoke-qwen3.5-4b-fenced` (commit `c4d3eb6`, clean tree, prompt hash
+  `04dd22bef1bd`) ended `valid_submission` with "Yes", scored `Correct`, in 9 steps with 0 parse
+  errors. All 9 replies had a Thought and exactly one fenced block. It read the geo pod's logs
+  ("no reachable servers") and inspected MongoDB before submitting. One episode on one problem.
 - The scope of Findings 1–3. They cover one problem's turn 1 and one episode per model, at
   temperature 0.5, under AIOpsLab's free-text action format. They show that these small models
   fail this parser with this prompt, not that 2–3B models can't act: Qwen3.5-2B is the only model
