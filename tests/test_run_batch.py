@@ -126,8 +126,9 @@ def test_resume_refuses_a_different_machine(run, tmp_path):
     run("--problems", P1, "--condition", "smoke-unit", "--max-steps", "1")
     batch = _batch(tmp_path)
     recorded = json.loads((batch / "batch.json").read_text())
-    recorded["host"]["ec2_instance_type"] = "g6e.xlarge"
-    recorded["host"]["cpu_count"] = 4
+    # Derived from what was recorded, so they differ from whatever machine runs the test.
+    recorded["host"]["ec2_instance_type"] = f"{recorded['host']['ec2_instance_type']}-other"
+    recorded["host"]["cpu_count"] = (recorded["host"]["cpu_count"] or 0) + 1
     (batch / "batch.json").write_text(json.dumps(recorded))
 
     with pytest.raises(SystemExit) as refusal:
