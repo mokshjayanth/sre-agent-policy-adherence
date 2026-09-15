@@ -66,6 +66,63 @@ def test_init_context_lays_out_the_prompt_like_react(monkeypatch):
     assert system["content"].endswith("Thought: <your thought>\nAction: <your action>\n")
 
 
+def test_the_plain_prompt_has_no_instructed_text(monkeypatch):
+    monkeypatch.delenv("AGENT_POLICY_FILE", raising=False)
+    monkeypatch.delenv("AGENT_PRESSURE_FILE", raising=False)
+    agent, _ = _agent(monkeypatch)
+    agent.init_context("PROBLEM", "INSTRUCTIONS", APIS)
+    assert agent.history[0]["content"] == oc.DOCS.format(
+        prob_desc="PROBLEM", telemetry_apis="get_logs\nget_logs doc",
+        shell_api="exec_shell\nexec_shell doc", submit_api="submit\nsubmit doc")
+
+
+def _instructed_files(monkeypatch, tmp_path):
+    (tmp_path / "policy").mkdir()
+    (tmp_path / "policy" / "p.txt").write_text("Operational policy\n\nR1. Only observe.\n")
+    (tmp_path / "policy" / "u.txt").write_text("Incident priority: SEV-1.\n")
+    monkeypatch.setattr(oc, "REPO_ROOT", tmp_path)
+    monkeypatch.setenv("AGENT_POLICY_FILE", "policy/p.txt")
+    monkeypatch.setenv("AGENT_PRESSURE_FILE", "policy/u.txt")
+
+
+def test_pressure_then_policy_follow_the_docs_in_the_system_prompt(monkeypatch, tmp_path):
+    _instructed_files(monkeypatch, tmp_path)
+    agent, _ = _agent(monkeypatch)
+    agent.init_context("PROBLEM", "INSTRUCTIONS", APIS)
+    system, task = agent.history
+    assert system["content"].endswith(
+        "Action: <your action>\n\nIncident priority: SEV-1.\n\nOperational policy\n\nR1. Only observe.\n")
+    assert task == {"role": "user", "content": "INSTRUCTIONS"}
+
+
+def test_describe_records_each_instructed_file_and_its_hash(monkeypatch, tmp_path):
+    import hashlib
+
+    _instructed_files(monkeypatch, tmp_path)
+    monkeypatch.setattr(oc, "serving_details", lambda base_url, model: {})
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://localhost:8000/v1")
+    policy_hash = hashlib.sha256(b"Operational policy\n\nR1. Only observe.").hexdigest()[:12]
+    assert oc.OpenAICompatibleAgent.describe()["instructed_texts"] == [
+        {"role": "pressure", "file": "policy/u.txt",
+         "sha256": hashlib.sha256(b"Incident priority: SEV-1.").hexdigest()[:12]},
+        {"role": "policy", "file": "policy/p.txt", "sha256": policy_hash},
+    ]
+
+
+def test_a_missing_instructed_file_fails_before_any_problem_runs(monkeypatch, tmp_path):
+    monkeypatch.setattr(oc, "REPO_ROOT", tmp_path)
+    monkeypatch.setenv("AGENT_POLICY_FILE", "policy/missing.txt")
+    monkeypatch.setattr(oc, "serving_details", lambda base_url, model: {})
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://localhost:8000/v1")
+    with pytest.raises(FileNotFoundError):
+        oc.OpenAICompatibleAgent.describe()
+
+
+def test_the_repo_policy_drafts_exist():
+    for name in ("policy/draft-v2.txt", "policy/draft-urgency-v1.txt"):
+        assert (oc.REPO_ROOT / name).read_text().strip()
+
+
 def test_get_action_appends_resp_instr_and_uses_the_shipped_sampling(monkeypatch):
     agent, calls = _agent(monkeypatch)
     agent.init_context("PROBLEM", "INSTRUCTIONS", APIS)
@@ -155,6 +212,8 @@ def test_record_keeps_what_the_model_received_and_what_each_call_sent(monkeypatc
     record = agent.record()
     assert [m["role"] for m in record["messages"]] == ["system", "user", "user", "assistant", "user", "assistant"]
     assert record["messages"][4]["content"].endswith(oc.RESP_INSTR + oc.THOUGHT_PLACEMENT)
+    for call in record["calls"]:
+        assert call.pop("requested_at") <= call.pop("responded_at")
     assert record["calls"] == [
         {"messages_in_history": 3, "first_turn_sent": 2, "last_message_truncated": False,
          "observation_tokens_omitted": 0},

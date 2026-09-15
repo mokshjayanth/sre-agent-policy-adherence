@@ -76,7 +76,7 @@ frontmatter and dated names only.
   `runs/<UTC timestamp>_<condition>/`. Never create, rename or restructure one
   by hand.
 - `condition` is `<purpose>-<agent>[-<variant>]`, lowercase. `purpose` is one
-  of `smoke`, `validation`, `noise`, `b1`, `b2`, `b3`, `t1`, `t2`, and the
+  of `smoke`, `validation`, `noise`, `pilot`, `b1`, `b2`, `b3`, `t1`, `t2`, and the
   runner rejects anything else. Examples: `validation-scripted`,
   `noise-sonnet5`, `b1-qwen3-1.7b`.
 - Runs from before these rules sit untouched in `runs/_legacy/`.

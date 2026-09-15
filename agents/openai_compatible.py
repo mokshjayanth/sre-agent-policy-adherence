@@ -35,6 +35,12 @@ every condition:
   observation, cut from the end: every earlier turn and the per-turn
   instructions disappear, and no later call can reach past it.
 
+Separately from those, a study condition can add instructed text to the end of
+the system prompt, each read from a file named by an environment variable
+relative to the repo root: AGENT_PRESSURE_FILE (e.g. an urgency framing), then
+AGENT_POLICY_FILE (the operational policy). Unset means the plain prompt. Which
+files, and a hash of each, are recorded in describe().
+
 react.py can't be imported here (its module imports groq and azure-identity,
 from the harness's skipped `clients` group), so RESP_INSTR and the trimming
 helpers are copied verbatim below; tests/test_openai_compatible.py fails if they
@@ -43,6 +49,8 @@ drift from the pinned harness.
 
 import hashlib
 import os
+from datetime import datetime, timezone
+from pathlib import Path
 
 import httpx
 import tiktoken
@@ -68,6 +76,10 @@ OBSERVATION_TOKEN_CAP = 16000
 
 # The harness appends this to every observation it hands the agent (orchestrator.py:173).
 HARNESS_NEXT_ACTION = "Please take the next action"
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+# Instructed text appended to the system prompt, in this order, when its variable names a file.
+INSTRUCTED_TEXT_VARIABLES = (("pressure", "AGENT_PRESSURE_FILE"), ("policy", "AGENT_POLICY_FILE"))
 
 
 # --- Copied verbatim from third_party/aiopslab/clients/react.py -----------------
@@ -155,6 +167,25 @@ def trim_summary(history: list[dict], sent: list[dict]) -> dict:
     }
 
 
+def instructed_texts() -> list[dict]:
+    """The condition's instructed texts in prompt order; empty for the plain prompt.
+
+    Raises if a named file doesn't exist, so a batch fails before any problem is deployed.
+    """
+    texts = []
+    for role, variable in INSTRUCTED_TEXT_VARIABLES:
+        name = os.environ.get(variable)
+        if name:
+            text = (REPO_ROOT / name).read_text().strip()
+            texts.append({"role": role, "file": name,
+                          "sha256": hashlib.sha256(text.encode()).hexdigest()[:12], "text": text})
+    return texts
+
+
+def _utcnow() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
 def _api_key() -> str:
     # A local vLLM server started without --api-key accepts any key.
     return os.environ.get("OPENAI_API_KEY", "EMPTY")
@@ -190,6 +221,7 @@ class OpenAICompatibleAgent:
     def __init__(self, model: str | None = None):
         self.model = model or os.environ.get("AGENT_MODEL", DEFAULT_MODEL)
         self.client = AsyncOpenAI(api_key=_api_key(), base_url=os.environ["OPENAI_BASE_URL"])
+        self.instructed = instructed_texts()
         self.history: list[dict] = []
         self.calls: list[dict] = []
 
@@ -210,6 +242,8 @@ class OpenAICompatibleAgent:
             # recorded condition. Each problem's rendered prompt isn't hashed; trajectory.json stores it
             # in full as agent_record.messages[0] and [1].
             "prompt_template_sha256": hashlib.sha256((DOCS + RESP_INSTR + THOUGHT_PLACEMENT).encode()).hexdigest()[:12],
+            # Appended to the system prompt in this order; sha256 is of the stripped file text.
+            "instructed_texts": [{k: t[k] for k in ("role", "file", "sha256")} for t in instructed_texts()],
             "temperature": TEMPERATURE,
             "top_p": TOP_P,
             "max_tokens": MAX_TOKENS,
@@ -240,6 +274,8 @@ class OpenAICompatibleAgent:
             shell_api=stringify(shell_api),
             submit_api=stringify(submit_api),
         )
+        if self.instructed:
+            system += "\n" + "\n\n".join(t["text"] for t in self.instructed) + "\n"
         self.history = [
             {"role": "system", "content": system},
             {"role": "user", "content": instructions},
@@ -250,7 +286,11 @@ class OpenAICompatibleAgent:
         capped, omitted = cap_observation(observation)
         self.history.append({"role": "user", "content": capped + "\n\n" + RESP_INSTR + THOUGHT_PLACEMENT})
         messages = trim_keeping_task(self.history)
-        self.calls.append({**trim_summary(self.history, messages), "observation_tokens_omitted": omitted})
+        # UTC times bracket each model call; the harness runs the returned action right after
+        # responded_at, which lets cluster-side logs be matched to actions.
+        call = {**trim_summary(self.history, messages), "observation_tokens_omitted": omitted,
+                "requested_at": _utcnow()}
+        self.calls.append(call)
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=messages,
@@ -258,6 +298,7 @@ class OpenAICompatibleAgent:
             top_p=TOP_P,
             max_tokens=MAX_TOKENS,
         )
+        call["responded_at"] = _utcnow()
         content = response.choices[0].message.content or ""
         self.history.append({"role": "assistant", "content": content})
         return content

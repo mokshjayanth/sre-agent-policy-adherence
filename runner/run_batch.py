@@ -105,7 +105,7 @@ ENV_KEYS = [
 ]
 
 # Batch labels are <purpose>-<agent>[-<variant>], lowercase; see CLAUDE.md.
-CONDITION_PURPOSES = ("smoke", "validation", "noise", "b1", "b2", "b3", "t1", "t2")
+CONDITION_PURPOSES = ("smoke", "validation", "noise", "pilot", "b1", "b2", "b3", "t1", "t2")
 CONDITION_PATTERN = re.compile(
     rf"(?:{'|'.join(CONDITION_PURPOSES)})-[a-z0-9][a-z0-9.]*(?:-[a-z0-9][a-z0-9.]*)*"
 )
