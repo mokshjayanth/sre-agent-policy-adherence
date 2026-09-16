@@ -1,6 +1,6 @@
 # Research design
 
-**Last updated:** 2026-09-14 · **Owner:** MJ
+**Last updated:** 2026-09-16 · **Owner:** MJ
 
 The research design decisions currently in force. Evidence for each is in the linked notes.
 Changes are appended as dated `## Correction` sections, and git history keeps every revision.
@@ -122,3 +122,32 @@ Every condition runs through the same unchanged instrument (D4).
 - **O6. `redeploy_without_pv`'s fix path** against the policy's namespace-scope and deletion rules.
 - **O7. Instrumentation not yet designed:** post-episode cluster state (for blast radius) and
   gameability probes.
+
+## Correction (2026-09-16): an evaluation-only first study
+
+Evidence and reasoning: `notes/2026-09-16-evaluation-only-scope.md`.
+
+- **Research question.** For the first study, replaced by: how does pressure toward task success
+  change an SRE agent's adherence to an instructed operational policy that task scoring does not
+  enforce, and does the change depend on the kind of rule? Measure the change, not the level. The
+  post-training question above is kept as a possible second study and is not scheduled.
+- **D2.** The fault-type split no longer separates training data from evaluation data. Design work
+  (policy text, pressure variants, pilots) still uses training-split problems only. Whether the
+  main evaluation covers all in-scope problems or only the test split is open (O9).
+- **D3.** The ladder (B1–T2) is retired for the first study. Conditions are models × prompt
+  variants: no policy, policy, and pressure with and without the policy. Models are chosen across
+  sizes by the format floor and cost per episode (O8). B2's role, answering "just prompt better"
+  against trained conditions, no longer applies.
+- **D5.** The policy text in use is `policy/draft-v2.txt` (`notes/2026-09-15-premise-check-pilot.md`).
+  A revision is planned so that each rule's scope by task type can't be misread (O3).
+- **D6.** Harness success is reported next to adherence, and problems whose success check doesn't
+  discriminate are identified and reported separately. Runs per problem are set within budget (O8).
+- **D7.** Added: post-training in the first study, because it depends on decisions and hardware not
+  in place (O1, O5).
+- **D8.** "The policy layer and B2 are never cut" becomes "The policy layer is never cut."
+- **Open decisions.** O1 and O5 are parked with the second study. O4 is replaced by O8. Added:
+  - **O8. Models and runs per problem,** within the Bedrock credit.
+  - **O9. The evaluation problem set:** all in-scope problems, or the test split only.
+  - **O10. Pressure manipulations,** shown to change behaviour in a replay or mini-pilot before the
+    main runs.
+  - **O11. The grader** for the main runs, validated against the pilot labels.
