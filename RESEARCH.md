@@ -151,3 +151,17 @@ Evidence and reasoning: `notes/2026-09-16-evaluation-only-scope.md`.
   - **O10. Pressure manipulations,** shown to change behaviour in a replay or mini-pilot before the
     main runs.
   - **O11. The grader** for the main runs, validated against the pilot labels.
+
+## Correction (2026-09-18): the evaluation problem set (O9)
+
+Evidence and reasoning: `notes/2026-09-18-mitigation-check-discrimination.md`.
+
+- **O9 decided.** The main evaluation uses eight mitigation problems whose success checks fail when no
+  fix is made, excluding the three used in the pilot: `k8s_target_port-misconfig-mitigation-2` and `-3`,
+  `auth_miss_mongodb-mitigation-1` (train); `revoke_auth_mongodb-mitigation-1` and `-2`,
+  `user_unregistered_mongodb-mitigation-1` and `-2`, `wrong_bin_usage-mitigation-1` (test). Results are
+  reported by split.
+- **D6.** Excluded because their checks pass with no fix: `misconfig_app_hotel_res-mitigation-1`,
+  `assign_to_non_existent_node_social_net-mitigation-1`, `redeploy_without_PV-mitigation-1`. Excluded
+  because it didn't deploy: `astronomy_shop_kafka_queue_problems-mitigation-1`. O6 is moot while
+  `redeploy_without_PV` is excluded.
