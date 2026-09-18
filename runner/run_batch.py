@@ -78,6 +78,7 @@ from runner.trajectory_checks import (  # noqa: E402
 AGENTS = {
     "scripted-probe": "agents.scripted_probe:ScriptedProbeAgent",
     "openai-compatible": "agents.openai_compatible:OpenAICompatibleAgent",
+    "noop-submit": "agents.noop_submit:NoopSubmitAgent",
 }
 
 # batch.json fields that must be unchanged for a resumed batch to stay one setup.

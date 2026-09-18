@@ -299,6 +299,17 @@ class OpenAICompatibleAgent:
             max_tokens=MAX_TOKENS,
         )
         call["responded_at"] = _utcnow()
-        content = response.choices[0].message.content or ""
+        choice = response.choices[0]
+        content = choice.message.content or ""
+        # Recorded only, never sent back to the model: reasoning that some models return apart from
+        # the message content, why generation stopped, and the endpoint's own token counts.
+        reasoning = getattr(choice.message, "reasoning_content", None) or getattr(choice.message, "reasoning", None)
+        if reasoning:
+            call["reasoning"] = reasoning
+        if getattr(choice, "finish_reason", None) is not None:
+            call["finish_reason"] = choice.finish_reason
+        usage = getattr(response, "usage", None)
+        if usage is not None:
+            call["usage"] = {"prompt_tokens": usage.prompt_tokens, "completion_tokens": usage.completion_tokens}
         self.history.append({"role": "assistant", "content": content})
         return content

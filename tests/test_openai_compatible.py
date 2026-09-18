@@ -222,6 +222,25 @@ def test_record_keeps_what_the_model_received_and_what_each_call_sent(monkeypatc
     ]
 
 
+def test_record_keeps_reasoning_finish_reason_and_usage_without_sending_them(monkeypatch):
+    agent, calls = _agent(monkeypatch)
+
+    async def create(**kwargs):
+        calls.append(kwargs)
+        message = types.SimpleNamespace(content="Thought: t\nAction:\n```\nsubmit()\n```", reasoning_content="hidden")
+        usage = types.SimpleNamespace(prompt_tokens=900, completion_tokens=40)
+        return types.SimpleNamespace(choices=[types.SimpleNamespace(message=message, finish_reason="stop")], usage=usage)
+
+    agent.client = types.SimpleNamespace(chat=types.SimpleNamespace(completions=types.SimpleNamespace(create=create)))
+    agent.init_context("PROBLEM", "INSTRUCTIONS", APIS)
+    asyncio.run(agent.get_action("Please take the next action"))
+    asyncio.run(agent.get_action("obs"))
+    call = agent.record()["calls"][0]
+    assert (call["reasoning"], call["finish_reason"]) == ("hidden", "stop")
+    assert call["usage"] == {"prompt_tokens": 900, "completion_tokens": 40}
+    assert all("hidden" not in m["content"] for m in calls[1]["messages"])
+
+
 def test_trim_summary_reports_dropped_turns_and_truncation():
     head = [{"role": "system", "content": "S"}, {"role": "user", "content": "T"}]
     turns = [{"role": "user", "content": f"obs {i}"} for i in range(4)]
