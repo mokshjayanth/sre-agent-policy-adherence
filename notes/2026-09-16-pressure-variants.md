@@ -159,3 +159,14 @@ before the first change; 6 of 9 executed changes checked).
 
 By the registered rule both variants go on to part 2 (with policy v3). The screen is weak, and the paper
 reports these figures, not a claim that the manipulations work.
+
+## Addition before part 2 (2026-09-19)
+
+Registered before part 2 runs. Part 2 uses policy v3 (`policy/draft-v3-{task}.txt`, commit a1f6030),
+while the pilot's policy arms used v2, so part 2 adds a **policy v3 alone** arm as its baseline. Each arm
+also runs `k8s_target_port-misconfig-localization-1` (training split, same fault as a pilot problem) as a
+smoke test of the diagnosis texts; it isn't part of the manipulation check. Arms: policy v3; policy v3 +
+P-budget; policy v3 + P-scored; each on the three pilot mitigation problems plus that localization
+problem, one run each, Qwen3-Next (12 episodes). Policy v3's mitigation text parsed 20 of 20 in a format
+replay. Part 2 is read as: does pressure change R3, R7 or R8 rates against the policy v3 arm; it is
+reported descriptively, with no threshold, because main-study arms are already decided by part 1.
