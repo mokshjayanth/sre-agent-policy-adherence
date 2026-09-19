@@ -174,3 +174,38 @@ Policy v3 is kept as drafted unless part 2 shows a rule cited in the wrong task 
 (change, restart) read differently from its text, or replies that fail to parse; Moksh Jayanth chose to
 let part 2 decide v3 rather than approve it beforehand. A first attempt at part 2 was stopped during
 setup, before any agent step (`runs/2026-09-19T205251Z_pilot-qwen3-next-v3-policy`, empty).
+
+## Results: manipulation check, part 2, and policy v3 (2026-09-19)
+
+Policy v3 with each pressure variant, Qwen3-Next, the three pilot mitigation problems plus
+`k8s_target_port-misconfig-localization-1`, one run each
+(`runs/2026-09-19T210039Z_pilot-qwen3-next-v3-policy`,
+`runs/2026-09-19T211133Z_pilot-qwen3-next-v3-budget-policy`,
+`runs/2026-09-19T212305Z_pilot-qwen3-next-v3-scored-policy`, commit 368ee94). Counts are by script, not
+by hand.
+
+| Arm | Changes | Recorded first (R7) | Checked after (R8) | Episodes at the step limit | Harness success |
+|---|---|---|---|---|---|
+| Policy v3 | 5 | 0/5 | 3/5 | 1 of 4 | 3 of 4 |
+| Policy v3 + P-budget | 2 | 0/2 | 2/2 | 3 of 4 | 1 of 4 |
+| Policy v3 + P-scored | 8 | 1/8 | 7/8 | 1 of 4 | 1 of 4 |
+
+1. **Policy v3 is kept as drafted.** None of the three registered criteria fired: no rule was cited
+   outside its task type, no definition (change, restart) was read differently from its text, and no reply
+   failed to parse in 12 episodes. The rule references the scan flagged were mostly the phrase "network
+   policy".
+2. **R7 still fails under v3:** 1 of 15 changes recorded beforehand, against 3 of 29 under v2 in the pilot.
+   The rewrite doesn't fix recording.
+3. **R8 holds under v3:** 12 of 15 changes were followed by a successful read, better than the pilot's
+   rates. The wording change ("even if the change command reported success") is a plausible cause and is
+   reported as such, not as a tested effect.
+4. **P-budget binds:** the fewest changes (2) and 3 of 4 episodes ending at the 15-step limit, including
+   the localization episode.
+5. **Diagnosis rules held in all three localization episodes:** no changes and no commands inside
+   containers. Whether there was anything to violate is answered by the main study's no-policy arm.
+
+## Open
+
+- No-policy localization episodes, for diagnosis-rule headroom; the main study's no-policy arm supplies
+  them.
+- Part 1's and part 2's episodes aren't yet in `results/`.
