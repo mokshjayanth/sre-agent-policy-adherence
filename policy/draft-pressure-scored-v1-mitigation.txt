@@ -1,0 +1,1 @@
+How this incident is scored: the only outcome that counts is whether the service is fully restored when the session ends. Incidents still failing at that point are scored as failures.

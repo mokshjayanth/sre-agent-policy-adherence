@@ -33,6 +33,9 @@ def test_copied_react_code_matches_the_pinned_harness():
         assert ours[name] == shipped[name], f"{name} differs from {REACT}; re-copy it or record why"
 
 
+MITIGATION_DESC = "You are an expert DevOps engineer assigned to mitigate anomalies in a deployed service."
+
+
 APIS = {
     "get_logs": "get_logs doc",
     "exec_shell": "exec_shell doc",
@@ -89,7 +92,7 @@ def _instructed_files(monkeypatch, tmp_path):
 def test_pressure_then_policy_follow_the_docs_in_the_system_prompt(monkeypatch, tmp_path):
     _instructed_files(monkeypatch, tmp_path)
     agent, _ = _agent(monkeypatch)
-    agent.init_context("PROBLEM", "INSTRUCTIONS", APIS)
+    agent.init_context(MITIGATION_DESC, "INSTRUCTIONS", APIS)
     system, task = agent.history
     assert system["content"].endswith(
         "Action: <your action>\n\nIncident priority: SEV-1.\n\nOperational policy\n\nR1. Only observe.\n")
@@ -104,9 +107,9 @@ def test_describe_records_each_instructed_file_and_its_hash(monkeypatch, tmp_pat
     monkeypatch.setenv("OPENAI_BASE_URL", "http://localhost:8000/v1")
     policy_hash = hashlib.sha256(b"Operational policy\n\nR1. Only observe.").hexdigest()[:12]
     assert oc.OpenAICompatibleAgent.describe()["instructed_texts"] == [
-        {"role": "pressure", "file": "policy/u.txt",
+        {"role": "pressure", "file": "policy/u.txt", "task": None,
          "sha256": hashlib.sha256(b"Incident priority: SEV-1.").hexdigest()[:12]},
-        {"role": "policy", "file": "policy/p.txt", "sha256": policy_hash},
+        {"role": "policy", "file": "policy/p.txt", "task": None, "sha256": policy_hash},
     ]
 
 
@@ -128,9 +131,9 @@ def test_a_step_budget_is_stated_first_and_counted_down_each_turn(monkeypatch, t
     _instructed_files(monkeypatch, tmp_path)
     monkeypatch.setenv("AGENT_STEP_BUDGET", "15")
     agent, calls = _agent(monkeypatch)
-    agent.init_context("PROBLEM", "INSTRUCTIONS", APIS)
+    agent.init_context(MITIGATION_DESC, "INSTRUCTIONS", APIS)
     system = agent.history[0]["content"]
-    budget = oc.BUDGET_TEXT.format(n=15)
+    budget = oc.BUDGET_TEXT["mitigation"].format(n=15)
     assert system.endswith(f"Action: <your action>\n\n{budget}\n\nIncident priority: SEV-1.\n\n"
                            "Operational policy\n\nR1. Only observe.\n")
     asyncio.run(agent.get_action("Please take the next action"))
@@ -147,11 +150,53 @@ def test_describe_records_the_step_budget(monkeypatch):
     monkeypatch.setenv("AGENT_STEP_BUDGET", "15")
     described = oc.OpenAICompatibleAgent.describe()
     assert described["step_budget"] == 15
-    assert described["instructed_texts"][0]["role"] == "budget"
+    assert [(t["role"], t["task"]) for t in described["instructed_texts"]] == [
+        ("budget", "mitigation"), ("budget", "diagnosis")]
 
 
-def test_the_scored_pressure_text_exists():
-    assert "only outcome that counts" in (oc.REPO_ROOT / "policy" / "draft-pressure-scored-v1.txt").read_text()
+def test_the_scored_pressure_texts_exist_per_task_type():
+    policy = oc.REPO_ROOT / "policy"
+    assert (policy / "draft-pressure-scored-v1-mitigation.txt").read_text() == \
+        (policy / "draft-pressure-scored-v1.txt").read_text()
+    assert "answer you submit is correct" in (policy / "draft-pressure-scored-v1-diagnosis.txt").read_text()
+    for task in ("mitigation", "diagnosis"):
+        assert (policy / f"draft-v3-{task}.txt").read_text().strip()
+
+
+def test_task_kind_reads_every_harness_task_description():
+    tasks = oc.REPO_ROOT / "third_party" / "aiopslab" / "aiopslab" / "orchestrator" / "tasks"
+    expected = {"mitigation.py": "mitigation", "detection.py": "diagnosis",
+                "localization.py": "diagnosis", "analysis.py": "diagnosis"}
+    for name, kind in expected.items():
+        assert oc.task_kind((tasks / name).read_text()) == kind
+    with pytest.raises(ValueError):
+        oc.task_kind("PROBLEM")
+
+
+def test_task_templated_files_resolve_per_problem(monkeypatch, tmp_path):
+    (tmp_path / "policy").mkdir()
+    (tmp_path / "policy" / "rules-mitigation.txt").write_text("Mitigation rules\n")
+    (tmp_path / "policy" / "rules-diagnosis.txt").write_text("Diagnosis rules\n")
+    monkeypatch.setattr(oc, "REPO_ROOT", tmp_path)
+    monkeypatch.setenv("AGENT_POLICY_FILE", "policy/rules-{task}.txt")
+    monkeypatch.setenv("AGENT_STEP_BUDGET", "15")
+    agent, _ = _agent(monkeypatch)
+    agent.init_context("You are an expert DevOps engineer assigned to localize faults in a deployed service.",
+                       "INSTRUCTIONS", APIS)
+    system = agent.history[0]["content"]
+    assert system.endswith(oc.BUDGET_TEXT["diagnosis"].format(n=15) + "\n\nDiagnosis rules\n")
+    assert "Mitigation rules" not in system
+    assert [(t["file"], t["task"]) for t in oc.instructed_texts() if t["role"] == "policy"] == [
+        ("policy/rules-mitigation.txt", "mitigation"), ("policy/rules-diagnosis.txt", "diagnosis")]
+
+
+def test_a_missing_task_version_fails_before_any_problem_runs(monkeypatch, tmp_path):
+    (tmp_path / "policy").mkdir()
+    (tmp_path / "policy" / "rules-mitigation.txt").write_text("Mitigation rules\n")
+    monkeypatch.setattr(oc, "REPO_ROOT", tmp_path)
+    monkeypatch.setenv("AGENT_POLICY_FILE", "policy/rules-{task}.txt")
+    with pytest.raises(FileNotFoundError):
+        oc.instructed_texts()
 
 
 def test_get_action_appends_resp_instr_and_uses_the_shipped_sampling(monkeypatch):

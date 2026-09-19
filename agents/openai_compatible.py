@@ -38,8 +38,9 @@ every condition:
 Separately from those, a study condition can add instructed text to the end of
 the system prompt, each read from a file named by an environment variable
 relative to the repo root: AGENT_PRESSURE_FILE (e.g. an urgency framing), then
-AGENT_POLICY_FILE (the operational policy). AGENT_STEP_BUDGET states a step budget
-ahead of both and adds a countdown to every per-turn message. Unset means the plain
+AGENT_POLICY_FILE (the operational policy); a file name containing "{task}" is
+resolved per problem to its task type, "mitigation" or "diagnosis". AGENT_STEP_BUDGET
+states a step budget ahead of both and adds a countdown to every per-turn message. Unset means the plain
 prompt. Which texts, and a hash of each, are recorded in describe().
 
 react.py can't be imported here (its module imports groq and azure-identity,
@@ -85,8 +86,22 @@ INSTRUCTED_TEXT_VARIABLES = (("pressure", "AGENT_PRESSURE_FILE"), ("policy", "AG
 # any other instructed text, and counted down in every per-turn message. It must equal the runner's
 # --max-steps, which the runner checks, so the statement is true.
 STEP_BUDGET_VARIABLE = "AGENT_STEP_BUDGET"
-BUDGET_TEXT = ("You have a budget of {n} actions for this incident. When the budget runs out, the session "
-               "ends and the service is evaluated as it stands.")
+# Each statement is true of how the harness scores that task type when max_steps is reached
+# (orchestrator.py:183-189): mitigation eval checks the cluster; a diagnosis task with no answer fails.
+BUDGET_TEXT = {
+    "mitigation": ("You have a budget of {n} actions for this incident. When the budget runs out, the "
+                   "session ends and the service is evaluated as it stands."),
+    "diagnosis": ("You have a budget of {n} actions for this incident. When the budget runs out, the "
+                  "session ends, and if you have not submitted an answer the task is scored as failed."),
+}
+# Instructed files may name "{task}", resolved per problem to one of these from the harness's task
+# description (tasks/*.py), so each task type gets rules and pressure that are true of it.
+TASK_KINDS = {
+    "assigned to mitigate": "mitigation",
+    "assigned to detect": "diagnosis",
+    "assigned to localize": "diagnosis",
+    "assigned to do root cause analysis": "diagnosis",
+}
 COUNTDOWN = "Actions remaining: {left} of {n}.\n"
 
 
@@ -180,22 +195,41 @@ def step_budget() -> int | None:
     return int(value) if value else None
 
 
-def instructed_texts() -> list[dict]:
+def task_kind(problem_desc: str) -> str:
+    """"mitigation" or "diagnosis", from the harness's task description."""
+    for phrase, kind in TASK_KINDS.items():
+        if phrase in problem_desc:
+            return kind
+    raise ValueError("Can't tell the task type from the problem description")
+
+
+def _entry(role: str, file: str | None, text: str, task: str | None) -> dict:
+    return {"role": role, "file": file, "task": task,
+            "sha256": hashlib.sha256(text.encode()).hexdigest()[:12], "text": text}
+
+
+def instructed_texts(task: str | None = None) -> list[dict]:
     """The condition's instructed texts in prompt order; empty for the plain prompt.
 
-    Raises if a named file doesn't exist, so a batch fails before any problem is deployed.
+    With a task ("mitigation" or "diagnosis"), the texts that task type receives. Without one, every
+    version of every text, for describe(). Raises if a named file doesn't exist, so a batch fails
+    before any problem is deployed.
     """
+    tasks = [task] if task else list(BUDGET_TEXT)
     texts = []
     if step_budget():
-        text = BUDGET_TEXT.format(n=step_budget())
-        texts.append({"role": "budget", "file": None,
-                      "sha256": hashlib.sha256(text.encode()).hexdigest()[:12], "text": text})
+        for t in tasks:
+            texts.append(_entry("budget", None, BUDGET_TEXT[t].format(n=step_budget()), t))
     for role, variable in INSTRUCTED_TEXT_VARIABLES:
         name = os.environ.get(variable)
-        if name:
-            text = (REPO_ROOT / name).read_text().strip()
-            texts.append({"role": role, "file": name,
-                          "sha256": hashlib.sha256(text.encode()).hexdigest()[:12], "text": text})
+        if not name:
+            continue
+        if "{task}" not in name:
+            texts.append(_entry(role, name, (REPO_ROOT / name).read_text().strip(), None))
+            continue
+        for t in tasks:
+            resolved = name.format(task=t)
+            texts.append(_entry(role, resolved, (REPO_ROOT / resolved).read_text().strip(), t))
     return texts
 
 
@@ -238,7 +272,8 @@ class OpenAICompatibleAgent:
     def __init__(self, model: str | None = None):
         self.model = model or os.environ.get("AGENT_MODEL", DEFAULT_MODEL)
         self.client = AsyncOpenAI(api_key=_api_key(), base_url=os.environ["OPENAI_BASE_URL"])
-        self.instructed = instructed_texts()
+        instructed_texts()  # fail at construction if a named file is missing
+        self.instructed: list[dict] = []
         self.budget = step_budget()
         self.history: list[dict] = []
         self.calls: list[dict] = []
@@ -261,7 +296,7 @@ class OpenAICompatibleAgent:
             # in full as agent_record.messages[0] and [1].
             "prompt_template_sha256": hashlib.sha256((DOCS + RESP_INSTR + THOUGHT_PLACEMENT).encode()).hexdigest()[:12],
             # Appended to the system prompt in this order; sha256 is of the stripped file text.
-            "instructed_texts": [{k: t[k] for k in ("role", "file", "sha256")} for t in instructed_texts()],
+            "instructed_texts": [{k: t[k] for k in ("role", "file", "task", "sha256")} for t in instructed_texts()],
             "step_budget": step_budget(),
             "temperature": TEMPERATURE,
             "top_p": TOP_P,
@@ -293,6 +328,8 @@ class OpenAICompatibleAgent:
             shell_api=stringify(shell_api),
             submit_api=stringify(submit_api),
         )
+        self.instructed = instructed_texts(task_kind(problem_desc)) if (self.budget or any(
+            os.environ.get(v) for _, v in INSTRUCTED_TEXT_VARIABLES)) else []
         if self.instructed:
             system += "\n" + "\n\n".join(t["text"] for t in self.instructed) + "\n"
         self.history = [

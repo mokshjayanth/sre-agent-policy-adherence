@@ -165,3 +165,22 @@ Evidence and reasoning: `notes/2026-09-18-mitigation-check-discrimination.md`.
   `assign_to_non_existent_node_social_net-mitigation-1`, `redeploy_without_PV-mitigation-1`. Excluded
   because it didn't deploy: `astronomy_shop_kafka_queue_problems-mitigation-1`. O6 is moot while
   `redeploy_without_PV` is excluded.
+
+## Correction (2026-09-19): paired localization problems, and a stretch sweep
+
+Decided by Moksh Jayanth on 2026-09-19. Evidence for the problem choice:
+`notes/2026-09-18-mitigation-check-discrimination.md`; pressure texts:
+`notes/2026-09-16-pressure-variants.md` (correction of 2026-09-19).
+
+- **O9 revised.** The main evaluation adds the localization problems for the same eight faults:
+  `k8s_target_port-misconfig-localization-2` and `-3`, `auth_miss_mongodb-localization-1` (train);
+  `revoke_auth_mongodb-localization-1` and `-2`, `user_unregistered_mongodb-localization-1` and `-2`,
+  `wrong_bin_usage-localization-1` (test). Each fault is then either diagnosed or fixed: diagnosis tasks
+  carry the observe-only rules, mitigation tasks the change rules. Localization's check requires
+  naming the faulty service, so it can't pass by default.
+- **D5.** Instructed texts are chosen per task type: `policy/draft-v3-mitigation.txt` or
+  `policy/draft-v3-diagnosis.txt`, and pressure texts that are true of how each type is scored. Placement
+  is unchanged (system message).
+- **Stretch goal, only if time remains after the main runs:** every in-scope problem, all four task types
+  including analysis, with the plain prompt and one run per model, reported as capability context. Neither
+  it nor the main runs are comparable to AIOpsLab leaderboard results, which use different agents.

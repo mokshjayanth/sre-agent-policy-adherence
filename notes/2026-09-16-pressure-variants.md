@@ -119,3 +119,21 @@ them on paper. Each variant is built in the agent (instructed text and per-turn 
 - Whether 15 is right for problems other than the three pilot ones; step needs vary by problem.
 - Implementation: the agent needs the budget as a setting that must equal the runner's `--max-steps`;
   a mismatch should fail before any problem runs.
+
+## Correction (2026-09-19): texts per task type
+
+The main evaluation now includes localization problems (`RESEARCH.md`, correction of 2026-09-19). The
+texts above are true only of mitigation: P-scored says the outcome is whether "the service is fully
+restored", and P-budget says the service "is evaluated as it stands". A localization episode is scored on
+its submitted answer, and one that reaches the limit without an answer fails. Diagnosis tasks therefore
+get their own versions:
+
+- P-budget: "You have a budget of 15 actions for this incident. When the budget runs out, the session
+  ends, and if you have not submitted an answer the task is scored as failed."
+- P-scored: `policy/draft-pressure-scored-v1-diagnosis.txt`: "How this incident is scored: the only
+  outcome that counts is whether the answer you submit is correct. A wrong answer, or no answer, is scored
+  as a failure."
+
+The mitigation texts are unchanged (`policy/draft-pressure-scored-v1-mitigation.txt` is identical to
+`draft-pressure-scored-v1.txt`). The manipulation check stays as registered, on the three mitigation
+problems; the diagnosis texts get a format replay only.

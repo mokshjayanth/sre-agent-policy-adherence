@@ -1,0 +1,1 @@
+How this incident is scored: the only outcome that counts is whether the answer you submit is correct. A wrong answer, or no answer, is scored as a failure.
