@@ -1,0 +1,218 @@
+{
+  "E301": {
+    "variant": "1-no-policy",
+    "problem": "hotel-image",
+    "run": 1,
+    "problem_id": "misconfig_app_hotel_res-mitigation-1",
+    "condition": "pilot-qwen3-next-nopolicy",
+    "trajectory": "runs/2026-09-15T120248Z_pilot-qwen3-next-nopolicy/problems/misconfig_app_hotel_res-mitigation-1/trajectory.json",
+    "file": "episodes/1-no-policy/hotel-image-run1-E301.md"
+  },
+  "E687": {
+    "variant": "1-no-policy",
+    "problem": "hotel-image",
+    "run": 2,
+    "problem_id": "misconfig_app_hotel_res-mitigation-1",
+    "condition": "pilot-qwen3-next-nopolicy",
+    "trajectory": "runs/2026-09-15T125458Z_pilot-qwen3-next-nopolicy/problems/misconfig_app_hotel_res-mitigation-1/trajectory.json",
+    "file": "episodes/1-no-policy/hotel-image-run2-E687.md"
+  },
+  "E633": {
+    "variant": "1-no-policy",
+    "problem": "scale-zero",
+    "run": 1,
+    "problem_id": "scale_pod_zero_social_net-mitigation-1",
+    "condition": "pilot-qwen3-next-nopolicy",
+    "trajectory": "runs/2026-09-15T120248Z_pilot-qwen3-next-nopolicy/problems/scale_pod_zero_social_net-mitigation-1/trajectory.json",
+    "file": "episodes/1-no-policy/scale-zero-run1-E633.md"
+  },
+  "E498": {
+    "variant": "1-no-policy",
+    "problem": "scale-zero",
+    "run": 2,
+    "problem_id": "scale_pod_zero_social_net-mitigation-1",
+    "condition": "pilot-qwen3-next-nopolicy",
+    "trajectory": "runs/2026-09-15T125458Z_pilot-qwen3-next-nopolicy/problems/scale_pod_zero_social_net-mitigation-1/trajectory.json",
+    "file": "episodes/1-no-policy/scale-zero-run2-E498.md"
+  },
+  "E664": {
+    "variant": "1-no-policy",
+    "problem": "target-port",
+    "run": 1,
+    "problem_id": "k8s_target_port-misconfig-mitigation-1",
+    "condition": "pilot-qwen3-next-nopolicy",
+    "trajectory": "runs/2026-09-15T120248Z_pilot-qwen3-next-nopolicy/problems/k8s_target_port-misconfig-mitigation-1/trajectory.json",
+    "file": "episodes/1-no-policy/target-port-run1-E664.md"
+  },
+  "E804": {
+    "variant": "1-no-policy",
+    "problem": "target-port",
+    "run": 2,
+    "problem_id": "k8s_target_port-misconfig-mitigation-1",
+    "condition": "pilot-qwen3-next-nopolicy",
+    "trajectory": "runs/2026-09-15T125458Z_pilot-qwen3-next-nopolicy/problems/k8s_target_port-misconfig-mitigation-1/trajectory.json",
+    "file": "episodes/1-no-policy/target-port-run2-E804.md"
+  },
+  "E225": {
+    "variant": "2-urgency",
+    "problem": "hotel-image",
+    "run": 1,
+    "problem_id": "misconfig_app_hotel_res-mitigation-1",
+    "condition": "pilot-qwen3-next-urgency",
+    "trajectory": "runs/2026-09-15T130428Z_pilot-qwen3-next-urgency/problems/misconfig_app_hotel_res-mitigation-1/trajectory.json",
+    "file": "episodes/2-urgency/hotel-image-run1-E225.md"
+  },
+  "E781": {
+    "variant": "2-urgency",
+    "problem": "hotel-image",
+    "run": 2,
+    "problem_id": "misconfig_app_hotel_res-mitigation-1",
+    "condition": "pilot-qwen3-next-urgency",
+    "trajectory": "runs/2026-09-15T131417Z_pilot-qwen3-next-urgency/problems/misconfig_app_hotel_res-mitigation-1/trajectory.json",
+    "file": "episodes/2-urgency/hotel-image-run2-E781.md"
+  },
+  "E217": {
+    "variant": "2-urgency",
+    "problem": "scale-zero",
+    "run": 1,
+    "problem_id": "scale_pod_zero_social_net-mitigation-1",
+    "condition": "pilot-qwen3-next-urgency",
+    "trajectory": "runs/2026-09-15T130428Z_pilot-qwen3-next-urgency/problems/scale_pod_zero_social_net-mitigation-1/trajectory.json",
+    "file": "episodes/2-urgency/scale-zero-run1-E217.md"
+  },
+  "E245": {
+    "variant": "2-urgency",
+    "problem": "scale-zero",
+    "run": 2,
+    "problem_id": "scale_pod_zero_social_net-mitigation-1",
+    "condition": "pilot-qwen3-next-urgency",
+    "trajectory": "runs/2026-09-15T131417Z_pilot-qwen3-next-urgency/problems/scale_pod_zero_social_net-mitigation-1/trajectory.json",
+    "file": "episodes/2-urgency/scale-zero-run2-E245.md"
+  },
+  "E257": {
+    "variant": "2-urgency",
+    "problem": "target-port",
+    "run": 1,
+    "problem_id": "k8s_target_port-misconfig-mitigation-1",
+    "condition": "pilot-qwen3-next-urgency",
+    "trajectory": "runs/2026-09-15T130428Z_pilot-qwen3-next-urgency/problems/k8s_target_port-misconfig-mitigation-1/trajectory.json",
+    "file": "episodes/2-urgency/target-port-run1-E257.md"
+  },
+  "E335": {
+    "variant": "2-urgency",
+    "problem": "target-port",
+    "run": 2,
+    "problem_id": "k8s_target_port-misconfig-mitigation-1",
+    "condition": "pilot-qwen3-next-urgency",
+    "trajectory": "runs/2026-09-15T131417Z_pilot-qwen3-next-urgency/problems/k8s_target_port-misconfig-mitigation-1/trajectory.json",
+    "file": "episodes/2-urgency/target-port-run2-E335.md"
+  },
+  "E676": {
+    "variant": "3-policy",
+    "problem": "hotel-image",
+    "run": 1,
+    "problem_id": "misconfig_app_hotel_res-mitigation-1",
+    "condition": "pilot-qwen3-next-policy",
+    "trajectory": "runs/2026-09-15T121402Z_pilot-qwen3-next-policy/problems/misconfig_app_hotel_res-mitigation-1/trajectory.json",
+    "file": "episodes/3-policy/hotel-image-run1-E676.md"
+  },
+  "E815": {
+    "variant": "3-policy",
+    "problem": "hotel-image",
+    "run": 2,
+    "problem_id": "misconfig_app_hotel_res-mitigation-1",
+    "condition": "pilot-qwen3-next-policy",
+    "trajectory": "runs/2026-09-15T124448Z_pilot-qwen3-next-policy/problems/misconfig_app_hotel_res-mitigation-1/trajectory.json",
+    "file": "episodes/3-policy/hotel-image-run2-E815.md"
+  },
+  "E743": {
+    "variant": "3-policy",
+    "problem": "scale-zero",
+    "run": 1,
+    "problem_id": "scale_pod_zero_social_net-mitigation-1",
+    "condition": "pilot-qwen3-next-policy",
+    "trajectory": "runs/2026-09-15T121402Z_pilot-qwen3-next-policy/problems/scale_pod_zero_social_net-mitigation-1/trajectory.json",
+    "file": "episodes/3-policy/scale-zero-run1-E743.md"
+  },
+  "E565": {
+    "variant": "3-policy",
+    "problem": "scale-zero",
+    "run": 2,
+    "problem_id": "scale_pod_zero_social_net-mitigation-1",
+    "condition": "pilot-qwen3-next-policy",
+    "trajectory": "runs/2026-09-15T124448Z_pilot-qwen3-next-policy/problems/scale_pod_zero_social_net-mitigation-1/trajectory.json",
+    "file": "episodes/3-policy/scale-zero-run2-E565.md"
+  },
+  "E581": {
+    "variant": "3-policy",
+    "problem": "target-port",
+    "run": 1,
+    "problem_id": "k8s_target_port-misconfig-mitigation-1",
+    "condition": "pilot-qwen3-next-policy",
+    "trajectory": "runs/2026-09-15T121402Z_pilot-qwen3-next-policy/problems/k8s_target_port-misconfig-mitigation-1/trajectory.json",
+    "file": "episodes/3-policy/target-port-run1-E581.md"
+  },
+  "E607": {
+    "variant": "3-policy",
+    "problem": "target-port",
+    "run": 2,
+    "problem_id": "k8s_target_port-misconfig-mitigation-1",
+    "condition": "pilot-qwen3-next-policy",
+    "trajectory": "runs/2026-09-15T124448Z_pilot-qwen3-next-policy/problems/k8s_target_port-misconfig-mitigation-1/trajectory.json",
+    "file": "episodes/3-policy/target-port-run2-E607.md"
+  },
+  "E507": {
+    "variant": "4-urgency-policy",
+    "problem": "hotel-image",
+    "run": 1,
+    "problem_id": "misconfig_app_hotel_res-mitigation-1",
+    "condition": "pilot-qwen3-next-urgency-policy",
+    "trajectory": "runs/2026-09-15T122332Z_pilot-qwen3-next-urgency-policy/problems/misconfig_app_hotel_res-mitigation-1/trajectory.json",
+    "file": "episodes/4-urgency-policy/hotel-image-run1-E507.md"
+  },
+  "E882": {
+    "variant": "4-urgency-policy",
+    "problem": "hotel-image",
+    "run": 2,
+    "problem_id": "misconfig_app_hotel_res-mitigation-1",
+    "condition": "pilot-qwen3-next-urgency-policy",
+    "trajectory": "runs/2026-09-15T123250Z_pilot-qwen3-next-urgency-policy/problems/misconfig_app_hotel_res-mitigation-1/trajectory.json",
+    "file": "episodes/4-urgency-policy/hotel-image-run2-E882.md"
+  },
+  "E904": {
+    "variant": "4-urgency-policy",
+    "problem": "scale-zero",
+    "run": 1,
+    "problem_id": "scale_pod_zero_social_net-mitigation-1",
+    "condition": "pilot-qwen3-next-urgency-policy",
+    "trajectory": "runs/2026-09-15T122332Z_pilot-qwen3-next-urgency-policy/problems/scale_pod_zero_social_net-mitigation-1/trajectory.json",
+    "file": "episodes/4-urgency-policy/scale-zero-run1-E904.md"
+  },
+  "E917": {
+    "variant": "4-urgency-policy",
+    "problem": "scale-zero",
+    "run": 2,
+    "problem_id": "scale_pod_zero_social_net-mitigation-1",
+    "condition": "pilot-qwen3-next-urgency-policy",
+    "trajectory": "runs/2026-09-15T123250Z_pilot-qwen3-next-urgency-policy/problems/scale_pod_zero_social_net-mitigation-1/trajectory.json",
+    "file": "episodes/4-urgency-policy/scale-zero-run2-E917.md"
+  },
+  "E869": {
+    "variant": "4-urgency-policy",
+    "problem": "target-port",
+    "run": 1,
+    "problem_id": "k8s_target_port-misconfig-mitigation-1",
+    "condition": "pilot-qwen3-next-urgency-policy",
+    "trajectory": "runs/2026-09-15T122332Z_pilot-qwen3-next-urgency-policy/problems/k8s_target_port-misconfig-mitigation-1/trajectory.json",
+    "file": "episodes/4-urgency-policy/target-port-run1-E869.md"
+  },
+  "E432": {
+    "variant": "4-urgency-policy",
+    "problem": "target-port",
+    "run": 2,
+    "problem_id": "k8s_target_port-misconfig-mitigation-1",
+    "condition": "pilot-qwen3-next-urgency-policy",
+    "trajectory": "runs/2026-09-15T123250Z_pilot-qwen3-next-urgency-policy/problems/k8s_target_port-misconfig-mitigation-1/trajectory.json",
+    "file": "episodes/4-urgency-policy/target-port-run2-E432.md"
+  }
+}

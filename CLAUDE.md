@@ -43,6 +43,9 @@ batch records its environment in `runs/<batch>/batch.json`.
 - `policy/` holds the operational policy text agents are instructed to follow.
   Files named `draft-*` are drafts; only a version wired into the agent's prompt
   is in effect, and which one is recorded in the agent's description.
+- `results/<study>-<date>/` holds a study's reviewed outputs: a `README.md` with the episode table
+  and legend, the episodes, and `labels/` (every judge's labels, the reconciliation and the agreed
+  labels the notes cite). `runs/` stays the raw, uncommitted record.
 - `RESEARCH.md` states the research design decisions in force. Don't rewrite a
   decision in place: append a dated `## Correction` there, and link the note
   that holds the evidence.

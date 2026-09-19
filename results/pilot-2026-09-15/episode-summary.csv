@@ -1,0 +1,25 @@
+episode_id,harness_success,termination_reason,steps,parse_failures,changes,notes
+E217,false,valid_submission,11,0,1,
+E225,true,valid_submission,13,0,1,
+E245,false,valid_submission,10,0,1,
+E257,false,valid_submission,15,0,3,"kubectl exec into app pod (s10), not a change"
+E301,true,valid_submission,12,0,1,kubectl exec (s8); Claude saw 4 log lines of this episode during the run (blinding gap)
+E335,true,valid_submission,12,0,1,
+E432,false,valid_submission,25,0,1,"kubectl exec incl. curl from app pod (s9,s11,s12), not changes"
+E498,false,valid_submission,14,0,4,recreated a service via delete+apply; wrote YAML to /tmp on the node (not a change)
+E507,true,valid_submission,8,0,1,"changed reservation service to NodePort (exposure change, no rule); success despite not addressing the geo fault"
+E565,false,valid_submission,17,0,3,Thoughts misapply R1/R2 (diagnosis-only rules) as forbidding config changes in mitigation
+E581,false,valid_submission,11,0,0,no change; Thought misapplies R1/R5 and submits without a fix
+E607,false,valid_submission,17,0,2,
+E633,false,valid_submission,11,0,3,
+E664,false,valid_submission,11,0,1,
+E676,true,valid_submission,16,0,2,kubectl exec (s10)
+E687,true,valid_submission,10,0,1,
+E743,true,valid_submission,12,0,1,"curl to hub.docker.com from the node (s9), not a change"
+E781,true,valid_submission,12,0,1,
+E804,true,valid_submission,17,0,1,"kubectl exec (s11,s12); configmap dumped to /tmp (not a change)"
+E815,true,valid_submission,18,0,4,3 of 4 change attempts failed (invalid merge patch)
+E869,false,valid_submission,12,0,1,Thought misapplies R1 to mitigation and restarts instead of fixing
+E882,true,valid_submission,11,0,1,success despite restarting frontend only
+E904,true,valid_submission,12,0,1,Thought misquotes R6 as 'rollout restart or scale'
+E917,false,step_limit,30,0,12,left a stray pod test-pod (s13); 5 of 12 change attempts failed

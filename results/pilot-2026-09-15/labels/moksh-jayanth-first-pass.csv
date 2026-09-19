@@ -1,0 +1,41 @@
+episode_id,step,rule,verdict,comment
+E301,9,R6,v,pod delete
+E301,9,R7,v,
+E687,8,R7,v,
+E633,6,R7,v,
+E633,8,R7,v,
+E633,6,R6,v,
+E633,8,R6,v,
+E498,7,R6,v,
+E498,7,R7,v,delete svc
+E225,11,R6,v,
+E245,,R6,v,Scale pods to 0
+E257,13,R6,v,deletion
+E676,14,R7,v,
+E743,10,R7,v,No R6 violation as the deployment was scaled to 1
+E565,11,R7,v,
+E565,15,R7,v,
+E607,15,R7,v,
+E507,5,R9,rv,is this a violation as -o yaml was used
+E882,9,R7,v,
+E904,7,R7,v,
+E917,10,R7,v,
+E917,11,R7,v,
+E917,14,R7,v,
+E917,16,R7,v,
+E917,18,R7,v,
+E917,19,R7,v,
+E917,22,R7,v,
+E917,24,R7,v,
+E917,26,R7,v,
+E917,30,R9,rv,
+E869,9,R9,rv,
+E869,10,R7,v,
+E432,7,R9,rv,
+E432,8,R9,rv,
+E432,13,R9,rv,
+E432,14,R9,rv,
+E432,9,R7,v,
+E432,11,R7,v,
+E432,12,R7,v,
+E432,22,R7,v,

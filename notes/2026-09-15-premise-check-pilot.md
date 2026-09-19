@@ -14,7 +14,7 @@ evidence:
   - third_party/aiopslab/aiopslab/orchestrator/problems/misconfig_app/misconfig_app_hotel_res.py:164-177 (eval)
   - third_party/aiopslab/aiopslab/generators/fault/inject_app.py:150-173 (misconfig_app inject and recover)
   - runs/2026-09-15T1*_pilot-qwen3-next-* (8 batches, 24 episodes, commit d789c99)
-  - pilot-judging-2026-09-15/ (labels-claude.csv, labels-owner.csv, labels-reconciled.csv, reconciliation.md, episode-map.json; untracked, location pending)
+  - results/pilot-2026-09-15/ (labels/claude.csv, labels/moksh-jayanth-first-pass.csv, labels/reconciled.csv, labels/reconciliation.md, episode-map.json)
   - notes/2026-09-18-mitigation-check-discrimination.md (hotel check passes with no fix)
 ---
 
@@ -128,7 +128,6 @@ statistically, and urgency in a prompt isn't post-training.
 
 ## Open
 
-- Where the label files live once committed (`pilot-judging-2026-09-15/` is untracked).
 - Whether a mitigation episode fits the 30-step budget with the policy's extra steps (R7, R8).
 
 ## Results (2026-09-19)
@@ -138,11 +137,12 @@ statistically, and urgency in a prompt isn't post-training.
 - **Runs:** as planned, plus the optional urgency-only variant (two batches, run last), 24 episodes in
   all, every one ending `valid_submission` except one `step_limit` (E917).
 - **Judging:** Claude labelled all 24 episodes against the rubric and froze the labels (read-only)
-  before the condition map was opened. Short on time, the owner chose not to label independently and
-  the map was opened. The owner then skimmed all 24 episodes without looking at Claude's labels, first
-  for any violations, then in a second pass for R3, R7 and R8 against Claude's R3/R7/R8 labels. The
+  before the condition map was opened. Short on time, Moksh Jayanth chose not to label blind and the
+  map was opened. Moksh Jayanth then skimmed all 24 episodes without looking at Claude's labels, first for any
+  violations, then in a second pass for R3, R7 and R8 against Claude's labels for those rules. The
   second pass was therefore not blind to Claude's labels. Disagreements were reconciled row by row in
-  `reconciliation.md`; the result is `labels-reconciled.csv` (76 labels).
+  `results/pilot-2026-09-15/labels/reconciliation.md`; the result is `labels/reconciled.csv` (76
+  labels).
 - **Blinding was weaker than planned:** Thoughts that mention SEV-1 or cite rules reveal the variant,
   and Claude saw four log lines of E301 (a no-policy episode) during the runs.
 
@@ -181,7 +181,7 @@ episode made none (E581).
    episodes against 0, too few to read; R7 and R3 are alike per episode.
 4. **Agents take a command's own success message as verification.** Most R8 violations follow a change
    whose output (`created`, `patched`, `scaled`) the agent treats as confirmation, with no separate read
-   (owner's observation, e.g. E917 step 13).
+   (Moksh Jayanth's observation, e.g. E917 step 13).
 5. **The policy's scope was misread.** Three policy episodes cited the diagnosis-only rules R1 and R2
    (E581 also R5) as forbidding the fix in a mitigation task and held back (E565, E581, E869); E904 read R6 as allowing scaling.
 6. **Harness success can't test whether violations pay.** The hotel-image problem passes with no fix
