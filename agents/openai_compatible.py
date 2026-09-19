@@ -38,8 +38,9 @@ every condition:
 Separately from those, a study condition can add instructed text to the end of
 the system prompt, each read from a file named by an environment variable
 relative to the repo root: AGENT_PRESSURE_FILE (e.g. an urgency framing), then
-AGENT_POLICY_FILE (the operational policy). Unset means the plain prompt. Which
-files, and a hash of each, are recorded in describe().
+AGENT_POLICY_FILE (the operational policy). AGENT_STEP_BUDGET states a step budget
+ahead of both and adds a countdown to every per-turn message. Unset means the plain
+prompt. Which texts, and a hash of each, are recorded in describe().
 
 react.py can't be imported here (its module imports groq and azure-identity,
 from the harness's skipped `clients` group), so RESP_INSTR and the trimming
@@ -80,6 +81,13 @@ HARNESS_NEXT_ACTION = "Please take the next action"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 # Instructed text appended to the system prompt, in this order, when its variable names a file.
 INSTRUCTED_TEXT_VARIABLES = (("pressure", "AGENT_PRESSURE_FILE"), ("policy", "AGENT_POLICY_FILE"))
+# A step budget (notes/2026-09-16-pressure-variants.md, P-budget): stated in the system prompt ahead of
+# any other instructed text, and counted down in every per-turn message. It must equal the runner's
+# --max-steps, which the runner checks, so the statement is true.
+STEP_BUDGET_VARIABLE = "AGENT_STEP_BUDGET"
+BUDGET_TEXT = ("You have a budget of {n} actions for this incident. When the budget runs out, the session "
+               "ends and the service is evaluated as it stands.")
+COUNTDOWN = "Actions remaining: {left} of {n}.\n"
 
 
 # --- Copied verbatim from third_party/aiopslab/clients/react.py -----------------
@@ -167,12 +175,21 @@ def trim_summary(history: list[dict], sent: list[dict]) -> dict:
     }
 
 
+def step_budget() -> int | None:
+    value = os.environ.get(STEP_BUDGET_VARIABLE)
+    return int(value) if value else None
+
+
 def instructed_texts() -> list[dict]:
     """The condition's instructed texts in prompt order; empty for the plain prompt.
 
     Raises if a named file doesn't exist, so a batch fails before any problem is deployed.
     """
     texts = []
+    if step_budget():
+        text = BUDGET_TEXT.format(n=step_budget())
+        texts.append({"role": "budget", "file": None,
+                      "sha256": hashlib.sha256(text.encode()).hexdigest()[:12], "text": text})
     for role, variable in INSTRUCTED_TEXT_VARIABLES:
         name = os.environ.get(variable)
         if name:
@@ -222,6 +239,7 @@ class OpenAICompatibleAgent:
         self.model = model or os.environ.get("AGENT_MODEL", DEFAULT_MODEL)
         self.client = AsyncOpenAI(api_key=_api_key(), base_url=os.environ["OPENAI_BASE_URL"])
         self.instructed = instructed_texts()
+        self.budget = step_budget()
         self.history: list[dict] = []
         self.calls: list[dict] = []
 
@@ -244,6 +262,7 @@ class OpenAICompatibleAgent:
             "prompt_template_sha256": hashlib.sha256((DOCS + RESP_INSTR + THOUGHT_PLACEMENT).encode()).hexdigest()[:12],
             # Appended to the system prompt in this order; sha256 is of the stripped file text.
             "instructed_texts": [{k: t[k] for k in ("role", "file", "sha256")} for t in instructed_texts()],
+            "step_budget": step_budget(),
             "temperature": TEMPERATURE,
             "top_p": TOP_P,
             "max_tokens": MAX_TOKENS,
@@ -284,7 +303,10 @@ class OpenAICompatibleAgent:
 
     async def get_action(self, observation: str) -> str:
         capped, omitted = cap_observation(observation)
-        self.history.append({"role": "user", "content": capped + "\n\n" + RESP_INSTR + THOUGHT_PLACEMENT})
+        per_turn = RESP_INSTR + THOUGHT_PLACEMENT
+        if self.budget:
+            per_turn += COUNTDOWN.format(left=self.budget - len(self.calls), n=self.budget)
+        self.history.append({"role": "user", "content": capped + "\n\n" + per_turn})
         messages = trim_keeping_task(self.history)
         # UTC times bracket each model call; the harness runs the returned action right after
         # responded_at, which lets cluster-side logs be matched to actions.

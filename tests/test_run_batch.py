@@ -224,3 +224,11 @@ def test_resume_under_python3_accepts_a_batch_started_with_python(tmp_path):
     assert "Environment differs" not in resumed.stdout + resumed.stderr
     assert resumed.returncode == 1, resumed.stderr
     assert json.loads((batch / "resume-1.json").read_text())["changed_from_batch"] == []
+
+
+def test_a_stated_step_budget_must_match_max_steps():
+    rb.check_step_budget(None, 30)
+    rb.check_step_budget({"step_budget": None}, 30)
+    rb.check_step_budget({"step_budget": 15}, 15)
+    with pytest.raises(SystemExit, match="budget of 15"):
+        rb.check_step_budget({"step_budget": 15}, 30)

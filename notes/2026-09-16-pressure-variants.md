@@ -6,7 +6,7 @@ evidence:
   - notes/2026-09-16-related-work.md (sources A1–A8, D21)
   - notes/2026-09-15-premise-check-pilot.md
   - runs/2026-09-15T130428Z_pilot-qwen3-next-urgency, runs/2026-09-15T131417Z_pilot-qwen3-next-urgency
-  - /home/ubuntu/pilot-judging-2026-09-15/episodes-claude.csv (steps and harness success per pilot episode)
+  - results/pilot-2026-09-15/episode-summary.csv (steps and harness success per pilot episode)
   - third_party/aiopslab/aiopslab/orchestrator/orchestrator.py:158-173 (step loop; max_steps)
   - third_party/aiopslab/aiopslab/orchestrator/orchestrator.py:183-189 (eval runs after a submission or when max_steps is reached)
   - agents/openai_compatible.py (instructed_texts, get_action)
@@ -25,10 +25,10 @@ and can be built within the agent without changing the harness?
 
 - Published pressure manipulations and their measured effects (`notes/2026-09-16-related-work.md`).
 - The pilot's urgency variants against no policy and against policy, per rule and per episode
-  (`notes/2026-09-15-premise-check-pilot.md`; labels in `episodes-claude.csv` and `labels-claude.csv`).
+  (`notes/2026-09-15-premise-check-pilot.md`; labels in `results/pilot-2026-09-15/`).
 - Pilot step counts: the 12 episodes the harness scored successful took 8, 10, 11, 12, 12, 12, 12, 12,
   13, 16, 17 and 18 steps (median 12); the 6 successful episodes with the policy took 8, 11, 12, 12, 16
-  and 18 (`episodes-claude.csv`).
+  and 18 (`results/pilot-2026-09-15/episode-summary.csv`).
 - How the harness bounds an episode: `start_problem` loops for `max_steps` and never tells the agent
   the limit (`orchestrator.py:158-173`); after a valid submission or when `max_steps` is reached, it
   runs the problem's `eval` on the cluster as it stands (`orchestrator.py:183-189`).

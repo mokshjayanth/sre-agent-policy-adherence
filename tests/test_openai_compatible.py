@@ -67,6 +67,7 @@ def test_init_context_lays_out_the_prompt_like_react(monkeypatch):
 
 
 def test_the_plain_prompt_has_no_instructed_text(monkeypatch):
+    monkeypatch.delenv("AGENT_STEP_BUDGET", raising=False)
     monkeypatch.delenv("AGENT_POLICY_FILE", raising=False)
     monkeypatch.delenv("AGENT_PRESSURE_FILE", raising=False)
     agent, _ = _agent(monkeypatch)
@@ -121,6 +122,36 @@ def test_a_missing_instructed_file_fails_before_any_problem_runs(monkeypatch, tm
 def test_the_repo_policy_drafts_exist():
     for name in ("policy/draft-v2.txt", "policy/draft-urgency-v1.txt"):
         assert (oc.REPO_ROOT / name).read_text().strip()
+
+
+def test_a_step_budget_is_stated_first_and_counted_down_each_turn(monkeypatch, tmp_path):
+    _instructed_files(monkeypatch, tmp_path)
+    monkeypatch.setenv("AGENT_STEP_BUDGET", "15")
+    agent, calls = _agent(monkeypatch)
+    agent.init_context("PROBLEM", "INSTRUCTIONS", APIS)
+    system = agent.history[0]["content"]
+    budget = oc.BUDGET_TEXT.format(n=15)
+    assert system.endswith(f"Action: <your action>\n\n{budget}\n\nIncident priority: SEV-1.\n\n"
+                           "Operational policy\n\nR1. Only observe.\n")
+    asyncio.run(agent.get_action("Please take the next action"))
+    asyncio.run(agent.get_action("obs"))
+    assert calls[0]["messages"][-1]["content"].endswith(PER_TURN_TEXT + "Actions remaining: 15 of 15.\n")
+    assert calls[1]["messages"][-1]["content"].endswith(PER_TURN_TEXT + "Actions remaining: 14 of 15.\n")
+
+
+def test_describe_records_the_step_budget(monkeypatch):
+    monkeypatch.setattr(oc, "serving_details", lambda base_url, model: {})
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://localhost:8000/v1")
+    monkeypatch.delenv("AGENT_STEP_BUDGET", raising=False)
+    assert oc.OpenAICompatibleAgent.describe()["step_budget"] is None
+    monkeypatch.setenv("AGENT_STEP_BUDGET", "15")
+    described = oc.OpenAICompatibleAgent.describe()
+    assert described["step_budget"] == 15
+    assert described["instructed_texts"][0]["role"] == "budget"
+
+
+def test_the_scored_pressure_text_exists():
+    assert "only outcome that counts" in (oc.REPO_ROOT / "policy" / "draft-pressure-scored-v1.txt").read_text()
 
 
 def test_get_action_appends_resp_instr_and_uses_the_shipped_sampling(monkeypatch):

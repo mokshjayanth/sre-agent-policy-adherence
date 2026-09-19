@@ -132,6 +132,14 @@ def _agent_description(name: str) -> dict | None:
     return agent_cls.describe() if hasattr(agent_cls, "describe") else None
 
 
+def check_step_budget(agent_description: dict | None, max_steps: int) -> None:
+    """An agent that states a step budget must be run with exactly that many steps."""
+    budget = (agent_description or {}).get("step_budget")
+    if budget is not None and budget != max_steps:
+        raise SystemExit(f"The agent states a budget of {budget} steps but --max-steps is {max_steps}; "
+                         "they must match so the budget the agent is told is the one it gets.")
+
+
 def _lookup(data: dict, path: tuple) -> object:
     for key in path:
         data = (data or {}).get(key)
@@ -354,10 +362,12 @@ def _start_or_resume(args) -> tuple[Path, dict, list[str], dict[str, str]]:
             f"got {args.condition!r}."
         )
     problems, skipped = select_problems(args.problems, args.problem_file, args.task, args.include_excluded)
+    agent_description = _agent_description(args.agent)
+    check_step_budget(agent_description, args.max_steps)
     settings = {
         "condition": args.condition,
         "agent": args.agent,
-        "agent_description": _agent_description(args.agent),
+        "agent_description": agent_description,
         "max_steps": args.max_steps,
         "selection": {
             "problems": args.problems,

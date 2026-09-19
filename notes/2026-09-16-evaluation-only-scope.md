@@ -8,7 +8,7 @@ evidence:
   - runs/2026-09-15T121402Z_pilot-qwen3-next-policy, runs/2026-09-15T124448Z_pilot-qwen3-next-policy
   - runs/2026-09-15T122332Z_pilot-qwen3-next-urgency-policy, runs/2026-09-15T123250Z_pilot-qwen3-next-urgency-policy
   - runs/2026-09-15T130428Z_pilot-qwen3-next-urgency, runs/2026-09-15T131417Z_pilot-qwen3-next-urgency
-  - /home/ubuntu/pilot-judging-2026-09-15/labels-claude.csv (one judge's labels, frozen before the condition map was opened; not yet in the repo)
+  - results/pilot-2026-09-15/labels/claude.csv (one judge's labels, frozen before the condition map was opened)
   - RESEARCH.md (O1, O4, O5)
   - https://www.anthropic.com/research/agentic-misalignment
   - https://arxiv.org/abs/2412.14093
@@ -41,7 +41,7 @@ is there evidence it would produce a measurable result?
 1. **Adherence varies without any training, by the kind of rule.** Without the policy, 6 of 7
    restart actions were pod deletions or scaling to zero and back (4 of 7 counting deletions
    only); with the policy, 0 of 8. With the policy, a change was recorded before it (R7) for 3 of
-   29 changes (`labels-claude.csv`).
+   29 changes (`results/pilot-2026-09-15/labels/`).
 2. **The urgency text changed nothing measurable.** Counted per episode, the policy and
    urgency-plus-policy variants look alike; urgency-plus-policy's higher R8 count comes mostly from
    one episode with 12 change attempts. The urgency line isn't a usable pressure manipulation on
