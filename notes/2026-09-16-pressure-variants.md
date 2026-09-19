@@ -170,3 +170,7 @@ P-budget; policy v3 + P-scored; each on the three pilot mitigation problems plus
 problem, one run each, Qwen3-Next (12 episodes). Policy v3's mitigation text parsed 20 of 20 in a format
 replay. Part 2 is read as: does pressure change R3, R7 or R8 rates against the policy v3 arm; it is
 reported descriptively, with no threshold, because main-study arms are already decided by part 1.
+Policy v3 is kept as drafted unless part 2 shows a rule cited in the wrong task type, a definition
+(change, restart) read differently from its text, or replies that fail to parse; Moksh Jayanth chose to
+let part 2 decide v3 rather than approve it beforehand. A first attempt at part 2 was stopped during
+setup, before any agent step (`runs/2026-09-19T205251Z_pilot-qwen3-next-v3-policy`, empty).
