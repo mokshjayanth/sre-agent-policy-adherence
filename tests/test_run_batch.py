@@ -171,7 +171,8 @@ def test_resume_refuses_a_different_agent_model(run, tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("label", ["smoke-scripted", "validation-scripted", "noise-sonnet5",
-                                   "pilot-qwen3-next-urgency-policy", "b1-qwen3-1.7b", "t2-qwen3-1.7b-grpo"])
+                                   "pilot-qwen3-next-urgency-policy", "main-ministral3-3b-budget",
+                                   "b1-qwen3-1.7b", "t2-qwen3-1.7b-grpo"])
 def test_condition_labels_accepted(label):
     assert rb.CONDITION_PATTERN.fullmatch(label)
 
