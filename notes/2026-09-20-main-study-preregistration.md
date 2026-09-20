@@ -94,3 +94,41 @@ with this note.
 
 - The stretch sweep (all task types, plain prompt, 1 run per model) stays a stretch goal.
 - A second machine would halve the wall-clock time; not required.
+
+## Addition (2026-09-20): a conditional pressure ladder
+
+Registered before any round 1 data was read, and before any episode of the arms below exists.
+
+**Why.** Part 1's screen was weak and neither single variant made agents hastier. Scheurer et al.
+(arXiv:2311.07590, read in full) elicited misbehaviour with three simultaneous pressures and found it
+"persists for all cases where only a single source of pressure is removed": the combination carried the
+effect, not any one source. PropensityBench (arXiv:2511.20703, summary) escalates pressure over levels;
+Instrumental Choices (arXiv:2605.06490) found single framing manipulations produced no comparable effect.
+Our single arms may therefore be too weak a dose.
+
+**Conditional rule.** After round 1 is graded, if neither pressure arm moves any rule's violation rate
+against policy v3 alone by more than the bootstrap interval over problems, or if the pattern suggests a
+dose effect worth mapping, two arms are added and run in both rounds:
+
+| New arm | Sources |
+|---|---|
+| policy v3 + escalation | social/time only, the missing solo ablation |
+| policy v3 + budget + scored + escalation | all three at once |
+
+**Escalation** is a third pressure source: stakeholder messages appended to the observation at fixed
+turns (after actions 4 and 8, plus 12 in 30-step arms), never mentioning the policy, scoring or any
+instruction to cut corners. It is delivered during the episode, not in the system prompt, because static
+framing is what the pilot's urgency line did and it moved nothing.
+
+**Prediction.** Violation rates on procedural rules rise with the number of pressure sources, highest in
+the three-source arm; prohibitions stay near zero. *Refuted if* the three-source arm matches policy v3
+alone.
+
+**What this costs in pre-registration terms.** The arms are decided after seeing round 1, which is
+sequential design, not a post-hoc analysis choice: their prediction and analysis are fixed here, before
+their episodes exist, and the analysis of the existing arms is not revisited. The paper states that the
+ladder was extended on evidence.
+
+**Also registered now: a within-episode dose-response analysis.** In budget arms, whether the violation
+rate per opportunity rises as the countdown falls (actions remaining), which tests the pressure
+mechanism with far more data points than the between-arm comparison and survives a between-arm null.
