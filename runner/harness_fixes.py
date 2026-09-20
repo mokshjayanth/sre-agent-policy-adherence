@@ -167,6 +167,35 @@ def stop_orphaned_port_forwards() -> int:
     return len(pids)
 
 
+# --- failed pods left in an app namespace -------------------------------------
+#
+# The harness waits for *every* pod in the app's namespace to be ready before a
+# problem starts (kubectl.py:114-143, via helm.assert_if_deployed). A pod left
+# behind in Failed state never becomes ready, so every later deploy of that app
+# waits the full 300 s and raises. The harness creates such pods itself: the
+# MongoDB faults run `test-connect`, `mongo-check` and `mongo-fix` pods, and a
+# crashed one is never cleaned up. One leftover therefore poisons every
+# subsequent episode on that app, whatever the agent does. Seen on 2026-09-20:
+# `test-connect` failed at 10:42 and broke 35 SocialNetwork episodes.
+
+APP_NAMESPACES = ("test-social-network", "test-hotel-reservation", "astronomy-shop")
+
+
+def delete_failed_pods(namespaces: tuple[str, ...] = APP_NAMESPACES) -> list[str]:
+    """Delete Failed pods in the app namespaces; return what was deleted."""
+    deleted = []
+    for namespace in namespaces:
+        listing = subprocess.run(
+            ["kubectl", "--context", "kind-kind", "get", "pods", "-n", namespace,
+             "--field-selector", "status.phase=Failed", "-o", "name"],
+            capture_output=True, text=True, check=False)
+        for name in listing.stdout.split():
+            subprocess.run(["kubectl", "--context", "kind-kind", "delete", name, "-n", namespace,
+                            "--ignore-not-found", "--wait=false"], capture_output=True, check=False)
+            deleted.append(f"{namespace}/{name}")
+    return deleted
+
+
 # --- exec_shell doc fix -------------------------------------------------------
 #
 # exec_shell(command: str, timeout: int = 30) documents a timeout parameter

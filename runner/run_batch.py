@@ -61,6 +61,7 @@ from aiopslab.orchestrator import Orchestrator  # noqa: E402
 
 from runner.harness_fixes import (  # noqa: E402
     PINNED_OTEL_CHART_VERSION,
+    delete_failed_pods,
     fix_exec_shell_doc,
     pin_otel_chart,
     stop_leaked_port_forwards,
@@ -271,6 +272,10 @@ async def run_problem(
     record["stale_port_forwards"] = stop_orphaned_port_forwards()
     if record["stale_port_forwards"]:
         print(f"    stopped {record['stale_port_forwards']} port-forward(s) left over from an earlier run")
+    # A Failed pod left in an app namespace makes every later deploy of that app time out.
+    record["deleted_failed_pods"] = delete_failed_pods()
+    if record["deleted_failed_pods"]:
+        print(f"    deleted failed pod(s) left over from an earlier run: {record['deleted_failed_pods']}")
     exports_before = _snapshot_exports(workdir)
 
     orch = Orchestrator()

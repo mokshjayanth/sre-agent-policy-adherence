@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+from runner import harness_fixes
 from runner import run_batch as rb
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -193,6 +194,7 @@ SUBPROCESS = """
 import sys
 sys.path.insert(0, {repo!r})
 from pathlib import Path
+from runner import harness_fixes
 from runner import run_batch as rb
 rb.RUNS_ROOT = Path({runs!r})
 def fail(self, problem_id):
@@ -233,3 +235,17 @@ def test_a_stated_step_budget_must_match_max_steps():
     rb.check_step_budget({"step_budget": 15}, 15)
     with pytest.raises(SystemExit, match="budget of 15"):
         rb.check_step_budget({"step_budget": 15}, 30)
+
+
+def test_failed_pods_are_cleared_before_each_problem(monkeypatch):
+    """A Failed pod left in an app namespace blocks every later deploy of that app."""
+    calls = []
+
+    def fake_run(argv, **kwargs):
+        calls.append(argv)
+        listing = "pod/test-connect\n" if "get" in argv and argv[argv.index("-n") + 1] == "test-social-network" else ""
+        return types.SimpleNamespace(stdout=listing, returncode=0)
+
+    monkeypatch.setattr(harness_fixes.subprocess, "run", fake_run)
+    assert harness_fixes.delete_failed_pods() == ["test-social-network/pod/test-connect"]
+    assert ["delete", "pod/test-connect"] == [a for a in calls[1] if a in ("delete", "pod/test-connect")]
