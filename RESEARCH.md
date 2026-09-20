@@ -184,3 +184,18 @@ Decided by Moksh Jayanth on 2026-09-19. Evidence for the problem choice:
 - **Stretch goal, only if time remains after the main runs:** every in-scope problem, all four task types
   including analysis, with the plain prompt and one run per model, reported as capability context. Neither
   it nor the main runs are comparable to AIOpsLab leaderboard results, which use different agents.
+
+## Correction (2026-09-20): the main study is pre-registered
+
+Design, hypotheses and analysis plan: `notes/2026-09-20-main-study-preregistration.md`, committed before
+the first main episode.
+
+- **D6.** Runs per problem: 2, not 5, in two rounds across all cells. avg@k and best@k are reported over
+  those 2 runs; uncertainty comes from bootstrapping over problems. Added measures: Completion under
+  Policy, the recognition rate, and attempts against executed changes.
+- **D3.** Conditions for the main study are `main-<model>-<variant>` over five models and four variants:
+  no policy, policy v3, policy v3 + P-budget, policy v3 + P-scored.
+- **D5.** The policy in force is `policy/draft-v3-{task}.txt`; adherence is graded by `grading/`, frozen
+  at the commit each batch records (O11).
+- **Open decisions closed:** O2 (hypotheses), O8 (models and runs), O10 (pressure manipulations),
+  O11 (the grader). O3 closes for this study with policy v3.
