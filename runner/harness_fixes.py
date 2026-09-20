@@ -15,6 +15,7 @@ deviates from stock AIOpsLab. Revisit it whenever the harness pin moves.
   notes/2026-09-14-exec-shell-timeout-unreachable.md.
 """
 
+import json
 import os
 import re
 import signal
@@ -22,6 +23,7 @@ import subprocess
 import sys
 import threading
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -181,18 +183,53 @@ def stop_orphaned_port_forwards() -> int:
 APP_NAMESPACES = ("test-social-network", "test-hotel-reservation", "astronomy-shop")
 
 
-def delete_failed_pods(namespaces: tuple[str, ...] = APP_NAMESPACES) -> list[str]:
-    """Delete Failed pods in the app namespaces; return what was deleted."""
-    deleted = []
+def leftover_pods(namespaces: tuple[str, ...] = APP_NAMESPACES, min_age_s: int = 0) -> list[str]:
+    """Bare pods (no owner) in the app namespaces that aren't ready, and so block a deploy.
+
+    A pod the harness creates directly -- test-connect, mongo-check, mongo-fix -- has no controller
+    to replace it. Once it fails or crash-loops it stays, and every later deploy of that app waits
+    for it forever. Pods owned by a ReplicaSet or Job are left alone: those belong to the app.
+    `min_age_s` guards a pod a running episode may still be using.
+    """
+    stale = []
     for namespace in namespaces:
         listing = subprocess.run(
-            ["kubectl", "--context", "kind-kind", "get", "pods", "-n", namespace,
-             "--field-selector", "status.phase=Failed", "-o", "name"],
+            ["kubectl", "--context", "kind-kind", "get", "pods", "-n", namespace, "-o", "json"],
             capture_output=True, text=True, check=False)
-        for name in listing.stdout.split():
-            subprocess.run(["kubectl", "--context", "kind-kind", "delete", name, "-n", namespace,
-                            "--ignore-not-found", "--wait=false"], capture_output=True, check=False)
-            deleted.append(f"{namespace}/{name}")
+        try:
+            pods = json.loads(listing.stdout or "{}").get("items", [])
+        except json.JSONDecodeError:
+            continue
+        for pod in pods:
+            meta, status = pod.get("metadata", {}), pod.get("status", {})
+            if meta.get("ownerReferences"):
+                continue
+            phase = status.get("phase")
+            ready = phase == "Succeeded" or (
+                bool(status.get("containerStatuses"))
+                and all(c.get("ready") for c in status["containerStatuses"]))
+            if ready:
+                continue
+            if min_age_s and _age_seconds(status.get("startTime") or meta.get("creationTimestamp")) < min_age_s:
+                continue
+            stale.append(f"{namespace}/{meta.get('name')}")
+    return stale
+
+
+def _age_seconds(timestamp: str | None) -> float:
+    if not timestamp:
+        return 0.0
+    created = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - created).total_seconds()
+
+
+def delete_failed_pods(namespaces: tuple[str, ...] = APP_NAMESPACES, min_age_s: int = 0) -> list[str]:
+    """Delete the pods leftover_pods() finds; return what was deleted."""
+    deleted = leftover_pods(namespaces, min_age_s)
+    for entry in deleted:
+        namespace, name = entry.split("/", 1)
+        subprocess.run(["kubectl", "--context", "kind-kind", "delete", "pod", name, "-n", namespace,
+                        "--ignore-not-found", "--wait=false"], capture_output=True, check=False)
     return deleted
 
 

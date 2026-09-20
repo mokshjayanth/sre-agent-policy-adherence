@@ -31,6 +31,7 @@ def run(tmp_path, monkeypatch):
     monkeypatch.setattr(rb.Orchestrator, "init_problem", _fail_setup)
     monkeypatch.setattr(rb, "stop_orphaned_port_forwards", lambda: 0)
     monkeypatch.setattr(rb, "stop_leaked_port_forwards", lambda: 0)
+    monkeypatch.setattr(rb, "delete_failed_pods", lambda: [])   # never touch a cluster from tests
 
     def main(*argv):
         return rb.main([*argv, "--workdir", str(tmp_path / "work")])
@@ -237,15 +238,44 @@ def test_a_stated_step_budget_must_match_max_steps():
         rb.check_step_budget({"step_budget": 15}, 30)
 
 
-def test_failed_pods_are_cleared_before_each_problem(monkeypatch):
-    """A Failed pod left in an app namespace blocks every later deploy of that app."""
-    calls = []
+def test_stale_bare_pods_are_cleared_but_owned_and_ready_ones_are_kept(monkeypatch):
+    """A crash-looping or failed pod with no controller blocks every later deploy of that app."""
+    pods = {"items": [
+        {"metadata": {"name": "test-connect"}, "status": {"phase": "Failed"}},
+        {"metadata": {"name": "mongo-fix"},
+         "status": {"phase": "Running", "containerStatuses": [{"ready": False}]}},
+        {"metadata": {"name": "geo-1", "ownerReferences": [{"kind": "ReplicaSet"}]},
+         "status": {"phase": "Running", "containerStatuses": [{"ready": False}]}},
+        {"metadata": {"name": "wrk-done"}, "status": {"phase": "Succeeded"}},
+        {"metadata": {"name": "healthy"},
+         "status": {"phase": "Running", "containerStatuses": [{"ready": True}]}},
+    ]}
+    deleted = []
 
     def fake_run(argv, **kwargs):
-        calls.append(argv)
-        listing = "pod/test-connect\n" if "get" in argv and argv[argv.index("-n") + 1] == "test-social-network" else ""
+        if "delete" in argv:
+            deleted.append(argv[argv.index("delete") + 2])
+            return types.SimpleNamespace(stdout="", returncode=0)
+        listing = json.dumps(pods) if argv[argv.index("-n") + 1] == "test-social-network" else "{}"
         return types.SimpleNamespace(stdout=listing, returncode=0)
 
     monkeypatch.setattr(harness_fixes.subprocess, "run", fake_run)
-    assert harness_fixes.delete_failed_pods() == ["test-social-network/pod/test-connect"]
-    assert ["delete", "pod/test-connect"] == [a for a in calls[1] if a in ("delete", "pod/test-connect")]
+    assert harness_fixes.delete_failed_pods() == ["test-social-network/test-connect",
+                                                  "test-social-network/mongo-fix"]
+    assert deleted == ["test-connect", "mongo-fix"]
+
+
+def test_a_pod_younger_than_the_age_guard_is_left_for_the_running_episode(monkeypatch):
+    from datetime import datetime, timedelta, timezone
+
+    fresh = (datetime.now(timezone.utc) - timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    pods = {"items": [{"metadata": {"name": "mongo-check", "creationTimestamp": fresh},
+                       "status": {"phase": "Failed"}}]}
+
+    def fake_run(argv, **kwargs):
+        listing = json.dumps(pods) if argv[argv.index("-n") + 1] == "test-social-network" else "{}"
+        return types.SimpleNamespace(stdout=listing, returncode=0)
+
+    monkeypatch.setattr(harness_fixes.subprocess, "run", fake_run)
+    assert harness_fixes.leftover_pods(min_age_s=600) == []
+    assert harness_fixes.leftover_pods() == ["test-social-network/mongo-check"]
