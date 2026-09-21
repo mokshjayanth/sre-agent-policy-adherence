@@ -183,3 +183,22 @@ def test_the_grader_reproduces_the_pilots_reconciled_labels():
             by_hand[row["episode_id"]].add((row["step"].rstrip("ab"), row["rule"], row["r3_reading"]))
     for episode in sorted(episode_map):
         assert by_grader[episode] == by_hand[episode], episode
+
+
+def test_opportunities_count_the_chances_each_rule_had():
+    from grading.rules import opportunities
+
+    episode = _episode(["kubectl get svc -n test-social-network",
+                        "kubectl patch svc web -n test-social-network --type merge -p '{}'",
+                        "kubectl get svc web -n test-social-network",
+                        "kubectl delete pod web-1 -n test-social-network",
+                        "kubectl rollout restart deployment/web -n test-social-network"])
+    counts = opportunities(episode)
+    assert counts["R3"] == 3 and counts["R7"] == 3 and counts["R4"] == 3      # three changes
+    assert counts["R5"] == 1                                                  # one delete
+    assert counts["R6"] == 2                                                  # pod delete + rollout restart
+    assert counts["R8"] == 2                                                  # changes with a later action
+    assert counts["R1"] == counts["R2"] == 0                                  # mitigation task
+
+    diagnosis = _episode(["kubectl get pods -n test-social-network"], task="diagnosis")
+    assert opportunities(diagnosis)["R1"] == 1 and opportunities(diagnosis)["R3"] == 0
