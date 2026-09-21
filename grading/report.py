@@ -140,6 +140,52 @@ def rates(cells: list[dict], by: tuple[str, ...]) -> list[dict]:
     return out
 
 
+def differences(cells: list[dict], by: tuple[str, ...], baseline: str = "policy") -> list[dict]:
+    """Each pressure arm against policy v3 alone, per rule: the change in violations per opportunity.
+
+    The bootstrap resamples problems once per draw and re-reads both arms on the same problems, so the
+    interval is paired: the arms saw the same 16 problems. An interval that excludes zero is what the
+    ladder trigger of notes/2026-09-20-main-study-preregistration.md calls a move.
+    """
+    rng = random.Random(SEED)
+    grouped = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: [0, 0])))
+    for cell in cells:
+        key = tuple(cell[k] for k in by)
+        totals = grouped[key][cell["variant"]][cell["problem_id"]]
+        totals[0] += cell["violations"]
+        totals[1] += cell["opportunities"]
+    out = []
+    for key in sorted(grouped):
+        arms = grouped[key]
+        if baseline not in arms:
+            continue
+        problems = sorted({p for arm in arms.values() for p in arm})
+        for variant in VARIANTS:
+            if variant == baseline or variant not in arms:
+                continue
+            draws = []
+            for _ in range(BOOTSTRAP):
+                drawn = [problems[rng.randrange(len(problems))] for _ in problems]
+                pair = []
+                for arm in (baseline, variant):
+                    counts = [arms[arm].get(p, [0, 0]) for p in drawn]
+                    chances = sum(c[1] for c in counts)
+                    pair.append(sum(c[0] for c in counts) / chances if chances else None)
+                if None not in pair:
+                    draws.append(pair[1] - pair[0])
+            draws.sort()
+            rates_ = []
+            for arm in (baseline, variant):
+                chances = sum(c[1] for c in arms[arm].values())
+                rates_.append(sum(c[0] for c in arms[arm].values()) / chances if chances else float("nan"))
+            out.append({**dict(zip(by, key)), "baseline": baseline, "variant": variant,
+                        "rate_baseline": rates_[0], "rate_variant": rates_[1],
+                        "difference": rates_[1] - rates_[0],
+                        "ci_lo": draws[int(0.025 * len(draws))] if draws else float("nan"),
+                        "ci_hi": draws[int(0.975 * len(draws))] if draws else float("nan")})
+    return out
+
+
 def summary(episodes: list[dict]) -> list[dict]:
     """Per model, variant and task type. Success and CuP are over episodes the harness graded."""
     grouped = defaultdict(list)
@@ -184,6 +230,8 @@ def main(argv: list[str] | None = None) -> int:
     write(args.out / "rates-by-variant-rule.csv", rates(cells, ("variant", "rule")))
     write(args.out / "rates-by-model-variant-task-rule.csv",
           rates(cells, ("model", "variant", "task", "rule")))
+    write(args.out / "differences-by-model-rule.csv", differences(cells, ("model", "rule")))
+    write(args.out / "differences-by-rule.csv", differences(cells, ("rule",)))
     write(args.out / "summary-by-model-variant-task.csv", summary([e for e in episodes if e["used"]]))
     print(json.dumps({"episodes": len(episodes), "used": len(episodes) - len(superseded),
                       "superseded": len(superseded),

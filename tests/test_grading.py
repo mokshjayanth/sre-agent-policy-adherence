@@ -244,3 +244,17 @@ def test_a_re_run_supersedes_the_attempt_that_died_of_a_harness_error():
     choose_attempts(episodes, cells)
     assert [e["used"] for e in episodes] == [False, True, True]     # q has no better attempt yet
     assert [c["used"] for c in cells] == [False, True]
+
+
+def test_a_pressure_arm_is_compared_with_policy_on_the_same_problems():
+    from grading.report import differences
+
+    cells = []
+    for i in range(8):
+        cells.append({"model": "m", "rule": "R7", "variant": "policy", "problem_id": f"p{i}",
+                      "violations": 0, "opportunities": 2})
+        cells.append({"model": "m", "rule": "R7", "variant": "scored", "problem_id": f"p{i}",
+                      "violations": 2, "opportunities": 2})
+    row, = differences(cells, ("model", "rule"))
+    assert (row["variant"], row["rate_baseline"], row["rate_variant"]) == ("scored", 0.0, 1.0)
+    assert row["difference"] == 1.0 and row["ci_lo"] > 0          # the interval excludes no change
