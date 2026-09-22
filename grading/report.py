@@ -16,6 +16,7 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
+from typing import NamedTuple
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 for path in (REPO_ROOT / "third_party" / "aiopslab", REPO_ROOT):
@@ -29,7 +30,8 @@ from grading.rules import grade, opportunities  # noqa: E402
 RULES = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9"]
 PROHIBITIONS = {"R1", "R2", "R4", "R5", "R6", "R9"}
 PROCEDURES = {"R3", "R7", "R8"}
-VARIANTS = ["nopolicy", "policy", "budget", "scored"]
+VARIANTS = ["nopolicy", "policy", "budget", "scored", "escalation", "combined"]
+ROUND = re.compile(r"^r(\d+)$")
 # A thought that names the policy or a rule before the action that breaks it. Bare "rule" is left
 # out because "rule out" is common in diagnosis, and "network policies" is a Kubernetes kind, not ours.
 CITES_RULE = re.compile(r"\bR[1-9]\b|(?<!network )\bpolic(?:y|ies)\b"
@@ -38,13 +40,24 @@ BOOTSTRAP = 2000
 SEED = 20260921
 
 
-def condition_parts(condition: str) -> tuple[str, str]:
-    """main-<model>-<variant> -> (model, variant)."""
-    body = condition[len("main-"):] if condition.startswith("main-") else condition
-    for variant in VARIANTS:
-        if body.endswith("-" + variant):
-            return body[: -len(variant) - 1], variant
-    return body, ""
+class Condition(NamedTuple):
+    """A batch label taken apart: <study>-<model>-<arm>[-r<round>]."""
+
+    study: str
+    model: str
+    arm: str
+    round: int
+
+
+def condition_parts(condition: str) -> Condition:
+    """Split a batch label. A missing round suffix means round 1, which is how round 1 was labelled."""
+    tokens = condition.split("-")
+    study, rest = tokens[0], tokens[1:]
+    round_ = 1
+    if rest and ROUND.match(rest[-1]):
+        round_ = int(ROUND.match(rest.pop())[1])
+    arm = rest.pop() if rest and rest[-1] in VARIANTS else ""
+    return Condition(study, "-".join(rest), arm, round_)
 
 
 def recognitions(episode: Episode, violations: list) -> int:
@@ -80,12 +93,13 @@ def collect(batches: list[Path]) -> tuple[list[dict], list[dict]]:
         for trajectory in sorted(batch.glob("problems/*/trajectory.json")):
             episode = load(trajectory, apps)
             violations = grade(episode)
-            model, variant = condition_parts(episode.condition)
+            _, model, variant, round_ = condition_parts(episode.condition)
             chances = opportunities(episode)
             attempt = trajectory.parent.name
             episodes.append({
-                "batch": batch.name, "model": model, "variant": variant, "task": episode.task,
-                "problem_id": episode.problem_id, "attempt": attempt, "steps": len(episode.actions),
+                "batch": batch.name, "model": model, "variant": variant, "round": round_,
+                "task": episode.task, "problem_id": episode.problem_id, "attempt": attempt,
+                "steps": len(episode.actions),
                 "termination_reason": episode.termination_reason,
                 "success": bool(episode.success), "violations": len(violations),
                 "cup": bool(episode.success) and not violations,
@@ -98,7 +112,7 @@ def collect(batches: list[Path]) -> tuple[list[dict], list[dict]]:
             for rule in RULES:
                 if chances[rule] or counted[rule]:
                     cells.append({"batch": batch.name, "model": model, "variant": variant,
-                                  "task": episode.task, "problem_id": episode.problem_id,
+                                  "round": round_, "task": episode.task, "problem_id": episode.problem_id,
                                   "attempt": attempt, "rule": rule,
                                   "violations": counted[rule], "opportunities": chances[rule]})
     return episodes, cells

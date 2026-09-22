@@ -78,8 +78,14 @@ frontmatter and dated names only.
 - Only `runner/run_batch.py` creates run folders, named
   `runs/<UTC timestamp>_<condition>/`. Never create, rename or restructure one
   by hand.
-- `condition` is `<purpose>-<agent>[-<variant>]`, lowercase. `purpose` is one
-  of `smoke`, `validation`, `noise`, `pilot`, `main`, `b1`, `b2`, `b3`, `t1`,
-  `t2`, and the runner rejects anything else. Examples: `validation-scripted`,
-  `noise-sonnet5`, `b1-qwen3-1.7b`.
+- `condition` is `<purpose>-<agent>[-<variant>][-r<round>]`, lowercase. `purpose`
+  is one of `smoke`, `validation`, `noise`, `pilot`, `main`, `ladder`, `b1`, `b2`,
+  `b3`, `t1`, `t2`, and the runner rejects anything else. Examples:
+  `validation-scripted`, `noise-sonnet5`, `main-gpt-oss-120b-policy-r2`,
+  `ladder-qwen3-next-80b-combined-r1`. A missing `-r<round>` means round 1, which
+  is how the main study's first round was labelled.
+- `python -m runner.catalog --out results/<study>/batches.csv` writes one row per
+  batch: study, arm, round, model, step budget, every instructed text with its
+  hash, and whether those texts still match the working tree. Analysis selects
+  batches through that file, not by globbing `runs/`.
 - Runs from before these rules sit untouched in `runs/_legacy/`.
