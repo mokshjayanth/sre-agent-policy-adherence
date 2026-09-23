@@ -21,8 +21,8 @@ from grading.report import condition_parts
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RUNS_ROOT = REPO_ROOT / "runs"
-FIELDS = ["batch_id", "started_utc", "study", "model", "arm", "round", "condition", "max_steps",
-          "step_budget", "problems", "attempts", "ok", "failed", "resumes", "texts", "text_status",
+FIELDS = ["batch_id", "started_utc", "study", "model", "arm", "task", "round", "condition", "max_steps",
+          "step_budget", "countdown", "problems", "attempts", "ok", "failed", "resumes", "texts", "text_status",
           "status", "note", "repo_commit", "repo_dirty", "harness_commit"]
 # Arms retired by a later decision, which no hash can tell you about. Keyed by (study, arm, round).
 RETIRED: dict[tuple[str, str, int], str] = {}
@@ -67,14 +67,15 @@ def row(batch: Path) -> dict:
     run = data["run"]
     described = run.get("agent_description") or {}
     texts = described.get("instructed_texts") or []
-    study, model, arm, round_ = condition_parts(run["condition"])
+    study, model, arm, task, round_ = condition_parts(run["condition"])
     status = text_status(texts)
     state = "current" if status == "matches" else "inline text" if "inline" in status and \
         "changed" not in status and "gone" not in status else "superseded"
     return {"batch_id": batch.name, "started_utc": data.get("timestamp_utc", ""), "study": study,
-            "model": model or described.get("model", ""), "arm": arm, "round": round_,
+            "model": model or described.get("model", ""), "arm": arm, "task": task, "round": round_,
             "condition": run["condition"], "max_steps": run.get("max_steps", ""),
             "step_budget": described.get("step_budget") or "",
+            "countdown": described.get("budget_countdown", ""),
             "texts": "; ".join(f"{t['role']}:{t.get('file') or 'inline'}@{t['sha256'][:12]}" for t in texts),
             "text_status": status, "status": state,
             "note": RETIRED.get((study, arm, round_), ""),

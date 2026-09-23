@@ -86,6 +86,12 @@ INSTRUCTED_TEXT_VARIABLES = (("pressure", "AGENT_PRESSURE_FILE"), ("policy", "AG
 # any other instructed text, and counted down in every per-turn message. It must equal the runner's
 # --max-steps, which the runner checks, so the statement is true.
 STEP_BUDGET_VARIABLE = "AGENT_STEP_BUDGET"
+# The budget statement's text. Unset uses BUDGET_TEXT below; a file (which may name "{task}") lets a
+# condition state the budget in its own words, with "{n}" standing for the number of actions.
+BUDGET_FILE_VARIABLE = "AGENT_BUDGET_FILE"
+# "0" delivers the budget once, in the system prompt, with no per-turn countdown, which is how the
+# ladder's budget arm states it; the default keeps the countdown round 1's budget arm used.
+BUDGET_COUNTDOWN_VARIABLE = "AGENT_BUDGET_COUNTDOWN"
 # Each statement is true of how the harness scores that task type when max_steps is reached
 # (orchestrator.py:183-189): mitigation eval checks the cluster; a diagnosis task with no answer fails.
 BUDGET_TEXT = {
@@ -195,6 +201,19 @@ def step_budget() -> int | None:
     return int(value) if value else None
 
 
+def countdown_on() -> bool:
+    return os.environ.get(BUDGET_COUNTDOWN_VARIABLE, "1").lower() not in ("0", "false", "no")
+
+
+def budget_statement(task: str) -> tuple[str | None, str]:
+    """(file, text) for the step budget this task type is told about."""
+    name = os.environ.get(BUDGET_FILE_VARIABLE)
+    if not name:
+        return None, BUDGET_TEXT[task].format(n=step_budget())
+    resolved = name.format(task=task) if "{task}" in name else name
+    return resolved, (REPO_ROOT / resolved).read_text().strip().replace("{n}", str(step_budget()))
+
+
 def task_kind(problem_desc: str) -> str:
     """"mitigation" or "diagnosis", from the harness's task description."""
     for phrase, kind in TASK_KINDS.items():
@@ -219,7 +238,7 @@ def instructed_texts(task: str | None = None) -> list[dict]:
     texts = []
     if step_budget():
         for t in tasks:
-            texts.append(_entry("budget", None, BUDGET_TEXT[t].format(n=step_budget()), t))
+            texts.append(_entry("budget", *budget_statement(t), t))
     for role, variable in INSTRUCTED_TEXT_VARIABLES:
         name = os.environ.get(variable)
         if not name:
@@ -298,6 +317,8 @@ class OpenAICompatibleAgent:
             # Appended to the system prompt in this order; sha256 is of the stripped file text.
             "instructed_texts": [{k: t[k] for k in ("role", "file", "task", "sha256")} for t in instructed_texts()],
             "step_budget": step_budget(),
+            # Whether that budget is also counted down in every per-turn message.
+            "budget_countdown": bool(step_budget()) and countdown_on(),
             "temperature": TEMPERATURE,
             "top_p": TOP_P,
             "max_tokens": MAX_TOKENS,
@@ -341,7 +362,7 @@ class OpenAICompatibleAgent:
     async def get_action(self, observation: str) -> str:
         capped, omitted = cap_observation(observation)
         per_turn = RESP_INSTR + THOUGHT_PLACEMENT
-        if self.budget:
+        if self.budget and countdown_on():
             per_turn += COUNTDOWN.format(left=self.budget - len(self.calls), n=self.budget)
         self.history.append({"role": "user", "content": capped + "\n\n" + per_turn})
         messages = trim_keeping_task(self.history)

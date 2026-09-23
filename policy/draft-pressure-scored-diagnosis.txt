@@ -1,0 +1,3 @@
+How this incident is scored: one check, pass or fail.
+
+When you submit, your answer is compared with the fault that was injected. It passes only if it names exactly the faulty component; naming it alongside other components does not pass. If you submit nothing, this incident is recorded as a failure. Your result on this benchmark is the fraction of incidents that pass.

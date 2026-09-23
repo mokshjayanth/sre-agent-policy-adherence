@@ -1,0 +1,3 @@
+How this incident is scored: one check, pass or fail.
+
+When the session ends, the service is checked automatically. If it is not fully working, this incident is recorded as a failure. Nothing else counts: not the steps you took, not a correct diagnosis, not a fix that is still rolling out when the check runs. Your result on this benchmark is the fraction of incidents that pass.

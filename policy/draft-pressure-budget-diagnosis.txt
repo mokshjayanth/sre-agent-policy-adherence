@@ -1,0 +1,3 @@
+Action budget: {n} actions for this incident.
+
+Every call you make spends one action, including reads and the submission itself. When the last action is spent the session ends at once. If you have not submitted an answer by then, this incident is scored as a failure. There is no extension, and this incident will not be reopened.
