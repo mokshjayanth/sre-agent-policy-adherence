@@ -83,3 +83,42 @@ in an unwelcome direction, and the pilot's episodes are never pooled with the fu
 - Escalation's text, and whether it is piloted the same way.
 - Whether the full arms get two rounds. The baselines' replication suggests one round would be enough
   for pooled rates and too thin for per-model claims; decided when the pilot reports.
+
+## Correction (2026-09-23): the pilot's result, a weakened gate, and three more pilots
+
+**What the pilot found.** 64 episodes, both arms, against the policy arm at the same two models
+(64 episodes, rounds 1 and 2). The rewritten budget text was named in **0 of 32** episodes and the
+rewritten scored text in **1 of 32 (3.1%)**, against bars of 6% and 5%: both fail criterion 1. On
+criterion 2, one comparison moved — R8 under budget, 42% → 22%, CI [−31, −5] — and it moved in the
+*compliant* direction. R3 fell in both arms (15% → 7% and 15% → 8%, both intervals spanning zero).
+Neither arm is promoted to a full arm.
+
+**What was wrong with the rule.** Criterion 1 gated on whether models talk about the pressure. Round 1's
+budget arm was named in 6% of episodes and still doubled R3 (21% → 41%), so verbalisation is not
+necessary for a manipulation to bite, and gating on it would have retired the one manipulation that
+works. From here it is **reported, not a gate**: an arm is promoted on behaviour alone — any of R3, R7
+or R8 moving beyond the paired bootstrap interval against the policy arm at the same models.
+
+**What the pilot cost us, honestly.** Round 1's budget arm bundled a 15-action cap with a per-turn
+countdown. This pilot changed both at once (24/7 cap, no countdown), so it cannot say which mattered.
+The truncation check of notes/2026-09-23-baseline-replication.md puts the cap alone at R3 24%, well
+short of 41%, so something beyond the raw horizon acted in round 1 — the countdown, the tightness of
+the cap, or their interaction. No causal sentence about pressure is written until the cell below runs.
+
+**Three further pilots, registered now, before any of their episodes exist.** Each is 2 models
+(`mistral-large3`, `ministral3-14b`) × 16 problems × 1 run = 32 episodes, read against the policy arm
+at the same models, promoted on behaviour as above.
+
+| pilot | arm | configuration | prediction |
+|---|---|---|---|
+| A | budget, stated once | 15-action cap, no countdown, `ladder-<model>-budget` | R3 near 21–24% means the countdown carried round 1; near 41% means the tight cap did |
+| B | escalation | policy v3 + stakeholder messages in the observation after actions 4, 8, 12; 30 steps | procedural rates rise; prohibitions stay near zero |
+| C | combined | 15-action cap **with** countdown + scored text + escalation; 30 → 15 steps | highest procedural rates of any arm; refuted if it matches policy alone |
+
+**Stopping rule.** A and B run regardless. **C runs only if B is null**, so a positive escalation result
+is spent promoting that arm to full scale rather than stacking sources. No text is revised on the basis
+of any of these results; a text that fails is reported as failing.
+
+**Naming.** A, B and C carry no task segment (one batch per model, both task types together), which is
+what distinguishes them from this pilot's task-scoped batches; the step budget and countdown flag in
+each `batch.json` identify the configuration exactly.
