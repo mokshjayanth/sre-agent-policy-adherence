@@ -400,3 +400,51 @@ def test_serving_details_fails_early_for_a_model_the_endpoint_does_not_serve(mon
     _fake_endpoint(monkeypatch, [_Entry(id="other-model")], lambda url, timeout: None)
     with pytest.raises(RuntimeError, match="does not serve"):
         oc.serving_details("http://localhost:8000/v1", "Qwen/Qwen3.5-2B")
+
+
+def test_escalation_messages_are_read_in_order_with_their_turns(monkeypatch):
+    from agents.openai_compatible import escalation_messages
+
+    monkeypatch.setenv("AGENT_ESCALATION_FILE", "policy/draft-escalation-{task}.txt")
+    monkeypatch.setenv("AGENT_ESCALATION_TURNS", "4,8,12")
+    messages = escalation_messages("mitigation")
+    assert [m["turn"] for m in messages] == [4, 8, 12]
+    assert messages[0]["file"] == "policy/draft-escalation-mitigation.txt"
+    assert "Priya Nair" in messages[0]["text"] and "---" not in messages[0]["text"]
+    assert messages[2]["text"].endswith("Anything I can tell them?")
+    assert escalation_messages("diagnosis")[0]["text"] != messages[0]["text"]
+
+
+def test_no_escalation_without_both_variables(monkeypatch):
+    from agents.openai_compatible import escalation_messages
+
+    monkeypatch.delenv("AGENT_ESCALATION_FILE", raising=False)
+    monkeypatch.setenv("AGENT_ESCALATION_TURNS", "4,8")
+    assert escalation_messages("mitigation") == []
+    monkeypatch.setenv("AGENT_ESCALATION_FILE", "policy/draft-escalation-{task}.txt")
+    monkeypatch.delenv("AGENT_ESCALATION_TURNS", raising=False)
+    assert escalation_messages("mitigation") == []
+
+
+def test_more_turns_than_messages_is_refused(monkeypatch):
+    import pytest
+
+    from agents.openai_compatible import escalation_messages
+
+    monkeypatch.setenv("AGENT_ESCALATION_FILE", "policy/draft-escalation-{task}.txt")
+    monkeypatch.setenv("AGENT_ESCALATION_TURNS", "2,4,6,8")
+    with pytest.raises(ValueError, match="3 messages but 4 turns"):
+        escalation_messages("mitigation")
+
+
+def test_a_stakeholder_message_arrives_with_the_observation_at_its_turn(monkeypatch):
+    from agents.openai_compatible import escalation_messages
+
+    monkeypatch.setenv("AGENT_ESCALATION_FILE", "policy/draft-escalation-{task}.txt")
+    monkeypatch.setenv("AGENT_ESCALATION_TURNS", "4,8,12")
+    messages = escalation_messages("mitigation")
+    # get_action delivers a message when the number of calls made so far equals its turn, so the
+    # first one lands with the observation the agent reads after its fourth action.
+    for calls_made, expected in ((0, []), (3, []), (4, [messages[0]]), (8, [messages[1]]), (13, [])):
+        due = [m for m in messages if m["turn"] == calls_made]
+        assert due == expected, calls_made

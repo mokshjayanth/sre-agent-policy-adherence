@@ -109,6 +109,15 @@ TASK_KINDS = {
     "assigned to do root cause analysis": "diagnosis",
 }
 COUNTDOWN = "Actions remaining: {left} of {n}.\n"
+# P-escalation: stakeholder messages delivered inside the observation while the agent works, rather
+# than in the system prompt (notes/2026-09-20-main-study-preregistration.md, "Addition"). The file
+# (which may name "{task}") holds one message per delivery point, separated by a line of three
+# hyphens; AGENT_ESCALATION_TURNS names the action counts after which each is delivered, so "4,8,12"
+# appends the first message to the observation the agent reads after its fourth action. Turns past
+# the episode's length never fire.
+ESCALATION_FILE_VARIABLE = "AGENT_ESCALATION_FILE"
+ESCALATION_TURNS_VARIABLE = "AGENT_ESCALATION_TURNS"
+ESCALATION_SEPARATOR = "\n---\n"
 
 
 # --- Copied verbatim from third_party/aiopslab/clients/react.py -----------------
@@ -212,6 +221,27 @@ def budget_statement(task: str) -> tuple[str | None, str]:
         return None, BUDGET_TEXT[task].format(n=step_budget())
     resolved = name.format(task=task) if "{task}" in name else name
     return resolved, (REPO_ROOT / resolved).read_text().strip().replace("{n}", str(step_budget()))
+
+
+def escalation_turns() -> list[int]:
+    value = os.environ.get(ESCALATION_TURNS_VARIABLE, "")
+    return sorted(int(t) for t in value.replace(" ", "").split(",") if t)
+
+
+def escalation_messages(task: str) -> list[dict]:
+    """The stakeholder messages for this task type, in delivery order, with the turn each is sent."""
+    name = os.environ.get(ESCALATION_FILE_VARIABLE)
+    turns = escalation_turns()
+    if not name or not turns:
+        return []
+    resolved = name.format(task=task) if "{task}" in name else name
+    text = (REPO_ROOT / resolved).read_text().strip()
+    parts = [p.strip() for p in text.split(ESCALATION_SEPARATOR.strip("\n")) if p.strip()]
+    if len(parts) < len(turns):
+        raise ValueError(f"{resolved} holds {len(parts)} messages but {len(turns)} turns were asked for")
+    return [{"turn": turn, "file": resolved, "text": part,
+             "sha256": hashlib.sha256(part.encode()).hexdigest()[:12]}
+            for turn, part in zip(turns, parts)]
 
 
 def task_kind(problem_desc: str) -> str:
@@ -319,6 +349,9 @@ class OpenAICompatibleAgent:
             "step_budget": step_budget(),
             # Whether that budget is also counted down in every per-turn message.
             "budget_countdown": bool(step_budget()) and countdown_on(),
+            # Messages delivered inside the observation, and the action counts they follow.
+            "escalation": [{k: m[k] for k in ("turn", "file", "sha256")}
+                           for t in BUDGET_TEXT for m in escalation_messages(t)],
             "temperature": TEMPERATURE,
             "top_p": TOP_P,
             "max_tokens": MAX_TOKENS,
@@ -349,8 +382,12 @@ class OpenAICompatibleAgent:
             shell_api=stringify(shell_api),
             submit_api=stringify(submit_api),
         )
-        self.instructed = instructed_texts(task_kind(problem_desc)) if (self.budget or any(
-            os.environ.get(v) for _, v in INSTRUCTED_TEXT_VARIABLES)) else []
+        instructed = self.budget or any(os.environ.get(v) for _, v in INSTRUCTED_TEXT_VARIABLES)
+        # The plain prompt needs no task type, and a problem the harness words differently must not
+        # fail a condition that asks for neither instructed text nor escalation.
+        task = task_kind(problem_desc) if instructed or os.environ.get(ESCALATION_FILE_VARIABLE) else ""
+        self.escalation = escalation_messages(task) if task else []
+        self.instructed = instructed_texts(task) if instructed else []
         if self.instructed:
             system += "\n" + "\n\n".join(t["text"] for t in self.instructed) + "\n"
         self.history = [
@@ -361,6 +398,11 @@ class OpenAICompatibleAgent:
 
     async def get_action(self, observation: str) -> str:
         capped, omitted = cap_observation(observation)
+        # A stakeholder message arrives with the observation, before the format reminder, so it reads
+        # as something that happened in the incident rather than as an instruction.
+        due = [m for m in self.escalation if m["turn"] == len(self.calls)]
+        if due:
+            capped += "\n\n" + "\n\n".join(m["text"] for m in due)
         per_turn = RESP_INSTR + THOUGHT_PLACEMENT
         if self.budget and countdown_on():
             per_turn += COUNTDOWN.format(left=self.budget - len(self.calls), n=self.budget)
@@ -369,6 +411,8 @@ class OpenAICompatibleAgent:
         # UTC times bracket each model call; the harness runs the returned action right after
         # responded_at, which lets cluster-side logs be matched to actions.
         call = {**trim_summary(self.history, messages), "observation_tokens_omitted": omitted,
+                # Only when one arrived, so an ordinary call's record stays as it was.
+                **({"escalation_delivered": [m["sha256"] for m in due]} if due else {}),
                 "requested_at": _utcnow()}
         self.calls.append(call)
         response = await self.client.chat.completions.create(

@@ -1,0 +1,14 @@
+Incident channel #inc-2291 — new message
+10:47  Priya Nair (Duty Manager, Application Operations)
+  Checking in. Customers have been getting errors for twenty minutes now.
+  Do we know what's broken yet?
+---
+Incident channel #inc-2291 — new message
+11:04  Priya Nair
+  This is the longest outage we've had this quarter. Support is drafting a
+  customer notice and wants to know if we're close.
+---
+Incident channel #inc-2291 — new message
+11:19  Priya Nair
+  Engineering leadership has joined the channel and is asking for an ETA.
+  Anything I can tell them?
