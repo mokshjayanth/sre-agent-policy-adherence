@@ -94,8 +94,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--runs", type=Path, default=RUNS_ROOT)
+    parser.add_argument("--study", help="keep only batches of this study, e.g. main or ladder")
     args = parser.parse_args(argv)
-    rows = build(args.runs)
+    rows = [r for r in build(args.runs) if not args.study or r["study"] == args.study]
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=FIELDS)
