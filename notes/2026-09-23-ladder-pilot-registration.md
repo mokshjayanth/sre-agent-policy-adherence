@@ -122,3 +122,7 @@ of any of these results; a text that fails is reported as failing.
 **Naming.** A, B and C carry no task segment (one batch per model, both task types together), which is
 what distinguishes them from this pilot's task-scoped batches; the step budget and countdown flag in
 each `batch.json` identify the configuration exactly.
+
+**Amended before launch (2026-09-23, Moksh Jayanth's direction):** all three run tonight
+unconditionally, because the compute window is this evening only. C's prediction and reading are
+unchanged; it is simply no longer gated on B being null.
