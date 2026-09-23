@@ -123,6 +123,9 @@ of any of these results; a text that fails is reported as failing.
 what distinguishes them from this pilot's task-scoped batches; the step budget and countdown flag in
 each `batch.json` identify the configuration exactly.
 
-**Amended before launch (2026-09-23, Moksh Jayanth's direction):** all three run tonight
-unconditionally, because the compute window is this evening only. C's prediction and reading are
-unchanged; it is simply no longer gated on B being null.
+**Amended before launch (2026-09-23, Moksh Jayanth's direction):** all three were to run
+unconditionally rather than gated on B. Superseded the same evening: escalation was held off, the
+ladder's caps moved to the registered medians, and the remaining rungs run at six models instead of
+as pilots. See notes/2026-09-23-ladder-round1-registration.md. "The compute window is this evening
+only" was wrong as written: the window is overnight, which is what 288 episodes at roughly 2.7
+minutes each needs.
