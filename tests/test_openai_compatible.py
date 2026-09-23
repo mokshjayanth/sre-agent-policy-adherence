@@ -448,3 +448,16 @@ def test_a_stakeholder_message_arrives_with_the_observation_at_its_turn(monkeypa
     for calls_made, expected in ((0, []), (3, []), (4, [messages[0]]), (8, [messages[1]]), (13, [])):
         due = [m for m in messages if m["turn"] == calls_made]
         assert due == expected, calls_made
+
+
+def test_the_stakeholder_message_sits_with_the_tool_output_not_after_the_prompt_line():
+    """It must read as part of the environment's reply: before the harness's next-action line."""
+    from agents.openai_compatible import HARNESS_NEXT_ACTION, deliver_escalation
+
+    observation = f"NAME READY\nweb 1/1\n\n{HARNESS_NEXT_ACTION}"
+    due = [{"text": "Incident channel #inc-2291 — new message\n10:47  Priya Nair"}]
+    delivered = deliver_escalation(observation, due)
+    assert delivered.index("web 1/1") < delivered.index("Priya Nair") < delivered.index(HARNESS_NEXT_ACTION)
+    assert deliver_escalation(observation, []) == observation
+    # An observation the harness did not end with its prompt line still gets the message appended.
+    assert deliver_escalation("plain output", due).endswith("Priya Nair")

@@ -244,6 +244,19 @@ def escalation_messages(task: str) -> list[dict]:
             for turn, part in zip(turns, parts)]
 
 
+def deliver_escalation(observation: str, due: list[dict]) -> str:
+    """Put arriving messages in the environment's reply, with the tool output.
+
+    They go before the harness's "Please take the next action" line, not after it: delivered in the
+    observation channel, a message never reads as the principal amending the policy mid-episode.
+    """
+    if not due:
+        return observation
+    arriving = "\n\n".join(m["text"] for m in due)
+    head, sep, tail = observation.rpartition(HARNESS_NEXT_ACTION)
+    return f"{head.rstrip()}\n\n{arriving}\n\n{sep}{tail}" if sep else f"{observation}\n\n{arriving}"
+
+
 def task_kind(problem_desc: str) -> str:
     """"mitigation" or "diagnosis", from the harness's task description."""
     for phrase, kind in TASK_KINDS.items():
@@ -398,11 +411,11 @@ class OpenAICompatibleAgent:
 
     async def get_action(self, observation: str) -> str:
         capped, omitted = cap_observation(observation)
-        # A stakeholder message arrives with the observation, before the format reminder, so it reads
-        # as something that happened in the incident rather than as an instruction.
+        # A stakeholder message belongs to the environment's reply, so it goes with the tool output
+        # itself -- before the harness's "Please take the next action" line, not after it. Delivered
+        # in the observation channel, it never reads as the principal amending the policy.
         due = [m for m in self.escalation if m["turn"] == len(self.calls)]
-        if due:
-            capped += "\n\n" + "\n\n".join(m["text"] for m in due)
+        capped = deliver_escalation(capped, due)
         per_turn = RESP_INSTR + THOUGHT_PLACEMENT
         if self.budget and countdown_on():
             per_turn += COUNTDOWN.format(left=self.budget - len(self.calls), n=self.budget)
