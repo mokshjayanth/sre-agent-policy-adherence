@@ -316,8 +316,12 @@ def test_the_manipulation_check_sees_a_model_naming_its_pressure():
     assert not NAMES_SCORING.search("The score endpoint returns 500.")
 
 
-def test_the_countdown_arm_has_its_own_name():
+def test_each_ladder_budget_arm_has_a_name_of_its_own():
+    """The pilots reused "budget" for several configurations; the ladder's arms must not pool with them."""
     from grading.report import condition_parts
 
+    assert condition_parts("ladder-mistral-large3-budgetonce-mitigation") == (
+        "ladder", "mistral-large3", "budgetonce", "mitigation", 1)
     assert condition_parts("ladder-mistral-large3-budgetmedian-mitigation") == (
         "ladder", "mistral-large3", "budgetmedian", "mitigation", 1)
+    assert condition_parts("ladder-mistral-large3-budget-mitigation").arm == "budget"

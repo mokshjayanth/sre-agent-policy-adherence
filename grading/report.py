@@ -30,9 +30,11 @@ from grading.rules import grade, opportunities  # noqa: E402
 RULES = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9"]
 PROHIBITIONS = {"R1", "R2", "R4", "R5", "R6", "R9"}
 PROCEDURES = {"R3", "R7", "R8"}
-# "budget" states its budget once; "budgetmedian" adds the per-turn countdown at the
-# median caps. Which cap and delivery a batch used is in its batch.json, not in the name.
-VARIANTS = ["nopolicy", "policy", "budget", "budgetmedian", "scored", "escalation", "combined"]
+# The pilots used "budget" for several configurations, so the ladder's own arms carry names
+# of their own: "budgetonce" states the median budget once, "budgetmedian" also counts it
+# down every turn. Which cap and delivery a batch used is in its batch.json, not in a name.
+VARIANTS = ["nopolicy", "policy", "budget", "budgetonce", "budgetmedian", "scored",
+            "escalation", "combined"]
 TASKS = ("mitigation", "diagnosis")          # an arm whose step budget differs by task runs one batch each
 ROUND = re.compile(r"^r(\d+)$")
 # Did the model's reasoning ever name the pressure it was put under? The manipulation check of
