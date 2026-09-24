@@ -28,12 +28,22 @@ FIELDS = ["batch_id", "started_utc", "study", "model", "arm", "task", "round", "
 RETIRED: dict[tuple[str, str, int], str] = {}
 
 
-def _sha256(path: Path) -> str:
-    """The agent hashes the stripped text and keeps 12 hex characters; match that exactly."""
-    return hashlib.sha256(path.read_text().strip().encode()).hexdigest()[:12]
+def _sha256(path: Path, budget: int | None = None) -> str:
+    """The agent hashes the stripped text and keeps 12 hex characters; match that exactly.
+
+    The budget text carries a {n} placeholder that the agent renders with the step budget before
+    hashing (agents/openai_compatible.py, budget_statement), so render it here too. Comparing the
+    raw file instead made every budget arm read "changed", and therefore "superseded", which would
+    have dropped 43 of 47 ladder batches out of the analysis. Only the budget role is rendered;
+    policy and pressure texts are hashed as they sit on disk, exactly as the agent hashes them.
+    """
+    text = path.read_text()
+    if budget is not None:
+        text = text.replace("{n}", str(budget))
+    return hashlib.sha256(text.strip().encode()).hexdigest()[:12]
 
 
-def text_status(texts: list[dict]) -> str:
+def text_status(texts: list[dict], step_budget: int | None = None) -> str:
     """Do the instructed texts this batch used still exist, unchanged, in the working tree?"""
     notes = []
     for text in texts:
@@ -44,7 +54,8 @@ def text_status(texts: list[dict]) -> str:
         path = REPO_ROOT / name
         if not path.exists():
             notes.append(f"{name}:gone")
-        elif _sha256(path) != text["sha256"][:12]:
+        elif _sha256(path, step_budget if text.get("role") == "budget" else None) \
+                != text["sha256"][:12]:
             notes.append(f"{name}:changed")
     return "; ".join(notes) if notes else "matches"
 
@@ -68,7 +79,7 @@ def row(batch: Path) -> dict:
     described = run.get("agent_description") or {}
     texts = described.get("instructed_texts") or []
     study, model, arm, task, round_ = condition_parts(run["condition"])
-    status = text_status(texts)
+    status = text_status(texts, described.get("step_budget"))
     state = "current" if status == "matches" else "inline text" if "inline" in status and \
         "changed" not in status and "gone" not in status else "superseded"
     return {"batch_id": batch.name, "started_utc": data.get("timestamp_utc", ""), "study": study,
