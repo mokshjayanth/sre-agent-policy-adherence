@@ -83,23 +83,20 @@ def recognitions(episode: Episode, violations: list) -> int:
 
 
 def choose_attempts(episodes: list[dict], cells: list[dict]) -> None:
-    """Mark which attempt at each problem the rates use.
+    """Mark which attempt at each problem the rates use: the latest, in problems/<problem_id>/.
 
     A batch keeps attempts that died of a runner or harness error and re-runs the problem
-    (notes/2026-09-20-main-study-preregistration.md, "Exclusions"). The analysis uses the last
-    attempt that ended in the agent's own hands; the rest are marked superseded.
+    (notes/2026-09-20-main-study-preregistration.md, "Exclusions"); the runner sets each earlier attempt
+    aside as <problem_id>.failed-<n>, and resumes only a problem whose latest attempt did not run. The
+    latest attempt is also the one runner/verify_plan.py certifies, so the table uses exactly the
+    episodes the verifier passed. (Until 2026-09-27 this picked the non-error attempt with the most
+    steps. Over every retired main, ladder and pilot batch the two choices differ only at 7 problems,
+    all in round-2 batches stopped on 2026-09-27, where every attempt died before the agent acted.)
     """
-    attempts = defaultdict(list)
     for episode in episodes:
-        episode["used"] = False
-        attempts[(episode["batch"], episode["problem_id"])].append(episode)
-    keep = set()
-    for key, rows in attempts.items():
-        chosen = max(rows, key=lambda row: (row["termination_reason"] != "error", row["steps"]))
-        chosen["used"] = True
-        keep.add((*key, chosen["attempt"]))
+        episode["used"] = episode["attempt"] == episode["problem_id"]
     for cell in cells:
-        cell["used"] = (cell["batch"], cell["problem_id"], cell["attempt"]) in keep
+        cell["used"] = cell["attempt"] == cell["problem_id"]
 
 
 def collect(batches: list[Path]) -> tuple[list[dict], list[dict]]:

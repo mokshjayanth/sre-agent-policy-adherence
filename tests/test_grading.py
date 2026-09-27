@@ -234,17 +234,21 @@ def test_rates_pool_violations_over_opportunities_with_an_interval():
     assert 0 <= row["ci_lo"] <= 0.5 <= row["ci_hi"] <= 1
 
 
-def test_a_re_run_supersedes_the_attempt_that_died_of_a_harness_error():
+def test_the_latest_attempt_is_used_the_one_the_verifier_certifies():
     from grading.report import choose_attempts
 
     episodes = [
         {"batch": "b", "problem_id": "p", "attempt": "p.failed-1", "termination_reason": "error", "steps": 30},
         {"batch": "b", "problem_id": "p", "attempt": "p", "termination_reason": "step_limit", "steps": 12},
         {"batch": "b", "problem_id": "q", "attempt": "q", "termination_reason": "error", "steps": 0},
+        # an earlier attempt with more steps that the harness still ended in error: not the one used
+        {"batch": "b", "problem_id": "r", "attempt": "r.failed-1", "termination_reason": "invalid_submission",
+         "steps": 20},
+        {"batch": "b", "problem_id": "r", "attempt": "r", "termination_reason": "step_limit", "steps": 5},
     ]
     cells = [{"batch": "b", "problem_id": "p", "attempt": a} for a in ("p.failed-1", "p")]
     choose_attempts(episodes, cells)
-    assert [e["used"] for e in episodes] == [False, True, True]     # q has no better attempt yet
+    assert [e["used"] for e in episodes] == [False, True, True, False, True]
     assert [c["used"] for c in cells] == [False, True]
 
 

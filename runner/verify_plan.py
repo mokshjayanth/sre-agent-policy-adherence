@@ -1,14 +1,15 @@
 """Check that every batch and every episode of a study plan ran exactly as its arm was registered.
 
-    python -m runner.verify_plan --plan configs/study-plan-fresh.json --baseline configs/cluster-baseline-fresh.json
+    python -m runner.verify_plan --plan configs/study-plan-fresh-stage1.json --baseline configs/cluster-baseline-fresh.json
     python -m runner.verify_plan ... --out results/<study>/verification.csv
 
 Reads only what the runner recorded, never a name or a log line. A batch passes when its batch.json
 matches the plan item (condition, problems, step limit, the agent's description) and every environment
 record is clean and identical across the plan. An episode passes when its latest attempt ran, started
 from a reset with nothing earlier present anywhere in the cluster, and the model received exactly its
-arm's prompt: the system prompt ends with the arm's texts for that task type and nothing else, and every
-per-turn message ends with the harness's instructions plus the countdown the arm has, or none.
+arm's prompt: the system prompt ends with the arm's texts for that task type and nothing else, every
+per-turn message ends with the harness's instructions plus the countdown the arm has, or none, and every
+call sent its last message in full. Across the plan, each model must be served the same way throughout.
 notes/2026-09-27-fresh-run.md says why each check exists.
 """
 
@@ -102,6 +103,11 @@ def prompt_mismatches(trajectory: dict, expect: dict, max_steps: int, repo_root:
             break
     if any("escalation_delivered" in c for c in calls):
         out.append("an escalation message was delivered")
+    # The system and task messages are always sent (trim_keeping_task); this proves the per-turn message,
+    # countdown included, was too. Older turns may be dropped for length, the same way in every arm.
+    cut = [i + 1 for i, c in enumerate(calls) if c.get("last_message_truncated") is not False]
+    if cut:
+        out.append(f"calls {cut[:5]} did not send their last message in full")
     return out
 
 
@@ -172,7 +178,7 @@ def verify(plan: dict, baseline: Path | None, runs_root: Path = RUNS_ROOT, repo_
            only: set[str] | None = None) -> tuple[list[dict], list[str]]:
     """(one row per planned episode, plan-level problems). A row's `ok` is True only if every check passed."""
     baseline_sha = hashlib.sha256(baseline.read_bytes()).hexdigest() if baseline else None
-    rows, problems, environments = [], [], {}
+    rows, problems, environments, servings = [], [], {}, {}
     for item in plan["items"]:
         if only is not None and item["condition"] not in only:
             continue
@@ -184,6 +190,8 @@ def verify(plan: dict, baseline: Path | None, runs_root: Path = RUNS_ROOT, repo_
             continue
         batch = batches[0]
         environments[batch.name] = environment(batch)
+        described = json.loads((batch / "batch.json").read_text())["run"].get("agent_description") or {}
+        servings.setdefault(item["model"], set()).add(json.dumps(described.get("serving"), sort_keys=True))
         batch_problems = batch_mismatches(batch, item)
         index_path = batch / "index.jsonl"
         index = [json.loads(line) for line in index_path.read_text().splitlines() if line.strip()] \
@@ -203,6 +211,11 @@ def verify(plan: dict, baseline: Path | None, runs_root: Path = RUNS_ROOT, repo_
     distinct = {json.dumps(e, sort_keys=True) for e in environments.values()}
     if len(distinct) > 1:
         problems.append(f"batches ran in {len(distinct)} different environments")
+    # The endpoint's own account of each model (serving_details): one model served two ways over the run
+    # is a confound no other check sees.
+    for model, served in sorted(servings.items()):
+        if len(served) > 1:
+            problems.append(f"{model} was served {len(served)} different ways: {sorted(served)}")
     for name, env in environments.items():
         if env["repo_dirty"] != "False" or env["repo_status"] not in ([], "[]"):
             problems.append(f"{name}: repo not clean ({env['repo_status']})")

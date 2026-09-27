@@ -194,8 +194,9 @@ def test_bad_label_is_rejected_before_any_folder_is_created(run, tmp_path):
 
 
 SUBPROCESS = """
-import sys
+import runpy, sys
 sys.path.insert(0, {repo!r})
+runpy.run_path({repo!r} + "/tests/conftest.py")   # the stub kubeconfig, as in this process
 from pathlib import Path
 from runner import harness_fixes
 from runner import run_batch as rb

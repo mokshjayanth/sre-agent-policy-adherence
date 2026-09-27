@@ -4,3 +4,6 @@ __pycache__/
 
 # Local secrets - never commit
 open_ai_api_crendentials.txt
+
+# Local run orchestration, logs, evidence and paper drafts (moved from ~/study, 2026-09-27).
+/study

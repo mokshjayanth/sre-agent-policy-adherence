@@ -1,9 +1,9 @@
 """Run a study plan batch by batch, and refuse any batch that is not exactly its registered arm.
 
-    python -m runner.run_plan --plan configs/study-plan-fresh.json --baseline configs/cluster-baseline-fresh.json --dry-run
-    python -m runner.run_plan --plan configs/study-plan-fresh.json --baseline configs/cluster-baseline-fresh.json
+    python -m runner.run_plan --plan configs/study-plan-fresh-stage1.json --baseline configs/cluster-baseline-fresh.json --dry-run
+    python -m runner.run_plan --plan configs/study-plan-fresh-stage1.json --baseline configs/cluster-baseline-fresh.json
 
-The plan (runner/study_plan.py, rendered to JSON and committed) is the only source of what runs.
+The plan (runner/study_plan.py, one JSON file per stage, committed) is the only source of what runs.
 Before anything runs: the plan file must equal its renderer's output, the repo and the harness must be
 committed and clean at the pin, the cluster baseline must exist, and no other copy may be running.
 
@@ -13,9 +13,10 @@ Per batch, in plan order:
    countdown, escalation, sampling -- stops the whole run before the batch exists.
 2. Run. A new batch through runner/run_batch.py, or a resume of the one batch that already carries the
    condition. More than one such batch stops the run.
-3. Verify. runner/verify_plan.py on the batch. A configuration or prompt difference, or an episode that
-   was refused for starting next to earlier objects or a changed cluster, stops the run: those need a
-   person. Episodes that ended in a runner or harness error are resumed, up to --attempts in all.
+3. Verify. runner/verify_plan.py on the batch. A configuration or prompt difference, an episode that
+   was refused for starting next to earlier objects or a changed cluster, a run_batch that exited
+   without running any episode, or a reset that keeps timing out stops the run: those need a person.
+   Episodes that ended in a runner or harness error are resumed, up to --attempts in all.
 An end pass resumes anything still incomplete, then the whole plan is verified. Only runner/run_batch.py
 creates run folders (CLAUDE.md). Why: notes/2026-09-27-fresh-run.md.
 """
@@ -42,7 +43,11 @@ from runner.verify_plan import HARNESS_PIN, description_mismatches, find_batches
 
 LOCK = Path.home() / ".run_plan.lock"
 # Index errors that mean the cluster itself is not clean; resuming would only repeat them.
-UNCLEAN = ("episode would start next to earlier objects", "cluster differs from its baseline", "reset_app_state")
+UNCLEAN = ("episode would start next to earlier objects", "cluster differs from its baseline")
+# A reset that timed out (a namespace slow to terminate) is resumable: the next attempt waits again. This
+# many in one batch within one run means it is not going away.
+RESET_FAILURE = "reset_app_state"
+RESET_FAILURES_BEFORE_STOP = 3
 DESCRIBE = ("import json, sys; sys.path[:0] = [{aiopslab!r}, {repo!r}]; "
             "from agents.openai_compatible import OpenAICompatibleAgent as A; print(json.dumps(A.describe()))")
 
@@ -62,8 +67,12 @@ def _git(*args: str, cwd: Path = REPO_ROOT) -> str:
 def preconditions(plan_path: Path, baseline: Path) -> list[str]:
     """Everything that must hold before the first batch; empty when all do."""
     failed = []
-    if plan_path.read_text() != render():
-        failed.append(f"{plan_path} differs from runner/study_plan.py's rendering")
+    try:
+        rendered = render(json.loads(plan_path.read_text())["stage"])
+    except (OSError, KeyError, ValueError) as exc:
+        rendered = f"cannot render: {exc}"
+    if plan_path.read_text() != rendered:
+        failed.append(f"{plan_path} differs from runner/study_plan.py's rendering ({rendered[:80]})")
     if _git("status", "--porcelain"):
         failed.append("the repo has uncommitted or untracked changes")
     submodules = _git("submodule", "status", "--recursive")
@@ -110,10 +119,11 @@ def gate(item: dict, baseline: Path) -> None:
 
 
 def healthy() -> bool:
+    """Every node reports Ready, and there is at least one node."""
     nodes = subprocess.run(["kubectl", "--context", "kind-kind", "get", "nodes", "--no-headers"],
                            capture_output=True, text=True)
-    lines = nodes.stdout.split("\n")
-    return nodes.returncode == 0 and any(lines) and all(line.split()[1] == "Ready" for line in lines if line.strip())
+    rows = [line.split() for line in nodes.stdout.splitlines() if line.strip()]
+    return nodes.returncode == 0 and bool(rows) and all(len(row) > 1 and row[1] == "Ready" for row in rows)
 
 
 def wait_healthy(minutes: int = 30) -> None:
@@ -134,7 +144,15 @@ def run_batch(item: dict, baseline: Path, resume: Path | None) -> int:
 
 
 def settle(item: dict, baseline: Path) -> tuple[list[dict], list[str]]:
-    return verify({"items": [item]}, baseline)
+    try:
+        return verify({"items": [item]}, baseline)
+    except (ValueError, OSError) as exc:                     # e.g. a policy file edited mid-run
+        raise Stop(f"{item['condition']} cannot be verified: {exc}") from exc
+
+
+def _records(batch: Path | None) -> int:
+    index = batch / "index.jsonl" if batch else None
+    return len(index.read_text().splitlines()) if index and index.exists() else 0
 
 
 def run_item(item: dict, baseline: Path, attempts: int, since: str) -> bool:
@@ -153,8 +171,14 @@ def run_item(item: dict, baseline: Path, attempts: int, since: str) -> bool:
         gate(item, baseline)
         wait_healthy()
         log(f"{'resume' if batches else 'start'} {item['condition']} (run {attempt}/{attempts})")
+        before = _records(batches[0] if batches else None)
         code = run_batch(item, baseline, batches[0] if batches else None)
         log(f"{item['condition']} exited {code}")
+        after = find_batches(item["condition"])
+        if code != 0 and _records(after[0] if len(after) == 1 else None) == before:
+            # It ran no episode: a refused resume (a changed environment, say, after a cluster rebuild on
+            # another port) or a failure before the batch existed. Retrying would only repeat it.
+            raise Stop(f"{item['condition']}: run_batch exited {code} without running an episode")
     rows, problems = settle(item, baseline)
     if problems:
         raise Stop("; ".join(problems))
@@ -175,11 +199,16 @@ def _stop_if_unfixable(item: dict, batch: Path, rows: list[dict], since: str) ->
             continue
         raise Stop(f"{item['condition']} {row['problem_id']}: {row['why']}")
     index = batch / "index.jsonl"
+    resets = 0
     for line in index.read_text().splitlines() if index.exists() else []:
         record = json.loads(line)
-        if record.get("status") == "error" and record.get("started_utc", "") >= since \
-                and any(u in record.get("error", "") for u in UNCLEAN):
+        if record.get("status") != "error" or record.get("started_utc", "") < since:
+            continue
+        if any(u in record.get("error", "") for u in UNCLEAN):
             raise Stop(f"{item['condition']} {record['problem_id']}: {record['error'][:300]}")
+        resets += RESET_FAILURE in record.get("error", "")
+        if resets >= RESET_FAILURES_BEFORE_STOP:
+            raise Stop(f"{item['condition']}: the reset timed out {resets} times in this run: {record['error'][:300]}")
 
 
 def dry_run(plan: dict, baseline: Path) -> int:

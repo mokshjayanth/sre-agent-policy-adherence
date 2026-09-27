@@ -259,12 +259,21 @@ def delete_failed_pods(namespaces: tuple[str, ...] = APP_NAMESPACES, min_age_s: 
 # generator. preexisting_objects() then records what, if anything, predates the problem, which
 # should always be nothing.
 
-# The cluster's own objects in `default`, and the wrk2 workload the harness recreates each problem.
-DEFAULT_KEEP = {("ServiceAccount", "default"), ("Service", "kubernetes"), ("ConfigMap", "kube-root-ca.crt"),
-                ("Job", "wrk2-job"), ("ConfigMap", "wrk2-payload-script")}
-# Kinds an agent can create in a namespace with the verbs the policies name.
+# The cluster's own objects in `default`. The harness's wrk2 job and its config map are not kept: the
+# harness recreates them only for a problem that starts a workload, and a delete that is slow makes its
+# create fail, so an earlier problem's job and pods could otherwise still be there
+# (generators/workload/wrk.py:31-105).
+DEFAULT_KEEP = {("ServiceAccount", "default"), ("Service", "kubernetes"), ("ConfigMap", "kube-root-ca.crt")}
+# Kinds an agent can create in a namespace. Endpoints are left out: the cluster rewrites them whenever a
+# service's pods change, and a service's own are created with it.
 NAMESPACED_KINDS = ("pods,jobs,cronjobs,deployments,statefulsets,daemonsets,replicasets,services,configmaps,"
-                    "secrets,ingresses,persistentvolumeclaims,serviceaccounts,roles,rolebindings,networkpolicies")
+                    "secrets,ingresses,persistentvolumeclaims,serviceaccounts,roles,rolebindings,networkpolicies,"
+                    "horizontalpodautoscalers,resourcequotas,limitranges,poddisruptionbudgets")
+# What the harness installs for every problem and removes only when the problem ends normally
+# (orchestrator.py:55-67 and 205-214). After a runner or harness error both stay, and the next problem's
+# deploy would reuse a Prometheus that still holds the earlier episode's metrics.
+OPENEBS_MANIFEST = "https://openebs.github.io/charts/openebs-operator.yaml"
+PROMETHEUS_NAMESPACE = "observe"
 
 
 def _kubectl(*args: str, timeout: int = 120) -> subprocess.CompletedProcess:
@@ -290,30 +299,67 @@ def _namespaced_objects(namespace: str) -> list[dict]:
 
 
 def _namespace_exists(namespace: str) -> bool:
-    return _kubectl("get", "namespace", namespace, "-o", "name").returncode == 0
+    """True or False only on an answer from the cluster; a failed call raises, never reads as absent."""
+    result = _kubectl("get", "namespace", namespace, "-o", "name")
+    if result.returncode == 0:
+        return True
+    if "NotFound" in result.stderr or "not found" in result.stderr:
+        return False
+    raise RuntimeError(f"kubectl get namespace {namespace} failed: {result.stderr.strip()[:300]}")
 
 
 def default_leftovers() -> list[dict]:
-    """Objects in `default` that are neither the cluster's own nor the harness's workload."""
+    """Objects in `default` that are not the cluster's own."""
     return [o for o in _namespaced_objects("default") if (o["kind"], o["name"]) not in DEFAULT_KEEP]
 
 
-def reset_app_state(namespaces: tuple[str, ...] = APP_NAMESPACES, timeout_s: int = 300,
+def _harness_releases() -> list[str]:
+    listing = subprocess.run(["helm", "list", "-a", "-q", "-n", PROMETHEUS_NAMESPACE, "--kube-context", "kind-kind"],
+                             capture_output=True, text=True, check=False, timeout=120)
+    if listing.returncode != 0:
+        raise RuntimeError(f"helm list -n {PROMETHEUS_NAMESPACE} failed: {listing.stderr.strip()[:300]}")
+    return listing.stdout.split()
+
+
+def teardown_harness_services() -> list[str]:
+    """Remove Prometheus and OpenEBS if a problem left them, exactly as the harness's own teardown does.
+
+    A no-op after a problem that ended normally, since the harness removed both itself.
+    """
+    removed = []
+    if _harness_releases():
+        from aiopslab.service.telemetry.prometheus import Prometheus
+        Prometheus().teardown()
+        removed.append("prometheus")
+    if _namespace_exists("openebs"):
+        _kubectl("delete", "sc", "openebs-hostpath", "openebs-device", "--ignore-not-found")
+        _kubectl("delete", "-f", OPENEBS_MANIFEST, "--ignore-not-found", "--wait=false", timeout=300)
+        removed.append("openebs")
+    return removed
+
+
+def reset_app_state(namespaces: tuple[str, ...] = APP_NAMESPACES, timeout_s: int = 600,
                     poll_s: float = 2) -> dict:
-    """Delete the app namespaces and clear `default`, then wait until all of it is gone.
+    """Delete the app namespaces, clear `default` and remove harness services a failed problem left,
+    then wait until all of it is gone.
 
     Raises if anything is still present after `timeout_s`: a problem that cannot start clean must
-    fail, not run next to an earlier episode's objects.
+    fail, not run next to an earlier episode's objects. The error names the reset, and is resumable:
+    the next attempt waits again (runner/run_plan.py).
     """
     deleted_namespaces = [ns for ns in namespaces if _namespace_exists(ns)]
     for ns in deleted_namespaces:
         _kubectl("delete", "namespace", ns, "--wait=false")
     deleted_default = default_leftovers()
     for obj in deleted_default:
-        _kubectl("delete", obj["kind"].lower(), obj["name"], "-n", "default", "--ignore-not-found", "--wait=false")
+        # Foreground, so a job's pods are gone before the job itself is.
+        _kubectl("delete", obj["kind"].lower(), obj["name"], "-n", "default", "--ignore-not-found",
+                 "--cascade=foreground", "--wait=false")
+    removed_services = teardown_harness_services()
     deadline = time.monotonic() + timeout_s
     while True:
-        remaining = [f"namespace/{ns}" for ns in deleted_namespaces if _namespace_exists(ns)]
+        remaining = [f"namespace/{ns}" for ns in (*deleted_namespaces, *(["openebs"] if "openebs" in removed_services
+                                                                          else [])) if _namespace_exists(ns)]
         remaining += [f"default/{o['kind']}/{o['name']}" for o in default_leftovers()]
         if not remaining:
             break
@@ -321,7 +367,8 @@ def reset_app_state(namespaces: tuple[str, ...] = APP_NAMESPACES, timeout_s: int
             raise RuntimeError(f"reset_app_state: still present after {timeout_s} s: {remaining}")
         time.sleep(poll_s)
     return {"deleted_namespaces": deleted_namespaces,
-            "deleted_default": [f"{o['kind']}/{o['name']}" for o in deleted_default]}
+            "deleted_default": [f"{o['kind']}/{o['name']}" for o in deleted_default],
+            "removed_harness_services": removed_services}
 
 
 def preexisting_objects(started_utc: str, namespaces: tuple[str, ...] = APP_NAMESPACES) -> list[str]:
@@ -330,9 +377,13 @@ def preexisting_objects(started_utc: str, namespaces: tuple[str, ...] = APP_NAME
     Called once the problem is deployed and its fault injected. After reset_app_state() the answer
     should be empty; a non-empty list marks an episode that did not start clean.
     """
-    cutoff = datetime.fromisoformat(started_utc)
+    cutoff = _to_second(started_utc)
     found = []
     for ns in (*namespaces, "default"):
+        # Listing a namespace that doesn't exist should return nothing, but that is kubectl's
+        # behaviour, not ours to rely on; one that doesn't exist holds nothing.
+        if not _namespace_exists(ns):
+            continue
         for obj in _namespaced_objects(ns):
             if ns == "default" and (obj["kind"], obj["name"]) in DEFAULT_KEEP:
                 continue
@@ -346,6 +397,12 @@ def _created(stamp: str) -> datetime:
     return datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
 
 
+def _to_second(started_utc: str) -> datetime:
+    """The problem's start at Kubernetes' one-second resolution. An object created in the same second
+    as the start, after the reset, must not read as earlier than it."""
+    return datetime.fromisoformat(started_utc).replace(microsecond=0)
+
+
 # --- the rest of the cluster ----------------------------------------------------
 #
 # The reset covers the app namespaces and `default`. An agent can also create or change objects
@@ -357,9 +414,7 @@ def _created(stamp: str) -> datetime:
 # Kinds without a namespace that an agent could create or change the cluster through.
 CLUSTER_KINDS = ("nodes,namespaces,persistentvolumes,clusterroles,clusterrolebindings,storageclasses,"
                  "priorityclasses,customresourcedefinitions,mutatingwebhookconfigurations,"
-                 "validatingwebhookconfigurations")
-# The harness recreates these in `default` for every problem (DEFAULT_KEEP).
-HARNESS_PER_PROBLEM = {("default", "Job", "wrk2-job"), ("default", "ConfigMap", "wrk2-payload-script")}
+                 "validatingwebhookconfigurations,ingressclasses,apiservices,csidrivers,volumeattachments")
 BASELINE_VARIABLE = "RUNNER_CLUSTER_BASELINE"
 
 
@@ -374,14 +429,15 @@ def cluster_objects() -> dict[str, dict]:
     """Objects the reset does not cover, keyed "<ns>/<Kind>/<name>" or "<Kind>/<name>".
 
     Unowned objects of NAMESPACED_KINDS in every namespace but the app namespaces, and every object of
-    CLUSTER_KINDS, except the app namespaces themselves (the reset deletes them), the harness's
-    per-problem workload in `default`, and volumes a provisioner made for a claim.
+    CLUSTER_KINDS, except the app namespaces themselves (the reset deletes them) and volumes a
+    provisioner made for a claim. What the harness makes for a problem is newer than the problem's
+    start, so cluster_drift() does not count it.
     """
     found = {}
     for item in _items(NAMESPACED_KINDS, "-A"):
         meta = item["metadata"]
         ns = meta.get("namespace", "")
-        if ns in APP_NAMESPACES or meta.get("ownerReferences") or (ns, item["kind"], meta["name"]) in HARNESS_PER_PROBLEM:
+        if ns in APP_NAMESPACES or meta.get("ownerReferences"):
             continue
         found[f"{ns}/{item['kind']}/{meta['name']}"] = {"created": meta.get("creationTimestamp"),
                                                          "fingerprint": _fingerprint(item)}
@@ -410,7 +466,7 @@ def cluster_drift(started_utc: str, baseline_path: Path) -> list[str]:
     harness made during this problem's deploy is newer), "changed: <key>" and "gone: <key>" for baseline
     objects. Empty means the problem starts in the cluster the baseline recorded.
     """
-    cutoff = datetime.fromisoformat(started_utc)
+    cutoff = _to_second(started_utc)
     baseline = json.loads(Path(baseline_path).read_text())["objects"]
     now = cluster_objects()
     drift = [f"new: {key}" for key, obj in now.items()

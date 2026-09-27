@@ -9,6 +9,12 @@
 #   kind create cluster --config configs/kind-config-x86.yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+# A fixed API server port, so a rebuilt cluster has the endpoint every batch.json records
+# (run_batch.py compares it on a resume). kind otherwise picks a random port. Added 2026-09-27,
+# notes/2026-09-27-fresh-run.md.
+networking:
+  apiServerAddress: "127.0.0.1"
+  apiServerPort: 6443
 nodes:
   - role: control-plane
     image: jacksonarthurclark/aiopslab-kind-x86@sha256:d631857278d3f8ce5c36364c75ec25695ceb22e311ec6621a4ebf5506b86774d

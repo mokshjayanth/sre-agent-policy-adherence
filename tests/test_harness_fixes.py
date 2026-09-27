@@ -94,18 +94,26 @@ import pytest
 class FakeCluster:
     """Just enough of kubectl for reset_app_state and preexisting_objects: namespaces and objects."""
 
-    def __init__(self, namespaces, objects, stuck=()):
+    def __init__(self, namespaces, objects, stuck=(), releases=()):
         self.namespaces = set(namespaces)
         self.objects = {ns: list(items) for ns, items in objects.items()}
         self.stuck = set(stuck)                       # namespaces that never finish terminating
+        self.releases = list(releases)                # Helm releases in `observe`
         self.deleted = []
 
     def run(self, argv, **kwargs):
-        args = argv[argv.index("kind-kind") + 1:]
         ok = lambda out="": types.SimpleNamespace(returncode=0, stdout=out, stderr="")
-        missing = types.SimpleNamespace(returncode=1, stdout="", stderr="NotFound")
+        if argv[0] == "helm":                         # helm list -a -q -n observe
+            return ok("\n".join(self.releases))
+        args = argv[argv.index("kind-kind") + 1:]
+        missing = types.SimpleNamespace(returncode=1, stdout="", stderr='Error from server (NotFound): namespaces "x" not found')
         if args[:2] == ["get", "namespace"]:
             return ok(f"namespace/{args[2]}") if args[2] in self.namespaces else missing
+        if args[:2] == ["delete", "sc"] or args[:2] == ["delete", "-f"]:
+            self.deleted.append(" ".join(args[:3]))
+            if args[1] == "-f":
+                self.namespaces.discard("openebs")
+            return ok()
         if args[:2] == ["delete", "namespace"]:
             self.deleted.append(f"namespace/{args[2]}")
             if args[2] not in self.stuck:
@@ -137,28 +145,44 @@ DEFAULT_NS = [_obj("ServiceAccount", "default"), _obj("Service", "kubernetes"),
               _obj("Pod", "mitigate-rate-mongo-a", owned=True)]
 
 
-def test_reset_deletes_app_namespaces_and_clears_default_but_keeps_cluster_and_harness_objects(monkeypatch):
+def test_reset_deletes_app_namespaces_and_clears_default_but_keeps_the_clusters_own(monkeypatch):
     cluster = FakeCluster({"test-social-network", "default"},
                           {"test-social-network": [_obj("Pod", "debug-pod")], "default": DEFAULT_NS})
     monkeypatch.setattr(harness_fixes.subprocess, "run", cluster.run)
     result = harness_fixes.reset_app_state(poll_s=0)
     assert result == {"deleted_namespaces": ["test-social-network"],
-                      "deleted_default": ["Pod/geo-debug", "Job/mitigate-rate-mongo"]}
+                      "deleted_default": ["Job/wrk2-job", "ConfigMap/wrk2-payload-script", "Pod/geo-debug",
+                                          "Job/mitigate-rate-mongo"],
+                      "removed_harness_services": []}
     assert "test-social-network" not in cluster.namespaces
     kept = {o["metadata"]["name"] for o in cluster.objects["default"]}
-    assert {"default", "kubernetes", "kube-root-ca.crt", "wrk2-job", "wrk2-payload-script"} <= kept
-    assert not {"geo-debug", "mitigate-rate-mongo"} & kept
+    # The earlier problem's workload goes too: the harness recreates it only for a problem that uses it.
+    assert {"default", "kubernetes", "kube-root-ca.crt"} <= kept
+    assert not {"geo-debug", "mitigate-rate-mongo", "wrk2-job", "wrk2-payload-script"} & kept
 
 
 def test_reset_is_a_noop_on_a_clean_cluster(monkeypatch):
-    cluster = FakeCluster({"default"}, {"default": DEFAULT_NS[:6]})
+    cluster = FakeCluster({"default"}, {"default": DEFAULT_NS[:3]})
     monkeypatch.setattr(harness_fixes.subprocess, "run", cluster.run)
-    assert harness_fixes.reset_app_state(poll_s=0) == {"deleted_namespaces": [], "deleted_default": []}
+    assert harness_fixes.reset_app_state(poll_s=0) == {"deleted_namespaces": [], "deleted_default": [],
+                                                       "removed_harness_services": []}
     assert cluster.deleted == []
 
 
+def test_reset_removes_prometheus_and_openebs_a_failed_problem_left(monkeypatch):
+    cluster = FakeCluster({"default", "openebs", "observe"}, {"default": DEFAULT_NS[:3]}, releases=["prometheus"])
+    monkeypatch.setattr(harness_fixes.subprocess, "run", cluster.run)
+    torn_down = []
+    import aiopslab.service.telemetry.prometheus as prometheus
+    monkeypatch.setattr(prometheus.Prometheus, "teardown", lambda self: torn_down.append("prometheus"))
+    result = harness_fixes.reset_app_state(poll_s=0)
+    assert result["removed_harness_services"] == ["prometheus", "openebs"] and torn_down == ["prometheus"]
+    assert "openebs" not in cluster.namespaces
+    assert f"delete -f {harness_fixes.OPENEBS_MANIFEST}" in cluster.deleted
+
+
 def test_reset_raises_when_a_namespace_will_not_go(monkeypatch):
-    cluster = FakeCluster({"test-social-network", "default"}, {"default": DEFAULT_NS[:6]},
+    cluster = FakeCluster({"test-social-network", "default"}, {"default": DEFAULT_NS[:3]},
                           stuck={"test-social-network"})
     monkeypatch.setattr(harness_fixes.subprocess, "run", cluster.run)
     with pytest.raises(RuntimeError, match="namespace/test-social-network"):
@@ -171,10 +195,18 @@ def test_preexisting_objects_reports_only_what_predates_the_problem(monkeypatch)
         "test-social-network": [_obj("Deployment", "compose-post-service", "2026-09-27T16:00:05Z"),
                                 _obj("Deployment", "post-storage-service-fixed", "2026-09-27T11:33:04Z"),
                                 _obj("ReplicaSet", "old-rs", "2026-09-20T07:54:17Z", owned=True)],
-        "default": DEFAULT_NS[:6] + [_obj("Pod", "geo-debug", "2026-09-23T03:29:42Z")]})
+        "default": DEFAULT_NS[:3] + [_obj("Pod", "geo-debug", "2026-09-23T03:29:42Z"),
+                                     # the same second as the start, after the reset: not earlier
+                                     _obj("Job", "wrk2-job", "2026-09-27T16:00:00Z")]})
     monkeypatch.setattr(harness_fixes.subprocess, "run", cluster.run)
     assert harness_fixes.preexisting_objects(started) == [
         "test-social-network/Deployment/post-storage-service-fixed", "default/Pod/geo-debug"]
+
+
+def test_preexisting_objects_skips_a_namespace_that_does_not_exist(monkeypatch):
+    cluster = FakeCluster({"default"}, {"default": DEFAULT_NS[:3]})
+    monkeypatch.setattr(harness_fixes.subprocess, "run", cluster.run)
+    assert harness_fixes.preexisting_objects("2026-09-27T16:00:00+00:00") == []
 
 
 def test_preexisting_objects_is_empty_after_a_reset(monkeypatch):
@@ -211,8 +243,7 @@ def _cluster(monkeypatch, namespaced, scoped):
 
 BASE_NS = [_item("ConfigMap", "coredns", "kube-system", spec={"a": 1}),
            _item("Pod", "coredns-x", "kube-system", owned=True),
-           _item("Pod", "debug-pod", "test-social-network"),
-           _item("Job", "wrk2-job", "default")]
+           _item("Pod", "debug-pod", "test-social-network")]
 BASE_SCOPED = [_item("Node", "kind-worker", spec={"taints": []}), _item("Namespace", "observe"),
                _item("Namespace", "test-social-network"),
                _item("PersistentVolume", "pvc-1", annotations={"pv.kubernetes.io/provisioned-by": "openebs"})]

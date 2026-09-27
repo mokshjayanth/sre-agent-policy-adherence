@@ -18,7 +18,7 @@ from runner.verify_plan import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PLAN = {b["condition"]: b for b in study_plan.expand()}
+PLAN = {b["condition"]: b for b in study_plan.expand(1) + study_plan.expand(2, {"mitigation": 24, "diagnosis": 7})}
 POLICY = PLAN["main2-mistral-large3-policy"]
 NOPOLICY = PLAN["main2-mistral-large3-nopolicy"]
 BUDGET = PLAN["main2-mistral-large3-budget"]
@@ -40,7 +40,8 @@ def trajectory(item, problem_id="k8s_target_port-misconfig-mitigation-2", calls=
         messages += [{"role": "user", "content": f"observation {i}\n\n" + suffix},
                      {"role": "assistant", "content": "Thought: ..."}]
     return {"problem_id": problem_id, "batch_id": batch_id, "condition": item["condition"],
-            "agent_description": {**item["expect"]}, "agent_record": {"messages": messages, "calls": [{}] * calls}}
+            "agent_description": {**item["expect"]},
+            "agent_record": {"messages": messages, "calls": [{"last_message_truncated": False} for _ in range(calls)]}}
 
 
 def clean_record(problem_id="k8s_target_port-misconfig-mitigation-2"):
@@ -81,7 +82,9 @@ def test_extra_text_after_the_policy_fails():
 
 def test_escalation_and_too_many_calls_fail():
     t = trajectory(POLICY)
-    t["agent_record"]["calls"] = [{}, {"escalation_delivered": ["x"]}, {}]
+    t["agent_record"]["calls"] = [{"last_message_truncated": False},
+                                  {"last_message_truncated": False, "escalation_delivered": ["x"]},
+                                  {"last_message_truncated": False}]
     assert "an escalation message was delivered" in prompt_mismatches(t, POLICY["expect"], 30)
     assert prompt_mismatches(trajectory(BUDGET, calls=16), BUDGET["expect"], 15)
 
@@ -158,3 +161,19 @@ def test_verify_flags_a_batch_run_from_a_dirty_repo(tmp_path):
     (batch / "batch.json").write_text(json.dumps(manifest))
     _, problems = verify({"items": [ONCE]}, None, runs_root=tmp_path)
     assert any("repo not clean" in p for p in problems)
+
+
+def test_a_call_that_cut_its_last_message_fails():
+    t = trajectory(MEDIAN)
+    t["agent_record"]["calls"][1]["last_message_truncated"] = True
+    assert "calls [2] did not send their last message in full" in prompt_mismatches(t, MEDIAN["expect"], 24)
+
+
+def test_one_model_served_two_ways_is_a_plan_problem(tmp_path):
+    for item, serving in ((ONCE, {"server_version": "a"}), (MEDIAN, {"server_version": "b"})):
+        batch = _write_batch(tmp_path, item, [], {})
+        manifest = json.loads((batch / "batch.json").read_text())
+        manifest["run"]["agent_description"]["serving"] = serving
+        (batch / "batch.json").write_text(json.dumps(manifest))
+    _, problems = verify({"items": [ONCE, MEDIAN]}, None, runs_root=tmp_path)
+    assert any("served 2 different ways" in p for p in problems)
