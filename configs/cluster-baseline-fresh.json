@@ -1,0 +1,973 @@
+{
+ "objects": {
+  "APIService/v1.": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "10f2577cd37fd8aa"
+  },
+  "APIService/v1.admissionregistration.k8s.io": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "62ce1679f90d11c3"
+  },
+  "APIService/v1.apiextensions.k8s.io": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "73308a6c30f6b691"
+  },
+  "APIService/v1.apps": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "4e61fcce6fbe9dfa"
+  },
+  "APIService/v1.authentication.k8s.io": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "de88143038e4c297"
+  },
+  "APIService/v1.authorization.k8s.io": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "cf48e9491ac956a3"
+  },
+  "APIService/v1.autoscaling": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "4003a224263fdc16"
+  },
+  "APIService/v1.batch": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "e0cf2743593a9285"
+  },
+  "APIService/v1.certificates.k8s.io": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "543fe31f2aa0c477"
+  },
+  "APIService/v1.coordination.k8s.io": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "8758466814e108dd"
+  },
+  "APIService/v1.discovery.k8s.io": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "a82b53e4ea5c7de8"
+  },
+  "APIService/v1.events.k8s.io": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "a27eabedcadd8154"
+  },
+  "APIService/v1.flowcontrol.apiserver.k8s.io": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "3202cbca2fef0e23"
+  },
+  "APIService/v1.networking.k8s.io": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "64ef8ae48ad8fb35"
+  },
+  "APIService/v1.node.k8s.io": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "553003bf6a44aead"
+  },
+  "APIService/v1.policy": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "da657cc89b843a8d"
+  },
+  "APIService/v1.rbac.authorization.k8s.io": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "ce5dc1652f743026"
+  },
+  "APIService/v1.scheduling.k8s.io": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "a94d5b6107f035cb"
+  },
+  "APIService/v1.storage.k8s.io": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "11732b8cc840bc61"
+  },
+  "APIService/v2.autoscaling": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "1d2d09e26a0f23d7"
+  },
+  "ClusterRole/admin": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "2d5713bf476debc9"
+  },
+  "ClusterRole/cluster-admin": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "0a23ca16b489fd8e"
+  },
+  "ClusterRole/edit": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "dc0a39eeb0dc5d7d"
+  },
+  "ClusterRole/kindnet": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "f0fc73f4dee4c867"
+  },
+  "ClusterRole/kubeadm:get-nodes": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "f0c28c25c0433be3"
+  },
+  "ClusterRole/local-path-provisioner-role": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "c5e997a53c3b9995"
+  },
+  "ClusterRole/system:aggregate-to-admin": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "18670122cee69b0f"
+  },
+  "ClusterRole/system:aggregate-to-edit": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "f3644f41774e2cca"
+  },
+  "ClusterRole/system:aggregate-to-view": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "1c1626a6a512eef9"
+  },
+  "ClusterRole/system:auth-delegator": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "dfd1f5491a8f4d5d"
+  },
+  "ClusterRole/system:basic-user": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "183d1fb499f08362"
+  },
+  "ClusterRole/system:certificates.k8s.io:certificatesigningrequests:nodeclient": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "18f540eb9641c2a3"
+  },
+  "ClusterRole/system:certificates.k8s.io:certificatesigningrequests:selfnodeclient": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "7b558a6056a1093f"
+  },
+  "ClusterRole/system:certificates.k8s.io:kube-apiserver-client-approver": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "61c2754f87d36711"
+  },
+  "ClusterRole/system:certificates.k8s.io:kube-apiserver-client-kubelet-approver": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "19515e4a57bc2a5f"
+  },
+  "ClusterRole/system:certificates.k8s.io:kubelet-serving-approver": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "30a28c3b550fc29f"
+  },
+  "ClusterRole/system:certificates.k8s.io:legacy-unknown-approver": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "df7e31e6c5150c6e"
+  },
+  "ClusterRole/system:controller:attachdetach-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "fd68dd2c5aabff36"
+  },
+  "ClusterRole/system:controller:certificate-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "520e8da706d26d86"
+  },
+  "ClusterRole/system:controller:clusterrole-aggregation-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "aa8b44523d3aa039"
+  },
+  "ClusterRole/system:controller:cronjob-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "ff21190c5a84bf6f"
+  },
+  "ClusterRole/system:controller:daemon-set-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "55864509b57233b8"
+  },
+  "ClusterRole/system:controller:deployment-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "8653531019e9d1b0"
+  },
+  "ClusterRole/system:controller:disruption-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "530beff947b1cd97"
+  },
+  "ClusterRole/system:controller:endpoint-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "d1271b03b16252e2"
+  },
+  "ClusterRole/system:controller:endpointslice-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "8c5eee086dbcd8b2"
+  },
+  "ClusterRole/system:controller:endpointslicemirroring-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "b3bbf9e480b6bcec"
+  },
+  "ClusterRole/system:controller:ephemeral-volume-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "cdea9419faffec6a"
+  },
+  "ClusterRole/system:controller:expand-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "4754b384c6390e79"
+  },
+  "ClusterRole/system:controller:generic-garbage-collector": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "8d02fb1173657cc1"
+  },
+  "ClusterRole/system:controller:horizontal-pod-autoscaler": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "e2f8644c67adda38"
+  },
+  "ClusterRole/system:controller:job-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "57bb4ee91865e4f6"
+  },
+  "ClusterRole/system:controller:legacy-service-account-token-cleaner": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "bf32d94f639cecf0"
+  },
+  "ClusterRole/system:controller:namespace-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "de1d5fb7c9f3b53b"
+  },
+  "ClusterRole/system:controller:node-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "5f4d3656c3f44337"
+  },
+  "ClusterRole/system:controller:persistent-volume-binder": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "3fdf1b3b6411a95b"
+  },
+  "ClusterRole/system:controller:pod-garbage-collector": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "bb3f2799617d2cf0"
+  },
+  "ClusterRole/system:controller:pv-protection-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "d045901488228c9c"
+  },
+  "ClusterRole/system:controller:pvc-protection-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "f1de735a53025e8f"
+  },
+  "ClusterRole/system:controller:replicaset-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "f9ef6d13275aa458"
+  },
+  "ClusterRole/system:controller:replication-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "8bb943ce330ff666"
+  },
+  "ClusterRole/system:controller:resourcequota-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "b2373ae2f300dedc"
+  },
+  "ClusterRole/system:controller:root-ca-cert-publisher": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "37afb273788cc7c4"
+  },
+  "ClusterRole/system:controller:route-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "2e809338bc0b6a7e"
+  },
+  "ClusterRole/system:controller:service-account-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "3185e4d835f0dbe8"
+  },
+  "ClusterRole/system:controller:service-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "82049cbcb13d5c04"
+  },
+  "ClusterRole/system:controller:statefulset-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "db98f1219d5cc439"
+  },
+  "ClusterRole/system:controller:ttl-after-finished-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "fb51fce6de8748cc"
+  },
+  "ClusterRole/system:controller:ttl-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "d0f3e8abe14c1391"
+  },
+  "ClusterRole/system:controller:validatingadmissionpolicy-status-controller": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "598545c42fa276dd"
+  },
+  "ClusterRole/system:coredns": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "c73081eee4b7997d"
+  },
+  "ClusterRole/system:discovery": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "83c1c31221432d8e"
+  },
+  "ClusterRole/system:heapster": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "a3e647d68cf29a93"
+  },
+  "ClusterRole/system:kube-aggregator": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "a5de89e98f6e244e"
+  },
+  "ClusterRole/system:kube-controller-manager": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "8dfea46a6971db90"
+  },
+  "ClusterRole/system:kube-dns": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "b8cd3d2812654d1e"
+  },
+  "ClusterRole/system:kube-scheduler": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "54a514d673c0c80e"
+  },
+  "ClusterRole/system:kubelet-api-admin": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "3817d5e4ef724aba"
+  },
+  "ClusterRole/system:monitoring": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "9e637c9465e6c477"
+  },
+  "ClusterRole/system:node": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "b6952b6cc08be3da"
+  },
+  "ClusterRole/system:node-bootstrapper": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "9e9f2a678d4868b1"
+  },
+  "ClusterRole/system:node-problem-detector": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "033947908f441bc9"
+  },
+  "ClusterRole/system:node-proxier": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "bc7b484e58b91f4d"
+  },
+  "ClusterRole/system:persistent-volume-provisioner": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "0eaef09c9c56f0ff"
+  },
+  "ClusterRole/system:public-info-viewer": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "b3e8b9ee2a2320ff"
+  },
+  "ClusterRole/system:service-account-issuer-discovery": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "b11a3c1df76d4dd4"
+  },
+  "ClusterRole/system:volume-scheduler": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "25c111fe2e4415d5"
+  },
+  "ClusterRole/view": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "82258557adf60b41"
+  },
+  "ClusterRoleBinding/cluster-admin": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "c73344c722880d80"
+  },
+  "ClusterRoleBinding/kindnet": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "30b63a7cad65bfb0"
+  },
+  "ClusterRoleBinding/kubeadm:cluster-admins": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "689f79ee2626c105"
+  },
+  "ClusterRoleBinding/kubeadm:get-nodes": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "44919a7ac45205d2"
+  },
+  "ClusterRoleBinding/kubeadm:kubelet-bootstrap": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "caf7120964f63467"
+  },
+  "ClusterRoleBinding/kubeadm:node-autoapprove-bootstrap": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "773a8adef40f6126"
+  },
+  "ClusterRoleBinding/kubeadm:node-autoapprove-certificate-rotation": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "58b5e8125bd80f2c"
+  },
+  "ClusterRoleBinding/kubeadm:node-proxier": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "e6c6b613f01f4da3"
+  },
+  "ClusterRoleBinding/local-path-provisioner-bind": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "a8f2a1bb4aa38a24"
+  },
+  "ClusterRoleBinding/system:basic-user": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "cd392515dfcc10c3"
+  },
+  "ClusterRoleBinding/system:controller:attachdetach-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "85a3278622180258"
+  },
+  "ClusterRoleBinding/system:controller:certificate-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "d522d1730fd894ce"
+  },
+  "ClusterRoleBinding/system:controller:clusterrole-aggregation-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "6f44d76b4f6207b4"
+  },
+  "ClusterRoleBinding/system:controller:cronjob-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "be296efc48deb956"
+  },
+  "ClusterRoleBinding/system:controller:daemon-set-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "2ba3526bdf962035"
+  },
+  "ClusterRoleBinding/system:controller:deployment-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "2d908be23dfe9fde"
+  },
+  "ClusterRoleBinding/system:controller:disruption-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "696c2e357cec5c7d"
+  },
+  "ClusterRoleBinding/system:controller:endpoint-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "4b713989da4ded05"
+  },
+  "ClusterRoleBinding/system:controller:endpointslice-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "3904fc4c5eb3f742"
+  },
+  "ClusterRoleBinding/system:controller:endpointslicemirroring-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "7c009c654560b1c6"
+  },
+  "ClusterRoleBinding/system:controller:ephemeral-volume-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "53d76ccca8a4fedc"
+  },
+  "ClusterRoleBinding/system:controller:expand-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "4103256e25101ffd"
+  },
+  "ClusterRoleBinding/system:controller:generic-garbage-collector": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "d10c8f1dbd7000b9"
+  },
+  "ClusterRoleBinding/system:controller:horizontal-pod-autoscaler": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "f56c7cdf3f38d309"
+  },
+  "ClusterRoleBinding/system:controller:job-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "d9b0b48b874aad9e"
+  },
+  "ClusterRoleBinding/system:controller:legacy-service-account-token-cleaner": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "f52911f4ae5de266"
+  },
+  "ClusterRoleBinding/system:controller:namespace-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "fd87ce02d0f0b870"
+  },
+  "ClusterRoleBinding/system:controller:node-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "9e49bda621fe6b31"
+  },
+  "ClusterRoleBinding/system:controller:persistent-volume-binder": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "ea72b654e7e04158"
+  },
+  "ClusterRoleBinding/system:controller:pod-garbage-collector": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "b1f2720d71cfaa1d"
+  },
+  "ClusterRoleBinding/system:controller:pv-protection-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "a3afe0fe6f55eec2"
+  },
+  "ClusterRoleBinding/system:controller:pvc-protection-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "904aed55fe428c26"
+  },
+  "ClusterRoleBinding/system:controller:replicaset-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "6cd10831b352c2c3"
+  },
+  "ClusterRoleBinding/system:controller:replication-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "147e69a6cad6e1d7"
+  },
+  "ClusterRoleBinding/system:controller:resourcequota-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "b8654b4244137a2c"
+  },
+  "ClusterRoleBinding/system:controller:root-ca-cert-publisher": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "2ad6120464ef3903"
+  },
+  "ClusterRoleBinding/system:controller:route-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "2899177b63902fc7"
+  },
+  "ClusterRoleBinding/system:controller:service-account-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "1d14eb4752262bdb"
+  },
+  "ClusterRoleBinding/system:controller:service-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "5b9ca27df0dfe558"
+  },
+  "ClusterRoleBinding/system:controller:statefulset-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "06788dc573adc8ab"
+  },
+  "ClusterRoleBinding/system:controller:ttl-after-finished-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "df6a1747d0f6a0ad"
+  },
+  "ClusterRoleBinding/system:controller:ttl-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "a239d1f4b03bd41e"
+  },
+  "ClusterRoleBinding/system:controller:validatingadmissionpolicy-status-controller": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "bd671e49c67e31d9"
+  },
+  "ClusterRoleBinding/system:coredns": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "efbd86b3f21530f3"
+  },
+  "ClusterRoleBinding/system:discovery": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "9d2ce62c69a8b218"
+  },
+  "ClusterRoleBinding/system:kube-controller-manager": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "0e878304c48fb316"
+  },
+  "ClusterRoleBinding/system:kube-dns": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "dd28335d5aaa4468"
+  },
+  "ClusterRoleBinding/system:kube-scheduler": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "1ce71a5dc89cdbd9"
+  },
+  "ClusterRoleBinding/system:monitoring": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "cd03187c4fe18aa7"
+  },
+  "ClusterRoleBinding/system:node": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "2df7a6d97563fefe"
+  },
+  "ClusterRoleBinding/system:node-proxier": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "c7f79b51ba11b81f"
+  },
+  "ClusterRoleBinding/system:public-info-viewer": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "52577429a75e4418"
+  },
+  "ClusterRoleBinding/system:service-account-issuer-discovery": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "d6234ea4e4d32bc0"
+  },
+  "ClusterRoleBinding/system:volume-scheduler": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "f16e68897a8815e9"
+  },
+  "Namespace/default": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "35090f5ff6e06fd5"
+  },
+  "Namespace/kube-node-lease": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "d271c31f519f11be"
+  },
+  "Namespace/kube-public": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "9afc98253868219f"
+  },
+  "Namespace/kube-system": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "074de759c85bc75a"
+  },
+  "Namespace/local-path-storage": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "f6293c4d4fb208ca"
+  },
+  "Namespace/observe": {
+   "created": "2026-09-27T18:15:20Z",
+   "fingerprint": "5816f34fe94f5965"
+  },
+  "Node/kind-control-plane": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "648301b97aa45f84"
+  },
+  "Node/kind-worker": {
+   "created": "2026-09-27T18:13:25Z",
+   "fingerprint": "5679e15e06f863b0"
+  },
+  "PriorityClass/system-cluster-critical": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "067c8dd531932cc8"
+  },
+  "PriorityClass/system-node-critical": {
+   "created": "2026-09-27T18:13:16Z",
+   "fingerprint": "67185e62e6ef226e"
+  },
+  "StorageClass/standard": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "3b3ad15598c81690"
+  },
+  "default/ConfigMap/kube-root-ca.crt": {
+   "created": "2026-09-27T18:13:24Z",
+   "fingerprint": "93c8e26b6e51b391"
+  },
+  "default/Service/kubernetes": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "53b64191caa8eeeb"
+  },
+  "default/ServiceAccount/default": {
+   "created": "2026-09-27T18:13:23Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-node-lease/ConfigMap/kube-root-ca.crt": {
+   "created": "2026-09-27T18:13:24Z",
+   "fingerprint": "93c8e26b6e51b391"
+  },
+  "kube-node-lease/ServiceAccount/default": {
+   "created": "2026-09-27T18:13:23Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-public/ConfigMap/cluster-info": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "0cea22dd09b2f819"
+  },
+  "kube-public/ConfigMap/kube-root-ca.crt": {
+   "created": "2026-09-27T18:13:24Z",
+   "fingerprint": "93c8e26b6e51b391"
+  },
+  "kube-public/Role/kubeadm:bootstrap-signer-clusterinfo": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "569da855cbae164a"
+  },
+  "kube-public/Role/system:controller:bootstrap-signer": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "60e917605026d27d"
+  },
+  "kube-public/RoleBinding/kubeadm:bootstrap-signer-clusterinfo": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "c62480a171e5be35"
+  },
+  "kube-public/RoleBinding/system:controller:bootstrap-signer": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "601da6152f82ae1c"
+  },
+  "kube-public/ServiceAccount/default": {
+   "created": "2026-09-27T18:13:23Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ConfigMap/coredns": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "385ca83847b55b37"
+  },
+  "kube-system/ConfigMap/extension-apiserver-authentication": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "210d2ce714a727e3"
+  },
+  "kube-system/ConfigMap/kube-apiserver-legacy-service-account-token-tracking": {
+   "created": "2026-09-27T18:13:15Z",
+   "fingerprint": "1fe9c0d08bf23f7a"
+  },
+  "kube-system/ConfigMap/kube-proxy": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "8bb8066b9b07905d"
+  },
+  "kube-system/ConfigMap/kube-root-ca.crt": {
+   "created": "2026-09-27T18:13:24Z",
+   "fingerprint": "93c8e26b6e51b391"
+  },
+  "kube-system/ConfigMap/kubeadm-config": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "325c0b8c44fc0746"
+  },
+  "kube-system/ConfigMap/kubelet-config": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "cdc2a5df38c273ab"
+  },
+  "kube-system/DaemonSet/kindnet": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "486c44203e82ade9"
+  },
+  "kube-system/DaemonSet/kube-proxy": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "451420edcf7954b6"
+  },
+  "kube-system/Deployment/coredns": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "43cbbb2daef28f33"
+  },
+  "kube-system/Role/extension-apiserver-authentication-reader": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "fdf77ba71fd0222a"
+  },
+  "kube-system/Role/kube-proxy": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "073c4f46ed25e763"
+  },
+  "kube-system/Role/kubeadm:kubelet-config": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "2741fc868ae2de76"
+  },
+  "kube-system/Role/kubeadm:nodes-kubeadm-config": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "8877f80401d919e8"
+  },
+  "kube-system/Role/system::leader-locking-kube-controller-manager": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "4e6dadaad5cacc12"
+  },
+  "kube-system/Role/system::leader-locking-kube-scheduler": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "f92e0e802390d035"
+  },
+  "kube-system/Role/system:controller:bootstrap-signer": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "801f61eaa6128537"
+  },
+  "kube-system/Role/system:controller:cloud-provider": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "bbad69edb39e7d86"
+  },
+  "kube-system/Role/system:controller:token-cleaner": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "b44cd532b4263f77"
+  },
+  "kube-system/RoleBinding/kube-proxy": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "eea767ddd2b4f29c"
+  },
+  "kube-system/RoleBinding/kubeadm:kubelet-config": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "3a1b68de0f446d82"
+  },
+  "kube-system/RoleBinding/kubeadm:nodes-kubeadm-config": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "941da6b8d5c24d8f"
+  },
+  "kube-system/RoleBinding/system::extension-apiserver-authentication-reader": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "8b102c57f45f1803"
+  },
+  "kube-system/RoleBinding/system::leader-locking-kube-controller-manager": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "acf5ccbd953db9de"
+  },
+  "kube-system/RoleBinding/system::leader-locking-kube-scheduler": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "1f246a02acf793c0"
+  },
+  "kube-system/RoleBinding/system:controller:bootstrap-signer": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "601da6152f82ae1c"
+  },
+  "kube-system/RoleBinding/system:controller:cloud-provider": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "180b5f2726773b9e"
+  },
+  "kube-system/RoleBinding/system:controller:token-cleaner": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "baaacb85e27cf576"
+  },
+  "kube-system/Secret/bootstrap-token-abcdef": {
+   "created": "2026-09-27T18:13:17Z",
+   "fingerprint": "c77b2a94e1b72ae3"
+  },
+  "kube-system/Service/kube-dns": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "f00e003844a5e4f4"
+  },
+  "kube-system/ServiceAccount/attachdetach-controller": {
+   "created": "2026-09-27T18:13:22Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/bootstrap-signer": {
+   "created": "2026-09-27T18:13:21Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/certificate-controller": {
+   "created": "2026-09-27T18:13:20Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/clusterrole-aggregation-controller": {
+   "created": "2026-09-27T18:13:23Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/coredns": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/cronjob-controller": {
+   "created": "2026-09-27T18:13:22Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/daemon-set-controller": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/default": {
+   "created": "2026-09-27T18:13:23Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/deployment-controller": {
+   "created": "2026-09-27T18:13:21Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/disruption-controller": {
+   "created": "2026-09-27T18:13:21Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/endpoint-controller": {
+   "created": "2026-09-27T18:13:22Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/endpointslice-controller": {
+   "created": "2026-09-27T18:13:21Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/endpointslicemirroring-controller": {
+   "created": "2026-09-27T18:13:20Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/ephemeral-volume-controller": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/expand-controller": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/generic-garbage-collector": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/horizontal-pod-autoscaler": {
+   "created": "2026-09-27T18:13:20Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/job-controller": {
+   "created": "2026-09-27T18:13:21Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/kindnet": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/kube-proxy": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/legacy-service-account-token-cleaner": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/namespace-controller": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/node-controller": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/persistent-volume-binder": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/pod-garbage-collector": {
+   "created": "2026-09-27T18:13:21Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/pv-protection-controller": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/pvc-protection-controller": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/replicaset-controller": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/replication-controller": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/resourcequota-controller": {
+   "created": "2026-09-27T18:13:20Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/root-ca-cert-publisher": {
+   "created": "2026-09-27T18:13:22Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/service-account-controller": {
+   "created": "2026-09-27T18:13:23Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/statefulset-controller": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/token-cleaner": {
+   "created": "2026-09-27T18:13:22Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/ttl-after-finished-controller": {
+   "created": "2026-09-27T18:13:22Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/ttl-controller": {
+   "created": "2026-09-27T18:13:20Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "kube-system/ServiceAccount/validatingadmissionpolicy-status-controller": {
+   "created": "2026-09-27T18:13:18Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "local-path-storage/ConfigMap/kube-root-ca.crt": {
+   "created": "2026-09-27T18:13:24Z",
+   "fingerprint": "93c8e26b6e51b391"
+  },
+  "local-path-storage/ConfigMap/local-path-config": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "3372bba8f49ce8b4"
+  },
+  "local-path-storage/Deployment/local-path-provisioner": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "9f1169ff64334567"
+  },
+  "local-path-storage/Role/local-path-provisioner-role": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "2e0888ffa2fa8f92"
+  },
+  "local-path-storage/RoleBinding/local-path-provisioner-bind": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "6dcab08c80210fb9"
+  },
+  "local-path-storage/ServiceAccount/default": {
+   "created": "2026-09-27T18:13:23Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "local-path-storage/ServiceAccount/local-path-provisioner-service-account": {
+   "created": "2026-09-27T18:13:19Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  },
+  "observe/ConfigMap/kube-root-ca.crt": {
+   "created": "2026-09-27T18:15:20Z",
+   "fingerprint": "93c8e26b6e51b391"
+  },
+  "observe/PersistentVolumeClaim/prometheus-pvc": {
+   "created": "2026-09-27T18:19:32Z",
+   "fingerprint": "991e5bdb80767606"
+  },
+  "observe/ServiceAccount/default": {
+   "created": "2026-09-27T18:15:20Z",
+   "fingerprint": "fb3f33c9a46f5f38"
+  }
+ },
+ "taken_utc": "2026-09-27T18:22:23.032793+00:00"
+}
