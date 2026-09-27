@@ -32,6 +32,8 @@ def run(tmp_path, monkeypatch):
     monkeypatch.setattr(rb, "stop_orphaned_port_forwards", lambda: 0)
     monkeypatch.setattr(rb, "stop_leaked_port_forwards", lambda: 0)
     monkeypatch.setattr(rb, "delete_failed_pods", lambda: [])   # never touch a cluster from tests
+    monkeypatch.setattr(rb, "reset_app_state", lambda: {"deleted_namespaces": [], "deleted_default": []})
+    monkeypatch.setattr(rb, "preexisting_objects", lambda started_utc: [])
 
     def main(*argv):
         return rb.main([*argv, "--workdir", str(tmp_path / "work")])
@@ -203,6 +205,9 @@ def fail(self, problem_id):
 rb.Orchestrator.init_problem = fail
 rb.stop_orphaned_port_forwards = lambda: 0
 rb.stop_leaked_port_forwards = lambda: 0
+rb.delete_failed_pods = lambda: []
+rb.reset_app_state = lambda: {{"deleted_namespaces": [], "deleted_default": []}}
+rb.preexisting_objects = lambda started_utc: []
 sys.exit(rb.main({argv!r}))
 """
 

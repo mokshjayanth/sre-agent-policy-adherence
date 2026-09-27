@@ -35,6 +35,12 @@ When a problem fails, the orchestrator has already recovered the injected
 fault if the agent loop was running; the runner additionally deletes the app
 so leftover pods don't disturb the next problem. Harness port-forward leaks
 are cleaned up before and after every problem (runner/harness_fixes.py).
+
+Every problem starts from a reset: the app namespaces are deleted and `default`
+is cleared, so nothing an earlier agent created can be present. The index
+entry records what the reset deleted (`reset`) and what, after deploy, still
+predated the problem (`preexisting_objects`); a non-empty list stops the
+problem before the agent's first action.
 """
 
 import argparse
@@ -64,6 +70,8 @@ from runner.harness_fixes import (  # noqa: E402
     delete_failed_pods,
     fix_exec_shell_doc,
     pin_otel_chart,
+    preexisting_objects,
+    reset_app_state,
     stop_leaked_port_forwards,
     stop_orphaned_port_forwards,
 )
@@ -284,10 +292,17 @@ async def run_problem(
     results = None
     error = None
     try:
+        # Nothing an earlier episode created may be present: delete the app namespaces, clear
+        # `default` (notes/2026-09-27-cross-episode-contamination.md). Raises if it can't.
+        record["reset"] = reset_app_state()
         problem_desc, instructions, apis = orch.init_problem(problem_id)
         orch.agent.init_context(problem_desc, instructions, fix_exec_shell_doc(apis))
         # Deploy, fault injection and workload start are done, so the pods exist.
         _write_json(problem_dir / "pods.json", collect_cluster_images())
+        # Proof of a clean start, before the agent's first action; an unclean one never runs.
+        record["preexisting_objects"] = preexisting_objects(record["started_utc"])
+        if record["preexisting_objects"]:
+            raise RuntimeError(f"episode would start next to earlier objects: {record['preexisting_objects']}")
         results = await orch.start_problem(max_steps=max_steps)
         record["status"] = "ok"
     except Exception as exc:

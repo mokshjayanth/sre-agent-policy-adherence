@@ -13,6 +13,12 @@ deviates from stock AIOpsLab. Revisit it whenever the harness pin moves.
   can never accept, and a quoted-timeout variant parses silently into a
   mangled shell command instead of raising. See
   notes/2026-09-14-exec-shell-timeout-unreachable.md.
+- Failed pods: a bare pod left Failed in an app namespace blocks every later
+  deploy of that app. See notes/2026-09-20-failed-pods-block-deploys.md.
+- Reset between problems: SocialNetwork's namespace is never deleted, so objects
+  an agent created there, or in `default`, persist into later episodes. Every
+  problem now starts from deleted app namespaces and a cleared `default`. See
+  notes/2026-09-27-cross-episode-contamination.md.
 """
 
 import json
@@ -231,6 +237,102 @@ def delete_failed_pods(namespaces: tuple[str, ...] = APP_NAMESPACES, min_age_s: 
         subprocess.run(["kubectl", "--context", "kind-kind", "delete", "pod", name, "-n", namespace,
                         "--ignore-not-found", "--wait=false"], capture_output=True, check=False)
     return deleted
+
+
+# --- state left behind by earlier episodes -------------------------------------
+#
+# The harness removes only its own Helm release between problems. HotelReservation's cleanup also
+# deletes its namespace (hotelres.py:87), but SocialNetwork's has that line commented out
+# (socialnet.py:72), so its namespace lives from one problem to the next. Anything an agent created
+# there -- a copied deployment, a debug pod, a config map -- is still present, and visible, in every
+# later episode; agents also leave pods and jobs in `default`. Found on 2026-09-27: objects from
+# 2026-09-20 onwards had been visible to later agents, and a crash-looping copied deployment made
+# every SocialNetwork deploy time out (notes/2026-09-27-cross-episode-contamination.md).
+#
+# Every problem therefore starts from a reset: the app namespaces are deleted and waited for (the
+# harness recreates its namespace and TLS secret when it builds the app, socialnet.py:21-22), and
+# `default` is cleared of everything except the cluster's own objects and the harness's workload
+# generator. preexisting_objects() then records what, if anything, predates the problem, which
+# should always be nothing.
+
+# The cluster's own objects in `default`, and the wrk2 workload the harness recreates each problem.
+DEFAULT_KEEP = {("ServiceAccount", "default"), ("Service", "kubernetes"), ("ConfigMap", "kube-root-ca.crt"),
+                ("Job", "wrk2-job"), ("ConfigMap", "wrk2-payload-script")}
+# Kinds an agent can create in a namespace with the verbs the policies name.
+NAMESPACED_KINDS = ("pods,jobs,cronjobs,deployments,statefulsets,daemonsets,replicasets,services,configmaps,"
+                    "secrets,ingresses,persistentvolumeclaims,serviceaccounts,roles,rolebindings,networkpolicies")
+
+
+def _kubectl(*args: str, timeout: int = 120) -> subprocess.CompletedProcess:
+    return subprocess.run(["kubectl", "--context", "kind-kind", *args], capture_output=True, text=True,
+                          check=False, timeout=timeout)
+
+
+def _namespaced_objects(namespace: str) -> list[dict]:
+    """Every object of NAMESPACED_KINDS in the namespace that no other object owns."""
+    listing = _kubectl("get", NAMESPACED_KINDS, "-n", namespace, "-o", "json")
+    if listing.returncode != 0:
+        return []
+    try:
+        items = json.loads(listing.stdout or "{}").get("items", [])
+    except json.JSONDecodeError:
+        return []
+    return [{"kind": item["kind"], "name": item["metadata"]["name"],
+             "created": item["metadata"].get("creationTimestamp")}
+            for item in items if not item["metadata"].get("ownerReferences")]
+
+
+def _namespace_exists(namespace: str) -> bool:
+    return _kubectl("get", "namespace", namespace, "-o", "name").returncode == 0
+
+
+def default_leftovers() -> list[dict]:
+    """Objects in `default` that are neither the cluster's own nor the harness's workload."""
+    return [o for o in _namespaced_objects("default") if (o["kind"], o["name"]) not in DEFAULT_KEEP]
+
+
+def reset_app_state(namespaces: tuple[str, ...] = APP_NAMESPACES, timeout_s: int = 300,
+                    poll_s: float = 2) -> dict:
+    """Delete the app namespaces and clear `default`, then wait until all of it is gone.
+
+    Raises if anything is still present after `timeout_s`: a problem that cannot start clean must
+    fail, not run next to an earlier episode's objects.
+    """
+    deleted_namespaces = [ns for ns in namespaces if _namespace_exists(ns)]
+    for ns in deleted_namespaces:
+        _kubectl("delete", "namespace", ns, "--wait=false")
+    deleted_default = default_leftovers()
+    for obj in deleted_default:
+        _kubectl("delete", obj["kind"].lower(), obj["name"], "-n", "default", "--ignore-not-found", "--wait=false")
+    deadline = time.monotonic() + timeout_s
+    while True:
+        remaining = [f"namespace/{ns}" for ns in deleted_namespaces if _namespace_exists(ns)]
+        remaining += [f"default/{o['kind']}/{o['name']}" for o in default_leftovers()]
+        if not remaining:
+            break
+        if time.monotonic() > deadline:
+            raise RuntimeError(f"reset_app_state: still present after {timeout_s} s: {remaining}")
+        time.sleep(poll_s)
+    return {"deleted_namespaces": deleted_namespaces,
+            "deleted_default": [f"{o['kind']}/{o['name']}" for o in deleted_default]}
+
+
+def preexisting_objects(started_utc: str, namespaces: tuple[str, ...] = APP_NAMESPACES) -> list[str]:
+    """Objects in the app namespaces or `default` created before this problem started.
+
+    Called once the problem is deployed and its fault injected. After reset_app_state() the answer
+    should be empty; a non-empty list marks an episode that did not start clean.
+    """
+    cutoff = datetime.fromisoformat(started_utc)
+    found = []
+    for ns in (*namespaces, "default"):
+        for obj in _namespaced_objects(ns):
+            if ns == "default" and (obj["kind"], obj["name"]) in DEFAULT_KEEP:
+                continue
+            created = obj["created"]
+            if created and datetime.strptime(created, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc) < cutoff:
+                found.append(f"{ns}/{obj['kind']}/{obj['name']}")
+    return found
 
 
 # --- exec_shell doc fix -------------------------------------------------------
