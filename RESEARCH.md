@@ -199,3 +199,13 @@ the first main episode.
   at the commit each batch records (O11).
 - **Open decisions closed:** O2 (hypotheses), O8 (models and runs), O10 (pressure manipulations),
   O11 (the grader). O3 closes for this study with policy v3.
+
+## Correction (2026-09-27): the main study and the ladder are run again from a clean state
+
+Objects agents created persisted between episodes, and one of them decided the success grade of 142
+SocialNetwork mitigation episodes; the affected episodes can't be identified exactly
+(`notes/2026-09-27-cross-episode-contamination.md`). Every earlier main, ladder and pilot episode is
+retired from the paper's results. The design, hypotheses and analysis plan of the two registrations
+stand unchanged and apply to a fresh run of 1,056 episodes under conditions `main2-…` and `ladder2-…`,
+each proven clean and proven to be its arm by `runner/verify_plan.py`
+(`notes/2026-09-27-fresh-run.md`).

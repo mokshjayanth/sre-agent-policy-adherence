@@ -183,3 +183,79 @@ def test_preexisting_objects_is_empty_after_a_reset(monkeypatch):
     monkeypatch.setattr(harness_fixes.subprocess, "run", cluster.run)
     harness_fixes.reset_app_state(poll_s=0)
     assert harness_fixes.preexisting_objects("2026-09-27T16:00:00+00:00") == []
+
+
+# --- the cluster baseline ---------------------------------------------------------
+
+
+def _listing(*items):
+    return {"items": list(items)}
+
+
+def _item(kind, name, ns=None, created="2026-09-28T00:00:00Z", spec=None, owned=False, annotations=None):
+    meta = {"name": name, "creationTimestamp": created}
+    if ns:
+        meta["namespace"] = ns
+    if owned:
+        meta["ownerReferences"] = [{"kind": "ReplicaSet"}]
+    if annotations:
+        meta["annotations"] = annotations
+    return {"kind": kind, "metadata": meta, "spec": spec or {}}
+
+
+def _cluster(monkeypatch, namespaced, scoped):
+    def items(*args):
+        return scoped if args[0] == harness_fixes.CLUSTER_KINDS else namespaced
+    monkeypatch.setattr(harness_fixes, "_items", items)
+
+
+BASE_NS = [_item("ConfigMap", "coredns", "kube-system", spec={"a": 1}),
+           _item("Pod", "coredns-x", "kube-system", owned=True),
+           _item("Pod", "debug-pod", "test-social-network"),
+           _item("Job", "wrk2-job", "default")]
+BASE_SCOPED = [_item("Node", "kind-worker", spec={"taints": []}), _item("Namespace", "observe"),
+               _item("Namespace", "test-social-network"),
+               _item("PersistentVolume", "pvc-1", annotations={"pv.kubernetes.io/provisioned-by": "openebs"})]
+
+
+def test_cluster_objects_leave_out_what_the_reset_or_the_harness_owns(monkeypatch):
+    _cluster(monkeypatch, BASE_NS, BASE_SCOPED)
+    assert sorted(harness_fixes.cluster_objects()) == ["Namespace/observe", "Node/kind-worker",
+                                                       "kube-system/ConfigMap/coredns"]
+
+
+def test_no_drift_against_its_own_baseline(monkeypatch, tmp_path):
+    _cluster(monkeypatch, BASE_NS, BASE_SCOPED)
+    harness_fixes.write_cluster_baseline(tmp_path / "b.json")
+    assert harness_fixes.cluster_drift("2026-09-28T01:00:00+00:00", tmp_path / "b.json") == []
+
+
+def test_drift_finds_new_changed_and_gone_objects(monkeypatch, tmp_path):
+    _cluster(monkeypatch, BASE_NS, BASE_SCOPED)
+    harness_fixes.write_cluster_baseline(tmp_path / "b.json")
+    later = [_item("ConfigMap", "coredns", "kube-system", spec={"a": 2}),                 # changed
+             _item("ConfigMap", "prometheus-temp-config", "observe", created="2026-09-28T00:30:00Z"),  # new, earlier
+             _item("Deployment", "prometheus-server", "observe", created="2026-09-28T01:00:05Z")]      # this problem's
+    scoped = [_item("Namespace", "observe"), _item("Namespace", "debug", created="2026-09-28T00:40:00Z")]
+    _cluster(monkeypatch, later, scoped)                                                    # node gone
+    assert harness_fixes.cluster_drift("2026-09-28T01:00:00+00:00", tmp_path / "b.json") == [
+        "changed: kube-system/ConfigMap/coredns", "gone: Node/kind-worker", "new: Namespace/debug",
+        "new: observe/ConfigMap/prometheus-temp-config"]
+
+
+def test_a_node_taint_or_label_is_drift(monkeypatch, tmp_path):
+    _cluster(monkeypatch, BASE_NS, BASE_SCOPED)
+    harness_fixes.write_cluster_baseline(tmp_path / "b.json")
+    tainted = [_item("Node", "kind-worker", spec={"taints": [{"key": "x", "effect": "NoSchedule"}]}),
+               *BASE_SCOPED[1:]]
+    _cluster(monkeypatch, BASE_NS, tainted)
+    assert harness_fixes.cluster_drift("2026-09-28T01:00:00+00:00", tmp_path / "b.json") == ["changed: Node/kind-worker"]
+
+
+def test_a_failed_listing_raises_instead_of_reading_as_clean(monkeypatch):
+    failed = types.SimpleNamespace(returncode=1, stdout="", stderr="connection refused")
+    monkeypatch.setattr(harness_fixes.subprocess, "run", lambda *a, **k: failed)
+    with pytest.raises(RuntimeError):
+        harness_fixes.preexisting_objects("2026-09-28T00:00:00+00:00")
+    with pytest.raises(RuntimeError):
+        harness_fixes.cluster_objects()

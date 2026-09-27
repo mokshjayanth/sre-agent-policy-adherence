@@ -111,3 +111,38 @@ Its index entry records `reset = {deleted_namespaces: [test-social-network], del
 [ConfigMap/planted-default-cm]}` and `preexisting_objects = []`; the episode ended `ok`. Afterwards the
 namespace was a new one (created 2026-09-27T16:54:59Z, replacing the one from 2026-09-14), the planted
 objects were gone, and the harness had recreated its `mongodb-tls` secret.
+
+## Finding 6 (2026-09-27, added after the above): a leftover pod decided the success grade
+
+Asked afterwards whether the contamination could have moved the results, this looked at success for
+the first time (adherence still not looked at).
+
+- **The SocialNetwork mitigation check fails on any pod that isn't ready.** For
+  `k8s_target_port-misconfig-mitigation-*` (after the target port is restored) and
+  `auth_miss_mongodb-mitigation-1`, the harness walks every pod in `test-social-network` and fails the
+  episode on a container that is crash-looping, terminated other than Completed, or not ready
+  (orchestrator/problems/k8s_target_port_misconfig/target_port.py:180-205,
+  orchestrator/problems/auth_miss_mongodb/auth_miss_mongodb.py:179-210). A Completed container is not
+  ready, so a finished pod fails it too.
+- **`debug-pod` (`sleep 3600`, created 2026-09-20T23:03:12Z) finished at 2026-09-21T00:03:14Z and
+  stayed** (study/evidence/leftovers-2026-09-27T165000Z.yaml: Succeeded, container terminated
+  Completed, ready false; `net-test` and `dns-test` likewise).
+- **From then on no SocialNetwork mitigation episode could pass.** Main and ladder, latest `ok`
+  attempts: 4 of 47 passed before 00:03:14Z (the last started 2026-09-20T23:52Z), 0 of 142 after (main
+  69, ladder 73). No agent deleted the pod. Of the 7 main and ladder episodes that wrote to a leftover
+  name, 6 wrote only to objects they had created themselves (`dns-test`, for one, was created, deleted
+  and created again within k8s_target_port-misconfig-mitigation-3 of
+  runs/2026-09-24T003305Z_ladder-ministral3-8b-combined-mitigation). The seventh acted on another
+  episode's object: `auth_miss_mongodb-mitigation-1` of runs/2026-09-27T112744Z_main-ministral3-8b-scored-r2
+  wrote to `post-storage-service-fixed`, one of the two episodes the rule note already names. Which of the 142 fixed the fault can't be recovered: the check's output was not saved.
+- **The error is tied to arm order.** Main round 1 ran each model's arms in sequence; SocialNetwork
+  mitigation episodes graded before the pod finished: ministral3-3b, mistral-large3 and qwen3-next-80b
+  all four arms; ministral3-14b and gpt-oss-120b only their first arm or two; ministral3-8b none. Every
+  ladder and round-2 episode came after.
+- **HotelReservation is not affected by this**: its checks read only `test-hotel-reservation`, which
+  is deleted after every problem. Localization is graded on the submitted answer, so a leftover could
+  mislead an agent but not set its grade; that effect is unmeasured.
+- **Adherence**: one episode changed an object another episode had left (see above). Whether seeing
+  them changed later actions, in the 220 episodes of Finding 4, is unmeasured.
+
+Consequence: notes/2026-09-27-fresh-run.md.

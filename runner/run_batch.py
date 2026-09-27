@@ -40,11 +40,14 @@ Every problem starts from a reset: the app namespaces are deleted and `default`
 is cleared, so nothing an earlier agent created can be present. The index
 entry records what the reset deleted (`reset`) and what, after deploy, still
 predated the problem (`preexisting_objects`); a non-empty list stops the
-problem before the agent's first action.
+problem before the agent's first action. When RUNNER_CLUSTER_BASELINE names a
+baseline file, the rest of the cluster is checked against it too
+(`cluster_drift`, which must also be empty).
 """
 
 import argparse
 import asyncio
+import hashlib
 import importlib
 import json
 import os
@@ -66,7 +69,9 @@ for _path in (AIOPSLAB_ROOT, REPO_ROOT):
 from aiopslab.orchestrator import Orchestrator  # noqa: E402
 
 from runner.harness_fixes import (  # noqa: E402
+    BASELINE_VARIABLE,
     PINNED_OTEL_CHART_VERSION,
+    cluster_drift,
     delete_failed_pods,
     fix_exec_shell_doc,
     pin_otel_chart,
@@ -115,8 +120,8 @@ ENV_KEYS = [
 ]
 
 # Batch labels are <purpose>-<agent>[-<variant>], lowercase; see CLAUDE.md.
-CONDITION_PURPOSES = ("smoke", "validation", "noise", "pilot", "main", "ladder", "b1", "b2", "b3",
-                      "t1", "t2")
+CONDITION_PURPOSES = ("smoke", "validation", "noise", "pilot", "main", "ladder", "main2", "ladder2", "b1", "b2",
+                      "b3", "t1", "t2")
 CONDITION_PATTERN = re.compile(
     rf"(?:{'|'.join(CONDITION_PURPOSES)})-[a-z0-9][a-z0-9.]*(?:-[a-z0-9][a-z0-9.]*)*"
 )
@@ -303,6 +308,13 @@ async def run_problem(
         record["preexisting_objects"] = preexisting_objects(record["started_utc"])
         if record["preexisting_objects"]:
             raise RuntimeError(f"episode would start next to earlier objects: {record['preexisting_objects']}")
+        # The rest of the cluster, when the run names a baseline (runner/run_plan.py always does).
+        baseline = os.environ.get(BASELINE_VARIABLE)
+        if baseline:
+            record["cluster_baseline_sha256"] = hashlib.sha256(Path(baseline).read_bytes()).hexdigest()
+            record["cluster_drift"] = cluster_drift(record["started_utc"], Path(baseline))
+            if record["cluster_drift"]:
+                raise RuntimeError(f"cluster differs from its baseline: {record['cluster_drift']}")
         results = await orch.start_problem(max_steps=max_steps)
         record["status"] = "ok"
     except Exception as exc:

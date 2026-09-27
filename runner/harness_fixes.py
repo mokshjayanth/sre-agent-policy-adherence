@@ -19,8 +19,12 @@ deviates from stock AIOpsLab. Revisit it whenever the harness pin moves.
   an agent created there, or in `default`, persist into later episodes. Every
   problem now starts from deleted app namespaces and a cleared `default`. See
   notes/2026-09-27-cross-episode-contamination.md.
+- Cluster baseline: the rest of the cluster (other namespaces, cluster-scoped
+  objects, nodes) is checked against a baseline taken once on a fresh cluster,
+  when a run names one. See notes/2026-09-27-fresh-run.md.
 """
 
+import hashlib
 import json
 import os
 import re
@@ -268,15 +272,18 @@ def _kubectl(*args: str, timeout: int = 120) -> subprocess.CompletedProcess:
                           check=False, timeout=timeout)
 
 
+def _items(*args: str) -> list[dict]:
+    """`kubectl get ... -o json` items. Raises rather than answer "nothing": an empty answer proves a
+    clean start, so a listing that failed must never read as one."""
+    listing = _kubectl("get", *args, "-o", "json")
+    if listing.returncode != 0:
+        raise RuntimeError(f"kubectl get {' '.join(args)} failed: {listing.stderr.strip()[:300]}")
+    return json.loads(listing.stdout or "{}").get("items", [])
+
+
 def _namespaced_objects(namespace: str) -> list[dict]:
     """Every object of NAMESPACED_KINDS in the namespace that no other object owns."""
-    listing = _kubectl("get", NAMESPACED_KINDS, "-n", namespace, "-o", "json")
-    if listing.returncode != 0:
-        return []
-    try:
-        items = json.loads(listing.stdout or "{}").get("items", [])
-    except json.JSONDecodeError:
-        return []
+    items = _items(NAMESPACED_KINDS, "-n", namespace)
     return [{"kind": item["kind"], "name": item["metadata"]["name"],
              "created": item["metadata"].get("creationTimestamp")}
             for item in items if not item["metadata"].get("ownerReferences")]
@@ -330,9 +337,88 @@ def preexisting_objects(started_utc: str, namespaces: tuple[str, ...] = APP_NAME
             if ns == "default" and (obj["kind"], obj["name"]) in DEFAULT_KEEP:
                 continue
             created = obj["created"]
-            if created and datetime.strptime(created, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc) < cutoff:
+            if created and _created(created) < cutoff:
                 found.append(f"{ns}/{obj['kind']}/{obj['name']}")
     return found
+
+
+def _created(stamp: str) -> datetime:
+    return datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+
+
+# --- the rest of the cluster ----------------------------------------------------
+#
+# The reset covers the app namespaces and `default`. An agent can also create or change objects
+# elsewhere: 1 write in the main study and ladder did (a config map in `observe`, batch
+# 2026-09-21T074218Z_main-ministral3-8b-policy). So a run can take a baseline of everything else once,
+# on a fresh cluster before its first episode, and each problem then checks the cluster against it:
+# nothing new that predates the problem, nothing changed, nothing gone (notes/2026-09-27-fresh-run.md).
+
+# Kinds without a namespace that an agent could create or change the cluster through.
+CLUSTER_KINDS = ("nodes,namespaces,persistentvolumes,clusterroles,clusterrolebindings,storageclasses,"
+                 "priorityclasses,customresourcedefinitions,mutatingwebhookconfigurations,"
+                 "validatingwebhookconfigurations")
+# The harness recreates these in `default` for every problem (DEFAULT_KEEP).
+HARNESS_PER_PROBLEM = {("default", "Job", "wrk2-job"), ("default", "ConfigMap", "wrk2-payload-script")}
+BASELINE_VARIABLE = "RUNNER_CLUSTER_BASELINE"
+
+
+def _fingerprint(item: dict) -> str:
+    """What an agent's change would alter: everything but metadata and status, plus the labels."""
+    body = {k: v for k, v in item.items() if k not in ("metadata", "status")}
+    body["labels"] = item["metadata"].get("labels") or {}
+    return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def cluster_objects() -> dict[str, dict]:
+    """Objects the reset does not cover, keyed "<ns>/<Kind>/<name>" or "<Kind>/<name>".
+
+    Unowned objects of NAMESPACED_KINDS in every namespace but the app namespaces, and every object of
+    CLUSTER_KINDS, except the app namespaces themselves (the reset deletes them), the harness's
+    per-problem workload in `default`, and volumes a provisioner made for a claim.
+    """
+    found = {}
+    for item in _items(NAMESPACED_KINDS, "-A"):
+        meta = item["metadata"]
+        ns = meta.get("namespace", "")
+        if ns in APP_NAMESPACES or meta.get("ownerReferences") or (ns, item["kind"], meta["name"]) in HARNESS_PER_PROBLEM:
+            continue
+        found[f"{ns}/{item['kind']}/{meta['name']}"] = {"created": meta.get("creationTimestamp"),
+                                                         "fingerprint": _fingerprint(item)}
+    for item in _items(CLUSTER_KINDS):
+        meta = item["metadata"]
+        if item["kind"] == "Namespace" and meta["name"] in APP_NAMESPACES:
+            continue
+        if item["kind"] == "PersistentVolume" and "pv.kubernetes.io/provisioned-by" in (meta.get("annotations") or {}):
+            continue
+        found[f"{item['kind']}/{meta['name']}"] = {"created": meta.get("creationTimestamp"),
+                                                   "fingerprint": _fingerprint(item)}
+    return found
+
+
+def write_cluster_baseline(path: Path) -> dict:
+    """Record cluster_objects() as the state every later problem is checked against."""
+    baseline = {"taken_utc": datetime.now(timezone.utc).isoformat(), "objects": cluster_objects()}
+    path.write_text(json.dumps(baseline, indent=1, sort_keys=True) + "\n")
+    return baseline
+
+
+def cluster_drift(started_utc: str, baseline_path: Path) -> list[str]:
+    """How the cluster outside the reset differs from the baseline, for a problem started at started_utc.
+
+    "new: <key>" for an object absent from the baseline and created before the problem started (one the
+    harness made during this problem's deploy is newer), "changed: <key>" and "gone: <key>" for baseline
+    objects. Empty means the problem starts in the cluster the baseline recorded.
+    """
+    cutoff = datetime.fromisoformat(started_utc)
+    baseline = json.loads(Path(baseline_path).read_text())["objects"]
+    now = cluster_objects()
+    drift = [f"new: {key}" for key, obj in now.items()
+             if key not in baseline and (not obj["created"] or _created(obj["created"]) < cutoff)]
+    drift += [f"changed: {key}" for key, obj in now.items()
+              if key in baseline and obj["fingerprint"] != baseline[key]["fingerprint"]]
+    drift += [f"gone: {key}" for key in baseline if key not in now]
+    return sorted(drift)
 
 
 # --- exec_shell doc fix -------------------------------------------------------
