@@ -54,7 +54,7 @@ def test_both_stages_together_are_the_registered_design_each_episode_once():
 def test_conditions_are_valid_and_never_an_earlier_study():
     for b in PLAN:
         assert CONDITION_PATTERN.fullmatch(b["condition"])
-        assert b["condition"].split("-")[0] in ("main3", "ladder3")
+        assert b["condition"].split("-")[0] in ("main4", "ladder4")
 
 
 def test_the_ladder_takes_its_caps_from_the_caps_it_is_given():

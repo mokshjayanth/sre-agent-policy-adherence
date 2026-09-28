@@ -24,8 +24,9 @@ deviates from stock AIOpsLab. Revisit it whenever the harness pin moves.
   when a run names one. See notes/2026-09-27-fresh-run.md.
 - Control-plane container: agent commands run inside it; files they write and
   processes they leave would outlive the episode. Every agent command is
-  followed by killing what it left running, the reset deletes new files, and
-  the baseline covers both. See notes/2026-09-28-control-plane-persistence.md.
+  followed by killing what it left running, the reset deletes new files and
+  restores changed ones from a snapshot taken with the baseline, and the
+  baseline covers both. See notes/2026-09-28-control-plane-persistence.md.
 """
 
 import hashlib
@@ -378,7 +379,9 @@ def reset_app_state(namespaces: tuple[str, ...] = APP_NAMESPACES, timeout_s: int
         # The control plane's file system and processes (see "the control-plane container" below).
         recorded = json.loads(Path(baseline_path).read_text())
         result["reaped_processes"] = reap_exec_processes()
-        result["deleted_container_files"] = reset_container_files(recorded["container_files"])
+        container = reset_container_files(recorded["container_files"], recorded.get("container_snapshot"))
+        result["deleted_container_files"] = container["deleted"]
+        result["restored_container_files"] = container["restored"]
     return result
 
 
@@ -463,12 +466,21 @@ def cluster_objects() -> dict[str, dict]:
     return found
 
 
-def write_cluster_baseline(path: Path) -> dict:
-    """Record cluster_objects() and container_files() as the state every later problem is checked against."""
+def write_cluster_baseline(path: Path, snapshot: Path | None = None) -> dict:
+    """Record cluster_objects() and container_files() as the state every later problem is checked against,
+    with a snapshot of the container's files for the reset to restore from (container_snapshot())."""
+    snapshot = snapshot or CONTAINER_SNAPSHOT_DIR / f"{path.stem}.files.tar"
+    files, snapshot_sha = container_snapshot(snapshot)
     baseline = {"taken_utc": datetime.now(timezone.utc).isoformat(), "objects": cluster_objects(),
-                "container_files": container_files()}
+                "container_files": files,
+                "container_snapshot": {"file": _repo_relative(snapshot), "sha256": snapshot_sha}}
     path.write_text(json.dumps(baseline, indent=1, sort_keys=True) + "\n")
     return baseline
+
+
+def _repo_relative(path: Path) -> str:
+    path = Path(path).resolve()
+    return str(path.relative_to(REPO_ROOT)) if path.is_relative_to(REPO_ROOT) else str(path)
 
 
 def cluster_drift(started_utc: str, baseline_path: Path) -> list[str]:
@@ -506,8 +518,13 @@ def cluster_drift(started_utc: str, baseline_path: Path) -> list[str]:
 #   wrote for 14 minutes after its episode had moved on, 74 GB, and filled the disk.
 # The harness runs nothing else in the container, so a process or a path there that the baseline does
 # not have is an agent's. Every agent command is followed by killing whatever it left running, the
-# reset deletes new paths, and cluster_drift() also reports new, changed or missing paths and any live
-# process an agent command started.
+# reset deletes new paths and restores changed or missing files from the snapshot taken with the
+# baseline, and cluster_drift() reports any path the reset could not put back and any live process an
+# agent command started.
+# Restoring, not refusing, is what keeps the run going when a command changes a file that was already
+# there: kubectl rewrites its discovery cache under /root/.kube/cache whenever an agent names a resource
+# type it doesn't know, which stopped stage 1 on 2026-09-28, and an agent has run apt-get install on the
+# node itself (runs/2026-09-20T095754Z_main-ministral3-3b-scored).
 
 CONTROL_PLANE = "kind-control-plane"
 # docker exec puts its process, and every orphan it leaves, in the container's init.scope cgroup; the
@@ -622,15 +639,73 @@ def container_drift(baseline: dict[str, str]) -> list[str]:
     return drift
 
 
-def reset_container_files(baseline: dict[str, str]) -> list[str]:
-    """Delete every path the baseline doesn't have; return the outermost ones deleted. A changed or
-    missing baseline path can't be restored here, so it is left for cluster_drift() to report."""
-    new = _outermost([p for p in container_files() if p not in baseline])
-    if new:
-        removed = _docker("exec", CONTROL_PLANE, "rm", "-rf", "--one-file-system", "--", *new)
+# Snapshots are ~600 MB, so they live in the gitignored study/ folder; the baseline records each one's
+# sha256, and the reset checks it before restoring from it.
+CONTAINER_SNAPSHOT_DIR = REPO_ROOT / "study" / "baselines"
+# File types tar can snapshot and restore: regular files and symlinks. Sockets, pipes and devices are
+# only compared.
+_RESTORABLE = ("f", "l")
+_TAR_CREATE = ["tar", "-C", "/", "--format=posix", "--hard-dereference", "--no-recursion", "-cf", "-", "-T", "-"]
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def container_snapshot(snapshot: Path) -> tuple[dict[str, str], str]:
+    """Write every restorable file of container_files() to the tar `snapshot`; return the listing and the
+    tar's sha256. Raises unless the listing is the same before and after, so the two agree."""
+    before = container_files()
+    names = [p.lstrip("/") for p, v in before.items() if v != "d" and v.split()[0] in _RESTORABLE]
+    snapshot.parent.mkdir(parents=True, exist_ok=True)
+    with open(snapshot, "wb") as out:
+        made = subprocess.run(["docker", "exec", "-i", CONTROL_PLANE, *_TAR_CREATE],
+                              input=("\n".join(names) + "\n").encode(), stdout=out, stderr=subprocess.PIPE,
+                              check=False, timeout=600)
+    if made.returncode != 0:
+        raise RuntimeError(f"snapshot of {CONTROL_PLANE} failed: {made.stderr.decode()[-300:]}")
+    if container_files() != before:
+        raise RuntimeError(f"{CONTROL_PLANE}'s files changed while the snapshot was taken; take it again")
+    return before, _sha256(snapshot)
+
+
+def reset_container_files(baseline: dict[str, str], snapshot: dict | None = None) -> dict[str, list[str]]:
+    """Put the container's files back to the baseline: delete every path it doesn't have, and restore every
+    changed or missing one from `snapshot` (the baseline's "container_snapshot"). Return the outermost
+    paths deleted and the paths restored. What can't be restored is left for cluster_drift() to report."""
+    now = container_files()
+    new = _outermost([p for p in now if p not in baseline])
+    # A baseline directory that is missing or became something else; a file, symlink that changed or is gone.
+    dirs = sorted(p for p, v in baseline.items() if v == "d" and now.get(p) != "d")
+    files = sorted(p for p, v in baseline.items()
+                   if v != "d" and v.split()[0] in _RESTORABLE and now.get(p) != v)
+    if snapshot is None:
+        dirs, files = [], []
+    remove = _outermost(new + [p for p in dirs + files if p in now])
+    if remove:
+        removed = _docker("exec", CONTROL_PLANE, "rm", "-rf", "--one-file-system", "--", *remove)
         if removed.returncode != 0:
-            raise RuntimeError(f"removing {new} in {CONTROL_PLANE} failed: {removed.stderr.strip()[:300]}")
-    return new
+            raise RuntimeError(f"removing {remove} in {CONTROL_PLANE} failed: {removed.stderr.strip()[:300]}")
+    if dirs:
+        made = _docker("exec", CONTROL_PLANE, "mkdir", "-p", "--", *dirs)
+        if made.returncode != 0:
+            raise RuntimeError(f"recreating {dirs} in {CONTROL_PLANE} failed: {made.stderr.strip()[:300]}")
+    if files:
+        tar = REPO_ROOT / snapshot["file"]
+        if _sha256(tar) != snapshot["sha256"]:
+            raise RuntimeError(f"{tar} is not the snapshot the baseline recorded")
+        with open(tar, "rb") as source:
+            restored = subprocess.run(["docker", "exec", "-i", CONTROL_PLANE, "tar", "-C", "/", "-xpf", "-",
+                                       "--no-recursion", "--", *[p.lstrip("/") for p in files]],
+                                      stdin=source, capture_output=True, check=False, timeout=600)
+        if restored.returncode != 0:
+            raise RuntimeError(f"restoring {files[:20]} in {CONTROL_PLANE} failed: "
+                               f"{restored.stderr.decode()[-300:]}")
+    return {"deleted": new, "restored": dirs + files}
 
 
 # The disk every run writes to, and the container's writable layer, share one volume. The episode that

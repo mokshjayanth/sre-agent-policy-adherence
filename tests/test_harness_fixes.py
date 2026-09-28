@@ -305,6 +305,7 @@ class FakeNode:
 
     def run(self, argv, **kwargs):
         ok = lambda out="": types.SimpleNamespace(returncode=0, stdout=out, stderr="")
+        argv = [a for a in argv if a != "-i"]
         assert argv[:3] == ["docker", "exec", harness_fixes.CONTROL_PLANE], argv
         args = argv[3:]
         self.calls.append(args)
@@ -319,6 +320,19 @@ class FakeNode:
             for pid in args[2:]:
                 self.processes.pop(pid, None)
             return ok()
+        if args[0] == "tar" and "-cf" in args:              # snapshot: the named paths' fingerprints, as JSON
+            names = kwargs["input"].decode().split()
+            kwargs["stdout"].write(json.dumps({"/" + n: self.files["/" + n] for n in names}).encode())
+            return types.SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+        if args[0] == "tar" and "-xpf" in args:
+            snap = json.loads(kwargs["stdin"].read())
+            for name in args[args.index("--") + 1:]:
+                self.files["/" + name] = snap["/" + name]
+            return types.SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+        if args[0] == "mkdir":
+            for path in args[args.index("--") + 1:]:
+                self.files[path] = "d"
+            return ok()
         if args[0] == "rm":
             for path in args[args.index("--") + 1:]:
                 self.files = {p: v for p, v in self.files.items() if p != path and not p.startswith(path + "/")}
@@ -327,6 +341,16 @@ class FakeNode:
 
 
 BASE_FILES = {"/": "d", "/etc": "d", "/etc/hosts": "f 200 1.0", "/tmp": "d", "/.dockerenv": "f 0 1.0"}
+
+
+@pytest.fixture(autouse=True)
+def no_real_node(monkeypatch, tmp_path):
+    """Tests never reach the real control plane or write a snapshot outside tmp_path: docker goes to a
+    fake node unless a test installs its own fake."""
+    node, real = FakeNode(files=BASE_FILES), subprocess.run
+    monkeypatch.setattr(harness_fixes.subprocess, "run",
+                        lambda argv, **kw: node.run(argv, **kw) if argv[0] == "docker" else real(argv, **kw))
+    monkeypatch.setattr(harness_fixes, "CONTAINER_SNAPSHOT_DIR", tmp_path / "baselines")
 
 
 def test_exec_processes_are_the_init_scope_members_but_init_and_the_lister(monkeypatch):
@@ -368,10 +392,59 @@ def test_container_files_drift_and_reset(monkeypatch):
     assert sorted(harness_fixes.container_drift(baseline)) == [
         "file changed: /etc/hosts", "file gone: /.dockerenv", "file new: /geo-deployment-fixed.yaml",
         "file new: /tmp/work"]
-    assert harness_fixes.reset_container_files(baseline) == ["/geo-deployment-fixed.yaml", "/tmp/work"]
+    assert harness_fixes.reset_container_files(baseline) == {
+        "deleted": ["/geo-deployment-fixed.yaml", "/tmp/work"], "restored": []}
     assert "/tmp/work/a.sh" not in node.files and "/geo-deployment-fixed.yaml" not in node.files
-    # what the reset cannot restore is still reported
+    # without a snapshot, what the reset cannot restore is still reported
     assert sorted(harness_fixes.container_drift(baseline)) == ["file changed: /etc/hosts", "file gone: /.dockerenv"]
+
+
+def _snapshot_baseline(node, monkeypatch, tmp_path):
+    monkeypatch.setattr(harness_fixes.subprocess, "run", node.run)
+    monkeypatch.setattr(harness_fixes, "REPO_ROOT", tmp_path)
+    files, sha = harness_fixes.container_snapshot(tmp_path / "snap.tar")
+    return files, {"file": "snap.tar", "sha256": sha}
+
+
+def test_the_reset_restores_changed_and_missing_files_from_the_snapshot(monkeypatch, tmp_path):
+    node = FakeNode(files={**BASE_FILES, "/root": "d", "/root/.kube": "d", "/root/.kube/cache": "d",
+                           "/root/.kube/cache/discovery.json": "f 900 1.0", "/usr": "d", "/usr/bin": "d",
+                           "/usr/bin/tool": "l 7 1.0"})
+    baseline, snapshot = _snapshot_baseline(node, monkeypatch, tmp_path)
+    assert json.loads((tmp_path / "snap.tar").read_text()).keys() == {
+        "/etc/hosts", "/.dockerenv", "/root/.kube/cache/discovery.json", "/usr/bin/tool"}   # no directories
+    node.files["/root/.kube/cache/discovery.json"] = "f 950 9.0"          # kubectl refreshed its cache
+    node.files["/usr/bin/tool"] = "f 12 9.0"                             # a symlink replaced by a file
+    for gone in ("/root/.kube/cache", "/root/.kube/cache/discovery.json"):
+        del node.files[gone]
+    node.files["/root/.kube/cache"] = "f 3 9.0"                          # a directory replaced by a file
+    node.files["/usr/bin/telnet"] = "f 100 9.0"                          # apt-get install
+    result = harness_fixes.reset_container_files(baseline, snapshot)
+    assert result == {"deleted": ["/usr/bin/telnet"],
+                      "restored": ["/root/.kube/cache", "/root/.kube/cache/discovery.json", "/usr/bin/tool"]}
+    assert node.files == baseline and harness_fixes.container_drift(baseline) == []
+
+
+def test_the_reset_refuses_a_snapshot_that_is_not_the_recorded_one(monkeypatch, tmp_path):
+    node = FakeNode(files=BASE_FILES)
+    baseline, snapshot = _snapshot_baseline(node, monkeypatch, tmp_path)
+    node.files["/etc/hosts"] = "f 1 9.0"
+    (tmp_path / "snap.tar").write_text("{}")
+    with pytest.raises(RuntimeError, match="not the snapshot the baseline recorded"):
+        harness_fixes.reset_container_files(baseline, snapshot)
+
+
+def test_a_snapshot_taken_while_files_change_raises(monkeypatch, tmp_path):
+    node = FakeNode(files=BASE_FILES)
+    real = node.run
+    def run(argv, **kwargs):
+        out = real(argv, **kwargs)
+        if "-cf" in argv:
+            node.files["/tmp/new"] = "f 1 9.0"
+        return out
+    monkeypatch.setattr(harness_fixes.subprocess, "run", run)
+    with pytest.raises(RuntimeError, match="changed while the snapshot was taken"):
+        harness_fixes.container_snapshot(tmp_path / "snap.tar")
 
 
 def test_cluster_drift_reports_container_files_and_live_agent_processes(monkeypatch, tmp_path):
@@ -392,11 +465,16 @@ def test_reset_with_a_baseline_reaps_and_clears_the_control_plane(monkeypatch, t
     def run(argv, **kwargs):
         return node.run(argv, **kwargs) if argv[0] == "docker" else cluster.run(argv, **kwargs)
     monkeypatch.setattr(harness_fixes.subprocess, "run", run)
-    (tmp_path / "b.json").write_text(json.dumps({"objects": {}, "container_files": dict(BASE_FILES)}))
+    monkeypatch.setattr(harness_fixes, "REPO_ROOT", tmp_path)
+    _, sha = harness_fixes.container_snapshot(tmp_path / "snap.tar")
+    (tmp_path / "b.json").write_text(json.dumps({"objects": {}, "container_files": dict(BASE_FILES),
+                                                 "container_snapshot": {"file": "snap.tar", "sha256": sha}}))
     node.files["/rate-deployment.yaml"] = "f 3533 5.0"
+    node.files["/etc/hosts"] = "f 999 8.0"
     result = harness_fixes.reset_app_state(poll_s=0, baseline_path=tmp_path / "b.json")
     assert result["reaped_processes"] == ["700 sleep 300"]
     assert result["deleted_container_files"] == ["/rate-deployment.yaml"]
+    assert result["restored_container_files"] == ["/etc/hosts"]
     assert node.files == BASE_FILES and node.processes == {}
 
 

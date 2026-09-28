@@ -6,7 +6,7 @@
  "episodes": 384,
  "items": [
   {
-   "condition": "main3-ministral3-3b-nopolicy",
+   "condition": "main4-ministral3-3b-nopolicy",
    "study": "main",
    "arm": "nopolicy",
    "task": "both",
@@ -49,7 +49,7 @@
    }
   },
   {
-   "condition": "main3-ministral3-3b-policy",
+   "condition": "main4-ministral3-3b-policy",
    "study": "main",
    "arm": "policy",
    "task": "both",
@@ -107,7 +107,7 @@
    }
   },
   {
-   "condition": "main3-ministral3-8b-nopolicy",
+   "condition": "main4-ministral3-8b-nopolicy",
    "study": "main",
    "arm": "nopolicy",
    "task": "both",
@@ -150,7 +150,7 @@
    }
   },
   {
-   "condition": "main3-ministral3-8b-policy",
+   "condition": "main4-ministral3-8b-policy",
    "study": "main",
    "arm": "policy",
    "task": "both",
@@ -208,7 +208,7 @@
    }
   },
   {
-   "condition": "main3-ministral3-14b-nopolicy",
+   "condition": "main4-ministral3-14b-nopolicy",
    "study": "main",
    "arm": "nopolicy",
    "task": "both",
@@ -251,7 +251,7 @@
    }
   },
   {
-   "condition": "main3-ministral3-14b-policy",
+   "condition": "main4-ministral3-14b-policy",
    "study": "main",
    "arm": "policy",
    "task": "both",
@@ -309,7 +309,7 @@
    }
   },
   {
-   "condition": "main3-mistral-large3-nopolicy",
+   "condition": "main4-mistral-large3-nopolicy",
    "study": "main",
    "arm": "nopolicy",
    "task": "both",
@@ -352,7 +352,7 @@
    }
   },
   {
-   "condition": "main3-mistral-large3-policy",
+   "condition": "main4-mistral-large3-policy",
    "study": "main",
    "arm": "policy",
    "task": "both",
@@ -410,7 +410,7 @@
    }
   },
   {
-   "condition": "main3-qwen3-next-80b-nopolicy",
+   "condition": "main4-qwen3-next-80b-nopolicy",
    "study": "main",
    "arm": "nopolicy",
    "task": "both",
@@ -453,7 +453,7 @@
    }
   },
   {
-   "condition": "main3-qwen3-next-80b-policy",
+   "condition": "main4-qwen3-next-80b-policy",
    "study": "main",
    "arm": "policy",
    "task": "both",
@@ -511,7 +511,7 @@
    }
   },
   {
-   "condition": "main3-gpt-oss-120b-nopolicy",
+   "condition": "main4-gpt-oss-120b-nopolicy",
    "study": "main",
    "arm": "nopolicy",
    "task": "both",
@@ -554,574 +554,11 @@
    }
   },
   {
-   "condition": "main3-gpt-oss-120b-policy",
+   "condition": "main4-gpt-oss-120b-policy",
    "study": "main",
    "arm": "policy",
    "task": "both",
    "round": 1,
-   "model": "openai.gpt-oss-120b",
-   "label": "gpt-oss-120b",
-   "max_steps": 30,
-   "problems": [
-    "k8s_target_port-misconfig-mitigation-2",
-    "k8s_target_port-misconfig-mitigation-3",
-    "auth_miss_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-2",
-    "user_unregistered_mongodb-mitigation-1",
-    "user_unregistered_mongodb-mitigation-2",
-    "wrong_bin_usage-mitigation-1",
-    "k8s_target_port-misconfig-localization-2",
-    "k8s_target_port-misconfig-localization-3",
-    "auth_miss_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-2",
-    "user_unregistered_mongodb-localization-1",
-    "user_unregistered_mongodb-localization-2",
-    "wrong_bin_usage-localization-1"
-   ],
-   "env": {
-    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt"
-   },
-   "expect": {
-    "model": "openai.gpt-oss-120b",
-    "instructed_texts": [
-     {
-      "role": "policy",
-      "file": "policy/draft-v3-mitigation.txt",
-      "task": "mitigation",
-      "sha256": "d4d898ad8625"
-     },
-     {
-      "role": "policy",
-      "file": "policy/draft-v3-diagnosis.txt",
-      "task": "diagnosis",
-      "sha256": "57356491965c"
-     }
-    ],
-    "step_budget": null,
-    "budget_countdown": false,
-    "escalation": [],
-    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
-    "temperature": 0.5,
-    "top_p": 0.95,
-    "max_tokens": 1024,
-    "context_token_limit": 64000,
-    "observation_token_cap": 16000,
-    "prompt_template_sha256": "04dd22bef1bd"
-   }
-  },
-  {
-   "condition": "main3-ministral3-3b-policy-r2",
-   "study": "main",
-   "arm": "policy",
-   "task": "both",
-   "round": 2,
-   "model": "mistral.ministral-3-3b-instruct",
-   "label": "ministral3-3b",
-   "max_steps": 30,
-   "problems": [
-    "k8s_target_port-misconfig-mitigation-2",
-    "k8s_target_port-misconfig-mitigation-3",
-    "auth_miss_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-2",
-    "user_unregistered_mongodb-mitigation-1",
-    "user_unregistered_mongodb-mitigation-2",
-    "wrong_bin_usage-mitigation-1",
-    "k8s_target_port-misconfig-localization-2",
-    "k8s_target_port-misconfig-localization-3",
-    "auth_miss_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-2",
-    "user_unregistered_mongodb-localization-1",
-    "user_unregistered_mongodb-localization-2",
-    "wrong_bin_usage-localization-1"
-   ],
-   "env": {
-    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt"
-   },
-   "expect": {
-    "model": "mistral.ministral-3-3b-instruct",
-    "instructed_texts": [
-     {
-      "role": "policy",
-      "file": "policy/draft-v3-mitigation.txt",
-      "task": "mitigation",
-      "sha256": "d4d898ad8625"
-     },
-     {
-      "role": "policy",
-      "file": "policy/draft-v3-diagnosis.txt",
-      "task": "diagnosis",
-      "sha256": "57356491965c"
-     }
-    ],
-    "step_budget": null,
-    "budget_countdown": false,
-    "escalation": [],
-    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
-    "temperature": 0.5,
-    "top_p": 0.95,
-    "max_tokens": 1024,
-    "context_token_limit": 64000,
-    "observation_token_cap": 16000,
-    "prompt_template_sha256": "04dd22bef1bd"
-   }
-  },
-  {
-   "condition": "main3-ministral3-3b-nopolicy-r2",
-   "study": "main",
-   "arm": "nopolicy",
-   "task": "both",
-   "round": 2,
-   "model": "mistral.ministral-3-3b-instruct",
-   "label": "ministral3-3b",
-   "max_steps": 30,
-   "problems": [
-    "k8s_target_port-misconfig-mitigation-2",
-    "k8s_target_port-misconfig-mitigation-3",
-    "auth_miss_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-2",
-    "user_unregistered_mongodb-mitigation-1",
-    "user_unregistered_mongodb-mitigation-2",
-    "wrong_bin_usage-mitigation-1",
-    "k8s_target_port-misconfig-localization-2",
-    "k8s_target_port-misconfig-localization-3",
-    "auth_miss_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-2",
-    "user_unregistered_mongodb-localization-1",
-    "user_unregistered_mongodb-localization-2",
-    "wrong_bin_usage-localization-1"
-   ],
-   "env": {},
-   "expect": {
-    "model": "mistral.ministral-3-3b-instruct",
-    "instructed_texts": [],
-    "step_budget": null,
-    "budget_countdown": false,
-    "escalation": [],
-    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
-    "temperature": 0.5,
-    "top_p": 0.95,
-    "max_tokens": 1024,
-    "context_token_limit": 64000,
-    "observation_token_cap": 16000,
-    "prompt_template_sha256": "04dd22bef1bd"
-   }
-  },
-  {
-   "condition": "main3-ministral3-8b-policy-r2",
-   "study": "main",
-   "arm": "policy",
-   "task": "both",
-   "round": 2,
-   "model": "mistral.ministral-3-8b-instruct",
-   "label": "ministral3-8b",
-   "max_steps": 30,
-   "problems": [
-    "k8s_target_port-misconfig-mitigation-2",
-    "k8s_target_port-misconfig-mitigation-3",
-    "auth_miss_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-2",
-    "user_unregistered_mongodb-mitigation-1",
-    "user_unregistered_mongodb-mitigation-2",
-    "wrong_bin_usage-mitigation-1",
-    "k8s_target_port-misconfig-localization-2",
-    "k8s_target_port-misconfig-localization-3",
-    "auth_miss_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-2",
-    "user_unregistered_mongodb-localization-1",
-    "user_unregistered_mongodb-localization-2",
-    "wrong_bin_usage-localization-1"
-   ],
-   "env": {
-    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt"
-   },
-   "expect": {
-    "model": "mistral.ministral-3-8b-instruct",
-    "instructed_texts": [
-     {
-      "role": "policy",
-      "file": "policy/draft-v3-mitigation.txt",
-      "task": "mitigation",
-      "sha256": "d4d898ad8625"
-     },
-     {
-      "role": "policy",
-      "file": "policy/draft-v3-diagnosis.txt",
-      "task": "diagnosis",
-      "sha256": "57356491965c"
-     }
-    ],
-    "step_budget": null,
-    "budget_countdown": false,
-    "escalation": [],
-    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
-    "temperature": 0.5,
-    "top_p": 0.95,
-    "max_tokens": 1024,
-    "context_token_limit": 64000,
-    "observation_token_cap": 16000,
-    "prompt_template_sha256": "04dd22bef1bd"
-   }
-  },
-  {
-   "condition": "main3-ministral3-8b-nopolicy-r2",
-   "study": "main",
-   "arm": "nopolicy",
-   "task": "both",
-   "round": 2,
-   "model": "mistral.ministral-3-8b-instruct",
-   "label": "ministral3-8b",
-   "max_steps": 30,
-   "problems": [
-    "k8s_target_port-misconfig-mitigation-2",
-    "k8s_target_port-misconfig-mitigation-3",
-    "auth_miss_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-2",
-    "user_unregistered_mongodb-mitigation-1",
-    "user_unregistered_mongodb-mitigation-2",
-    "wrong_bin_usage-mitigation-1",
-    "k8s_target_port-misconfig-localization-2",
-    "k8s_target_port-misconfig-localization-3",
-    "auth_miss_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-2",
-    "user_unregistered_mongodb-localization-1",
-    "user_unregistered_mongodb-localization-2",
-    "wrong_bin_usage-localization-1"
-   ],
-   "env": {},
-   "expect": {
-    "model": "mistral.ministral-3-8b-instruct",
-    "instructed_texts": [],
-    "step_budget": null,
-    "budget_countdown": false,
-    "escalation": [],
-    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
-    "temperature": 0.5,
-    "top_p": 0.95,
-    "max_tokens": 1024,
-    "context_token_limit": 64000,
-    "observation_token_cap": 16000,
-    "prompt_template_sha256": "04dd22bef1bd"
-   }
-  },
-  {
-   "condition": "main3-ministral3-14b-policy-r2",
-   "study": "main",
-   "arm": "policy",
-   "task": "both",
-   "round": 2,
-   "model": "mistral.ministral-3-14b-instruct",
-   "label": "ministral3-14b",
-   "max_steps": 30,
-   "problems": [
-    "k8s_target_port-misconfig-mitigation-2",
-    "k8s_target_port-misconfig-mitigation-3",
-    "auth_miss_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-2",
-    "user_unregistered_mongodb-mitigation-1",
-    "user_unregistered_mongodb-mitigation-2",
-    "wrong_bin_usage-mitigation-1",
-    "k8s_target_port-misconfig-localization-2",
-    "k8s_target_port-misconfig-localization-3",
-    "auth_miss_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-2",
-    "user_unregistered_mongodb-localization-1",
-    "user_unregistered_mongodb-localization-2",
-    "wrong_bin_usage-localization-1"
-   ],
-   "env": {
-    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt"
-   },
-   "expect": {
-    "model": "mistral.ministral-3-14b-instruct",
-    "instructed_texts": [
-     {
-      "role": "policy",
-      "file": "policy/draft-v3-mitigation.txt",
-      "task": "mitigation",
-      "sha256": "d4d898ad8625"
-     },
-     {
-      "role": "policy",
-      "file": "policy/draft-v3-diagnosis.txt",
-      "task": "diagnosis",
-      "sha256": "57356491965c"
-     }
-    ],
-    "step_budget": null,
-    "budget_countdown": false,
-    "escalation": [],
-    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
-    "temperature": 0.5,
-    "top_p": 0.95,
-    "max_tokens": 1024,
-    "context_token_limit": 64000,
-    "observation_token_cap": 16000,
-    "prompt_template_sha256": "04dd22bef1bd"
-   }
-  },
-  {
-   "condition": "main3-ministral3-14b-nopolicy-r2",
-   "study": "main",
-   "arm": "nopolicy",
-   "task": "both",
-   "round": 2,
-   "model": "mistral.ministral-3-14b-instruct",
-   "label": "ministral3-14b",
-   "max_steps": 30,
-   "problems": [
-    "k8s_target_port-misconfig-mitigation-2",
-    "k8s_target_port-misconfig-mitigation-3",
-    "auth_miss_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-2",
-    "user_unregistered_mongodb-mitigation-1",
-    "user_unregistered_mongodb-mitigation-2",
-    "wrong_bin_usage-mitigation-1",
-    "k8s_target_port-misconfig-localization-2",
-    "k8s_target_port-misconfig-localization-3",
-    "auth_miss_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-2",
-    "user_unregistered_mongodb-localization-1",
-    "user_unregistered_mongodb-localization-2",
-    "wrong_bin_usage-localization-1"
-   ],
-   "env": {},
-   "expect": {
-    "model": "mistral.ministral-3-14b-instruct",
-    "instructed_texts": [],
-    "step_budget": null,
-    "budget_countdown": false,
-    "escalation": [],
-    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
-    "temperature": 0.5,
-    "top_p": 0.95,
-    "max_tokens": 1024,
-    "context_token_limit": 64000,
-    "observation_token_cap": 16000,
-    "prompt_template_sha256": "04dd22bef1bd"
-   }
-  },
-  {
-   "condition": "main3-mistral-large3-policy-r2",
-   "study": "main",
-   "arm": "policy",
-   "task": "both",
-   "round": 2,
-   "model": "mistral.mistral-large-3-675b-instruct",
-   "label": "mistral-large3",
-   "max_steps": 30,
-   "problems": [
-    "k8s_target_port-misconfig-mitigation-2",
-    "k8s_target_port-misconfig-mitigation-3",
-    "auth_miss_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-2",
-    "user_unregistered_mongodb-mitigation-1",
-    "user_unregistered_mongodb-mitigation-2",
-    "wrong_bin_usage-mitigation-1",
-    "k8s_target_port-misconfig-localization-2",
-    "k8s_target_port-misconfig-localization-3",
-    "auth_miss_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-2",
-    "user_unregistered_mongodb-localization-1",
-    "user_unregistered_mongodb-localization-2",
-    "wrong_bin_usage-localization-1"
-   ],
-   "env": {
-    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt"
-   },
-   "expect": {
-    "model": "mistral.mistral-large-3-675b-instruct",
-    "instructed_texts": [
-     {
-      "role": "policy",
-      "file": "policy/draft-v3-mitigation.txt",
-      "task": "mitigation",
-      "sha256": "d4d898ad8625"
-     },
-     {
-      "role": "policy",
-      "file": "policy/draft-v3-diagnosis.txt",
-      "task": "diagnosis",
-      "sha256": "57356491965c"
-     }
-    ],
-    "step_budget": null,
-    "budget_countdown": false,
-    "escalation": [],
-    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
-    "temperature": 0.5,
-    "top_p": 0.95,
-    "max_tokens": 1024,
-    "context_token_limit": 64000,
-    "observation_token_cap": 16000,
-    "prompt_template_sha256": "04dd22bef1bd"
-   }
-  },
-  {
-   "condition": "main3-mistral-large3-nopolicy-r2",
-   "study": "main",
-   "arm": "nopolicy",
-   "task": "both",
-   "round": 2,
-   "model": "mistral.mistral-large-3-675b-instruct",
-   "label": "mistral-large3",
-   "max_steps": 30,
-   "problems": [
-    "k8s_target_port-misconfig-mitigation-2",
-    "k8s_target_port-misconfig-mitigation-3",
-    "auth_miss_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-2",
-    "user_unregistered_mongodb-mitigation-1",
-    "user_unregistered_mongodb-mitigation-2",
-    "wrong_bin_usage-mitigation-1",
-    "k8s_target_port-misconfig-localization-2",
-    "k8s_target_port-misconfig-localization-3",
-    "auth_miss_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-2",
-    "user_unregistered_mongodb-localization-1",
-    "user_unregistered_mongodb-localization-2",
-    "wrong_bin_usage-localization-1"
-   ],
-   "env": {},
-   "expect": {
-    "model": "mistral.mistral-large-3-675b-instruct",
-    "instructed_texts": [],
-    "step_budget": null,
-    "budget_countdown": false,
-    "escalation": [],
-    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
-    "temperature": 0.5,
-    "top_p": 0.95,
-    "max_tokens": 1024,
-    "context_token_limit": 64000,
-    "observation_token_cap": 16000,
-    "prompt_template_sha256": "04dd22bef1bd"
-   }
-  },
-  {
-   "condition": "main3-qwen3-next-80b-policy-r2",
-   "study": "main",
-   "arm": "policy",
-   "task": "both",
-   "round": 2,
-   "model": "qwen.qwen3-next-80b-a3b-instruct",
-   "label": "qwen3-next-80b",
-   "max_steps": 30,
-   "problems": [
-    "k8s_target_port-misconfig-mitigation-2",
-    "k8s_target_port-misconfig-mitigation-3",
-    "auth_miss_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-2",
-    "user_unregistered_mongodb-mitigation-1",
-    "user_unregistered_mongodb-mitigation-2",
-    "wrong_bin_usage-mitigation-1",
-    "k8s_target_port-misconfig-localization-2",
-    "k8s_target_port-misconfig-localization-3",
-    "auth_miss_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-2",
-    "user_unregistered_mongodb-localization-1",
-    "user_unregistered_mongodb-localization-2",
-    "wrong_bin_usage-localization-1"
-   ],
-   "env": {
-    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt"
-   },
-   "expect": {
-    "model": "qwen.qwen3-next-80b-a3b-instruct",
-    "instructed_texts": [
-     {
-      "role": "policy",
-      "file": "policy/draft-v3-mitigation.txt",
-      "task": "mitigation",
-      "sha256": "d4d898ad8625"
-     },
-     {
-      "role": "policy",
-      "file": "policy/draft-v3-diagnosis.txt",
-      "task": "diagnosis",
-      "sha256": "57356491965c"
-     }
-    ],
-    "step_budget": null,
-    "budget_countdown": false,
-    "escalation": [],
-    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
-    "temperature": 0.5,
-    "top_p": 0.95,
-    "max_tokens": 1024,
-    "context_token_limit": 64000,
-    "observation_token_cap": 16000,
-    "prompt_template_sha256": "04dd22bef1bd"
-   }
-  },
-  {
-   "condition": "main3-qwen3-next-80b-nopolicy-r2",
-   "study": "main",
-   "arm": "nopolicy",
-   "task": "both",
-   "round": 2,
-   "model": "qwen.qwen3-next-80b-a3b-instruct",
-   "label": "qwen3-next-80b",
-   "max_steps": 30,
-   "problems": [
-    "k8s_target_port-misconfig-mitigation-2",
-    "k8s_target_port-misconfig-mitigation-3",
-    "auth_miss_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-1",
-    "revoke_auth_mongodb-mitigation-2",
-    "user_unregistered_mongodb-mitigation-1",
-    "user_unregistered_mongodb-mitigation-2",
-    "wrong_bin_usage-mitigation-1",
-    "k8s_target_port-misconfig-localization-2",
-    "k8s_target_port-misconfig-localization-3",
-    "auth_miss_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-1",
-    "revoke_auth_mongodb-localization-2",
-    "user_unregistered_mongodb-localization-1",
-    "user_unregistered_mongodb-localization-2",
-    "wrong_bin_usage-localization-1"
-   ],
-   "env": {},
-   "expect": {
-    "model": "qwen.qwen3-next-80b-a3b-instruct",
-    "instructed_texts": [],
-    "step_budget": null,
-    "budget_countdown": false,
-    "escalation": [],
-    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
-    "temperature": 0.5,
-    "top_p": 0.95,
-    "max_tokens": 1024,
-    "context_token_limit": 64000,
-    "observation_token_cap": 16000,
-    "prompt_template_sha256": "04dd22bef1bd"
-   }
-  },
-  {
-   "condition": "main3-gpt-oss-120b-policy-r2",
-   "study": "main",
-   "arm": "policy",
-   "task": "both",
-   "round": 2,
    "model": "openai.gpt-oss-120b",
    "label": "gpt-oss-120b",
    "max_steps": 30,
@@ -1175,7 +612,570 @@
    }
   },
   {
-   "condition": "main3-gpt-oss-120b-nopolicy-r2",
+   "condition": "main4-ministral3-3b-policy-r2",
+   "study": "main",
+   "arm": "policy",
+   "task": "both",
+   "round": 2,
+   "model": "mistral.ministral-3-3b-instruct",
+   "label": "ministral3-3b",
+   "max_steps": 30,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1",
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-3b-instruct",
+    "instructed_texts": [
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": null,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "main4-ministral3-3b-nopolicy-r2",
+   "study": "main",
+   "arm": "nopolicy",
+   "task": "both",
+   "round": 2,
+   "model": "mistral.ministral-3-3b-instruct",
+   "label": "ministral3-3b",
+   "max_steps": 30,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1",
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {},
+   "expect": {
+    "model": "mistral.ministral-3-3b-instruct",
+    "instructed_texts": [],
+    "step_budget": null,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "main4-ministral3-8b-policy-r2",
+   "study": "main",
+   "arm": "policy",
+   "task": "both",
+   "round": 2,
+   "model": "mistral.ministral-3-8b-instruct",
+   "label": "ministral3-8b",
+   "max_steps": 30,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1",
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-8b-instruct",
+    "instructed_texts": [
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": null,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "main4-ministral3-8b-nopolicy-r2",
+   "study": "main",
+   "arm": "nopolicy",
+   "task": "both",
+   "round": 2,
+   "model": "mistral.ministral-3-8b-instruct",
+   "label": "ministral3-8b",
+   "max_steps": 30,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1",
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {},
+   "expect": {
+    "model": "mistral.ministral-3-8b-instruct",
+    "instructed_texts": [],
+    "step_budget": null,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "main4-ministral3-14b-policy-r2",
+   "study": "main",
+   "arm": "policy",
+   "task": "both",
+   "round": 2,
+   "model": "mistral.ministral-3-14b-instruct",
+   "label": "ministral3-14b",
+   "max_steps": 30,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1",
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-14b-instruct",
+    "instructed_texts": [
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": null,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "main4-ministral3-14b-nopolicy-r2",
+   "study": "main",
+   "arm": "nopolicy",
+   "task": "both",
+   "round": 2,
+   "model": "mistral.ministral-3-14b-instruct",
+   "label": "ministral3-14b",
+   "max_steps": 30,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1",
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {},
+   "expect": {
+    "model": "mistral.ministral-3-14b-instruct",
+    "instructed_texts": [],
+    "step_budget": null,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "main4-mistral-large3-policy-r2",
+   "study": "main",
+   "arm": "policy",
+   "task": "both",
+   "round": 2,
+   "model": "mistral.mistral-large-3-675b-instruct",
+   "label": "mistral-large3",
+   "max_steps": 30,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1",
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt"
+   },
+   "expect": {
+    "model": "mistral.mistral-large-3-675b-instruct",
+    "instructed_texts": [
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": null,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "main4-mistral-large3-nopolicy-r2",
+   "study": "main",
+   "arm": "nopolicy",
+   "task": "both",
+   "round": 2,
+   "model": "mistral.mistral-large-3-675b-instruct",
+   "label": "mistral-large3",
+   "max_steps": 30,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1",
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {},
+   "expect": {
+    "model": "mistral.mistral-large-3-675b-instruct",
+    "instructed_texts": [],
+    "step_budget": null,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "main4-qwen3-next-80b-policy-r2",
+   "study": "main",
+   "arm": "policy",
+   "task": "both",
+   "round": 2,
+   "model": "qwen.qwen3-next-80b-a3b-instruct",
+   "label": "qwen3-next-80b",
+   "max_steps": 30,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1",
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt"
+   },
+   "expect": {
+    "model": "qwen.qwen3-next-80b-a3b-instruct",
+    "instructed_texts": [
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": null,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "main4-qwen3-next-80b-nopolicy-r2",
+   "study": "main",
+   "arm": "nopolicy",
+   "task": "both",
+   "round": 2,
+   "model": "qwen.qwen3-next-80b-a3b-instruct",
+   "label": "qwen3-next-80b",
+   "max_steps": 30,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1",
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {},
+   "expect": {
+    "model": "qwen.qwen3-next-80b-a3b-instruct",
+    "instructed_texts": [],
+    "step_budget": null,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "main4-gpt-oss-120b-policy-r2",
+   "study": "main",
+   "arm": "policy",
+   "task": "both",
+   "round": 2,
+   "model": "openai.gpt-oss-120b",
+   "label": "gpt-oss-120b",
+   "max_steps": 30,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1",
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt"
+   },
+   "expect": {
+    "model": "openai.gpt-oss-120b",
+    "instructed_texts": [
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": null,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "main4-gpt-oss-120b-nopolicy-r2",
    "study": "main",
    "arm": "nopolicy",
    "task": "both",
