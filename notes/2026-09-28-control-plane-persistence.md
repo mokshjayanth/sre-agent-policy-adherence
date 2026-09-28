@@ -123,3 +123,38 @@ agent, at 7069ba7:
 7. **Final baseline**, configs/cluster-baseline-fresh.json, taken 2026-09-28T07:28:47Z right after a
    reset (242 objects, 8,319 container paths), with the file restored; two problems under it
    (runs/2026-09-28T072850Z_smoke-scripted-final-baseline): both `ok`, clean, no drift.
+
+## Correction (2026-09-28): refusing on a changed file stopped stage 1 again; the reset now restores
+
+The Decision above refused any episode whose container files differed from the baseline after the
+reset, which deleted only new paths. That was wrong for files that already existed: stage 1's second
+attempt (`main3-…`, launched 08:12:17Z at c2ea72e) stopped at 09:35:30Z (study/stage1-main3.log). In
+runs/2026-09-28T085729Z_main3-ministral3-3b-policy, k8s_target_port-misconfig-mitigation-3, the agent ran
+`kubectl get resources`; an unknown resource type makes kubectl refetch discovery, rewriting 24 files
+under `/root/.kube/cache`, content derived from the API server, not written by the agent. The next 14
+problems of that batch were refused (`file changed: /root/.kube/cache/…`), and run_plan stopped. An
+agent has also run `apt-get install` on the node itself (runs/2026-09-20T095754Z_main-ministral3-3b-scored,
+k8s_target_port-misconfig-mitigation and wrong_bin_usage-localization-1), which changes
+`/var/lib/dpkg/status` the same way.
+
+- **Fix (e0636de):** the baseline takes a pax tar of every regular file and symlink it lists
+  (study/baselines/cluster-baseline-fresh.files.tar, ~600 MB, local; its sha256 is recorded in
+  configs/cluster-baseline-fresh.json). The reset deletes new paths as before and restores every
+  changed or missing file and directory from that snapshot, after checking its sha256; only what it
+  cannot restore reaches cluster_drift() and refuses the episode. Nothing is skipped for kubectl: its
+  cache is put back like any other file.
+- **`main3` retired:** its 18 completed episodes (runs/2026-09-28T081221Z_main3-ministral3-3b-nopolicy,
+  16; and 2 of runs/2026-09-28T085729Z_main3-ministral3-3b-policy) were clean but ran at c2ea72e, and a
+  plan must run in one environment (runner/verify_plan.py, environment()). The fresh run is `main4-…`
+  and `ladder4-…`.
+- **Baseline retaken** 2026-09-28T19:05:23Z, after a reset with no process left; against the one it
+  replaced it differs only in the 24 kubectl cache files (no other path, no object).
+- **Calibration** (2026-09-28T190601Z_smoke-scripted-restore): on the node, `kubectl get resources`, a real `apt-get install telnet`
+  (succeeded), `/etc/issue.net` deleted, the symlink `/usr/bin/captoinfo` replaced by a file, a
+  planted `/planted.yaml` and a detached `sleep 900`, 53 drift entries in all. The first problem's
+  reset deleted 15 paths, restored 37 files (the 24 cache files, 11 apt/dpkg files, `/etc/issue.net`,
+  the symlink) and killed the process; all three problems started with no drift and ran `ok`, and
+  afterwards telnet was gone and the symlink pointed at `tic` again.
+- **Tests** in tests/test_harness_fixes.py reached the real node through docker since fc9c1fa (three
+  baseline tests); an autouse fixture now sends every docker call to a fake node, and a
+  `docker events` trace of a full test run showed no exec.

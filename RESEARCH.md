@@ -216,3 +216,8 @@ The first attempt at the fresh run's stage 1 (`main2-…`) is retired: files age
 control-plane container reached later episodes (`notes/2026-09-28-control-plane-persistence.md`). The
 fresh run's conditions are `main3-…` and `ladder3-…`; its design is unchanged
 (`notes/2026-09-27-fresh-run.md`).
+
+## Correction (2026-09-28): the fresh run's conditions are main4 and ladder4
+
+The second attempt (`main3-…`) is retired as well; the fresh run's conditions are `main4-…` and
+`ladder4-…`, design unchanged (`notes/2026-09-28-control-plane-persistence.md`).
