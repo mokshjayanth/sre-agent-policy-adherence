@@ -492,3 +492,68 @@ def test_low_disk_raises(monkeypatch):
         harness_fixes.check_free_disk()
     monkeypatch.setattr(harness_fixes.shutil, "disk_usage", lambda p: types.SimpleNamespace(free=70e9))
     assert harness_fixes.check_free_disk() == 70.0
+
+
+# --- restoring the cluster's own objects ---------------------------------------------
+
+
+def _restore_setup(monkeypatch, tmp_path, now):
+    monkeypatch.setattr(harness_fixes, "REPO_ROOT", tmp_path)
+    manifests = {"kube-system/DaemonSet/kube-proxy": {"kind": "DaemonSet", "metadata": {"name": "kube-proxy"}},
+                 "kube-system/ConfigMap/coredns": {"kind": "ConfigMap", "metadata": {"name": "coredns"}}}
+    (tmp_path / "objects.json").write_text(json.dumps(manifests))
+    snapshot = {"file": "objects.json", "sha256": harness_fixes._sha256(tmp_path / "objects.json")}
+    baseline = {"kube-system/DaemonSet/kube-proxy": {"created": "t", "fingerprint": "a"},
+                "kube-system/ConfigMap/coredns": {"created": "t", "fingerprint": "b"}}
+    monkeypatch.setattr(harness_fixes, "cluster_objects", lambda manifests=False: now)
+    calls = []
+    ok = types.SimpleNamespace(returncode=0, stdout="", stderr="")
+    monkeypatch.setattr(harness_fixes, "_kubectl", lambda *a, timeout=120: calls.append(("kubectl", *a)) or ok)
+    monkeypatch.setattr(harness_fixes.subprocess, "run",
+                        lambda argv, **kw: calls.append((argv[3], json.loads(kw["input"])["metadata"]["name"])) or ok)
+    return baseline, snapshot, calls
+
+
+def test_the_reset_puts_changed_missing_and_new_objects_back(monkeypatch, tmp_path):
+    now = {"kube-system/DaemonSet/kube-proxy": {"created": "t", "fingerprint": "restarted"},
+           "kube-system/ConfigMap/agent-notes": {"created": "t", "fingerprint": "c"},
+           "Node/kind-worker-labelled": {"created": "t", "fingerprint": "d"}}
+    baseline, snapshot, calls = _restore_setup(monkeypatch, tmp_path, now)
+    result = harness_fixes.restore_cluster_objects(baseline, snapshot)
+    assert result == {"deleted": ["Node/kind-worker-labelled", "kube-system/ConfigMap/agent-notes"],
+                      "replaced": ["kube-system/DaemonSet/kube-proxy"],
+                      "recreated": ["kube-system/ConfigMap/coredns"]}
+    assert ("replace", "kube-proxy") in calls and ("create", "coredns") in calls
+    assert any(c[:3] == ("kubectl", "delete", "ConfigMap") and "-n" in c for c in calls)
+    assert any(c[:3] == ("kubectl", "delete", "Node") and "-n" not in c for c in calls)
+    # a restored workload is waited for; a ConfigMap is not
+    assert [c[:3] for c in calls if c[1] == "rollout"] == [("kubectl", "rollout", "status")]
+    assert any("daemonset/kube-proxy" in c for c in calls)
+
+
+def test_a_clean_cluster_needs_no_restore_and_no_snapshot(monkeypatch, tmp_path):
+    baseline, snapshot, calls = _restore_setup(monkeypatch, tmp_path, {})
+    now = {k: dict(v) for k, v in baseline.items()}
+    monkeypatch.setattr(harness_fixes, "cluster_objects", lambda manifests=False: now)
+    (tmp_path / "objects.json").write_text("tampered")         # not even read when nothing needs restoring
+    assert harness_fixes.restore_cluster_objects(baseline, snapshot) == {"deleted": [], "replaced": [],
+                                                                         "recreated": []}
+    assert calls == []
+
+
+def test_the_object_restore_refuses_a_snapshot_that_is_not_the_recorded_one(monkeypatch, tmp_path):
+    baseline, snapshot, calls = _restore_setup(monkeypatch, tmp_path, {})
+    (tmp_path / "objects.json").write_text("{}")
+    with pytest.raises(RuntimeError, match="not the object snapshot the baseline recorded"):
+        harness_fixes.restore_cluster_objects(baseline, snapshot)
+    assert calls == []
+
+
+def test_the_baseline_stores_manifests_without_server_fields(monkeypatch, tmp_path):
+    _cluster(monkeypatch, BASE_NS, BASE_SCOPED)
+    baseline = harness_fixes.write_cluster_baseline(tmp_path / "b.json")
+    stored = json.loads((tmp_path / "baselines" / "b.objects.json").read_text())
+    assert stored.keys() == baseline["objects"].keys()
+    assert all(set(m["metadata"]) <= {"name", "namespace", "labels", "annotations"} and "status" not in m
+               for m in stored.values())
+    assert all(set(v) == {"created", "fingerprint"} for v in baseline["objects"].values())

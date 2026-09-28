@@ -379,6 +379,8 @@ def reset_app_state(namespaces: tuple[str, ...] = APP_NAMESPACES, timeout_s: int
         # The control plane's file system and processes (see "the control-plane container" below).
         recorded = json.loads(Path(baseline_path).read_text())
         result["reaped_processes"] = reap_exec_processes()
+        if "objects_snapshot" in recorded:
+            result["restored_objects"] = restore_cluster_objects(recorded["objects"], recorded["objects_snapshot"])
         container = reset_container_files(recorded["container_files"], recorded.get("container_snapshot"))
         result["deleted_container_files"] = container["deleted"]
         result["restored_container_files"] = container["restored"]
@@ -439,7 +441,15 @@ def _fingerprint(item: dict) -> str:
     return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()[:16]
 
 
-def cluster_objects() -> dict[str, dict]:
+def _manifest(item: dict) -> dict:
+    """What `kubectl replace` or `kubectl create` needs to put the object back: everything but status and
+    the metadata the server assigns."""
+    meta = item["metadata"]
+    kept = {k: meta[k] for k in ("name", "namespace", "labels", "annotations") if meta.get(k)}
+    return {**{k: v for k, v in item.items() if k not in ("metadata", "status")}, "metadata": kept}
+
+
+def cluster_objects(manifests: bool = False) -> dict[str, dict]:
     """Objects the reset does not cover, keyed "<ns>/<Kind>/<name>" or "<Kind>/<name>".
 
     Unowned objects of NAMESPACED_KINDS in every namespace but the app namespaces, and every object of
@@ -455,6 +465,8 @@ def cluster_objects() -> dict[str, dict]:
             continue
         found[f"{ns}/{item['kind']}/{meta['name']}"] = {"created": meta.get("creationTimestamp"),
                                                          "fingerprint": _fingerprint(item)}
+        if manifests:
+            found[f"{ns}/{item['kind']}/{meta['name']}"]["manifest"] = _manifest(item)
     for item in _items(CLUSTER_KINDS):
         meta = item["metadata"]
         if item["kind"] == "Namespace" and meta["name"] in APP_NAMESPACES:
@@ -463,6 +475,8 @@ def cluster_objects() -> dict[str, dict]:
             continue
         found[f"{item['kind']}/{meta['name']}"] = {"created": meta.get("creationTimestamp"),
                                                    "fingerprint": _fingerprint(item)}
+        if manifests:
+            found[f"{item['kind']}/{meta['name']}"]["manifest"] = _manifest(item)
     return found
 
 
@@ -471,7 +485,13 @@ def write_cluster_baseline(path: Path, snapshot: Path | None = None) -> dict:
     with a snapshot of the container's files for the reset to restore from (container_snapshot())."""
     snapshot = snapshot or CONTAINER_SNAPSHOT_DIR / f"{path.stem}.files.tar"
     files, snapshot_sha = container_snapshot(snapshot)
-    baseline = {"taken_utc": datetime.now(timezone.utc).isoformat(), "objects": cluster_objects(),
+    objects = cluster_objects(manifests=True)
+    # The objects' manifests, for the reset to put changed or deleted ones back (restore_cluster_objects).
+    manifests = snapshot.parent / f"{path.stem}.objects.json"
+    manifests.write_text(json.dumps({k: v["manifest"] for k, v in objects.items()}, indent=1, sort_keys=True))
+    baseline = {"taken_utc": datetime.now(timezone.utc).isoformat(),
+                "objects": {k: {f: v[f] for f in ("created", "fingerprint")} for k, v in objects.items()},
+                "objects_snapshot": {"file": _repo_relative(manifests), "sha256": _sha256(manifests)},
                 "container_files": files,
                 "container_snapshot": {"file": _repo_relative(snapshot), "sha256": snapshot_sha}}
     path.write_text(json.dumps(baseline, indent=1, sort_keys=True) + "\n")
@@ -481,6 +501,53 @@ def write_cluster_baseline(path: Path, snapshot: Path | None = None) -> dict:
 def _repo_relative(path: Path) -> str:
     path = Path(path).resolve()
     return str(path.relative_to(REPO_ROOT)) if path.is_relative_to(REPO_ROOT) else str(path)
+
+
+# Workloads the reset waits for after putting their spec back, so no problem starts mid-rollout.
+_ROLLOUT_KINDS = {"Deployment", "DaemonSet", "StatefulSet"}
+
+
+def _key_parts(key: str) -> tuple[str | None, str, str]:
+    parts = key.split("/")
+    return (parts[0], parts[1], parts[2]) if len(parts) == 3 else (None, parts[0], parts[1])
+
+
+def restore_cluster_objects(baseline: dict, snapshot: dict, timeout_s: int = 300) -> dict[str, list[str]]:
+    """Put the objects cluster_objects() covers back to the baseline: delete those it doesn't have, replace
+    changed ones and recreate missing ones from the manifests in `snapshot` (the baseline's
+    "objects_snapshot"). Called by the reset, before the problem's deploy, so every object it doesn't have
+    is a leftover. What can't be put back is left for cluster_drift() to report."""
+    now = cluster_objects()
+    new = sorted(k for k in now if k not in baseline)
+    changed = sorted(k for k, v in now.items() if k in baseline and v["fingerprint"] != baseline[k]["fingerprint"])
+    gone = sorted(k for k in baseline if k not in now)
+    if not (new or changed or gone):
+        return {"deleted": [], "replaced": [], "recreated": []}
+    path = REPO_ROOT / snapshot["file"]
+    if _sha256(path) != snapshot["sha256"]:
+        raise RuntimeError(f"{path} is not the object snapshot the baseline recorded")
+    manifests = json.loads(path.read_text())
+    for key in new:
+        ns, kind, name = _key_parts(key)
+        done = _kubectl("delete", kind, name, *(["-n", ns] if ns else []), "--ignore-not-found",
+                        f"--timeout={timeout_s}s", timeout=timeout_s + 30)
+        if done.returncode != 0:
+            raise RuntimeError(f"deleting {key} failed: {done.stderr.strip()[:300]}")
+    for verb, keys in (("replace", changed), ("create", gone)):
+        for key in keys:
+            done = subprocess.run(["kubectl", "--context", "kind-kind", verb, "-f", "-"],
+                                  input=json.dumps(manifests[key]), capture_output=True, text=True, check=False,
+                                  timeout=120)
+            if done.returncode != 0:
+                raise RuntimeError(f"kubectl {verb} {key} failed: {done.stderr.strip()[:300]}")
+    for key in changed + gone:
+        ns, kind, name = _key_parts(key)
+        if kind in _ROLLOUT_KINDS:
+            done = _kubectl("rollout", "status", f"{kind.lower()}/{name}", "-n", ns, f"--timeout={timeout_s}s",
+                            timeout=timeout_s + 30)
+            if done.returncode != 0:
+                raise RuntimeError(f"{key} did not roll out after the restore: {done.stderr.strip()[:300]}")
+    return {"deleted": new, "replaced": changed, "recreated": gone}
 
 
 def cluster_drift(started_utc: str, baseline_path: Path) -> list[str]:
@@ -524,7 +591,9 @@ def cluster_drift(started_utc: str, baseline_path: Path) -> list[str]:
 # Restoring, not refusing, is what keeps the run going when a command changes a file that was already
 # there: kubectl rewrites its discovery cache under /root/.kube/cache whenever an agent names a resource
 # type it doesn't know, which stopped stage 1 on 2026-09-28, and an agent has run apt-get install on the
-# node itself (runs/2026-09-20T095754Z_main-ministral3-3b-scored).
+# node itself (runs/2026-09-20T095754Z_main-ministral3-3b-scored). The cluster's own objects are
+# restored the same way (restore_cluster_objects): an agent restarted kube-proxy in kube-system
+# (runs/2026-09-28T222537Z_main4-ministral3-14b-nopolicy), which stopped stage 1 again.
 
 CONTROL_PLANE = "kind-control-plane"
 # docker exec puts its process, and every orphan it leaves, in the container's init.scope cgroup; the

@@ -80,11 +80,12 @@ frontmatter and dated names only.
   by hand.
 - `condition` is `<purpose>-<agent>[-<variant>][-r<round>]`, lowercase. `purpose`
   is one of `smoke`, `validation`, `noise`, `pilot`, `main`, `ladder`, `main2`,
-  `ladder2`, `main3`, `ladder3`, `main4`, `ladder4`, `b1`, `b2`, `b3`, `t1`, `t2`,
-  and the runner rejects anything else. `main4` and `ladder4` are the fresh run of
-  the main study and the ladder, driven only by `python -m runner.run_plan`
-  (notes/2026-09-27-fresh-run.md); `main2`/`ladder2` and `main3`/`ladder3` were
-  its first two attempts, retired (notes/2026-09-28-control-plane-persistence.md). Examples:
+  `ladder2`, `main3`, `ladder3`, `main4`, `ladder4`, `main5`, `ladder5`, `b1`, `b2`,
+  `b3`, `t1`, `t2`, and the runner rejects anything else. `main5` and `ladder5` are
+  the fresh run of the main study and the ladder, driven only by
+  `python -m runner.run_plan` (notes/2026-09-27-fresh-run.md); `main2` to `main4`
+  and `ladder2` to `ladder4` were its first three attempts, retired
+  (notes/2026-09-28-control-plane-persistence.md). Examples:
   `validation-scripted`, `noise-sonnet5`, `main-gpt-oss-120b-policy-r2`,
   `ladder-qwen3-next-80b-combined-r1`. A missing `-r<round>` means round 1, which
   is how the main study's first round was labelled.

@@ -19,12 +19,12 @@ from runner.verify_plan import (
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLAN = {b["condition"]: b for b in study_plan.expand(1) + study_plan.expand(2, {"mitigation": 24, "diagnosis": 7})}
-POLICY = PLAN["main4-mistral-large3-policy"]
-NOPOLICY = PLAN["main4-mistral-large3-nopolicy"]
-BUDGET = PLAN["main4-mistral-large3-budget"]
-ONCE = PLAN["ladder4-mistral-large3-budgetonce-mitigation"]
-MEDIAN = PLAN["ladder4-mistral-large3-budgetmedian-mitigation"]
-COMBINED = PLAN["ladder4-mistral-large3-combined-diagnosis"]
+POLICY = PLAN["main5-mistral-large3-policy"]
+NOPOLICY = PLAN["main5-mistral-large3-nopolicy"]
+BUDGET = PLAN["main5-mistral-large3-budget"]
+ONCE = PLAN["ladder5-mistral-large3-budgetonce-mitigation"]
+MEDIAN = PLAN["ladder5-mistral-large3-budgetmedian-mitigation"]
+COMBINED = PLAN["ladder5-mistral-large3-combined-diagnosis"]
 
 
 def trajectory(item, problem_id="k8s_target_port-misconfig-mitigation-2", calls=3, texts=None, countdown=None,
@@ -62,7 +62,7 @@ def test_a_diagnosis_episode_gets_the_diagnosis_texts():
 
 @pytest.mark.parametrize("ran,checked", [(POLICY, NOPOLICY), (NOPOLICY, POLICY), (POLICY, BUDGET),
                                          (ONCE, MEDIAN), (MEDIAN, ONCE), (MEDIAN, COMBINED),
-                                         (ONCE, PLAN["ladder4-mistral-large3-budgetonce-diagnosis"])],
+                                         (ONCE, PLAN["ladder5-mistral-large3-budgetonce-diagnosis"])],
                          ids=lambda i: i["condition"])
 def test_an_episode_with_another_arms_prompt_fails(ran, checked):
     problem = "k8s_target_port-misconfig-mitigation-2"
