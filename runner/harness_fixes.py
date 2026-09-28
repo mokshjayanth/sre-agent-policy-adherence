@@ -518,10 +518,12 @@ _LIST_EXEC_PROCESSES = ('for p in /proc/[0-9]*; do [ "$(cat $p/cgroup 2>/dev/nul
 CONTAINER_FS_ROOTS = ("/", "/var", "/tmp", "/dev/shm", "/run")
 # Subtrees the system itself rewrites: the kernel's views, the container runtime's, kubelet's and etcd's
 # state, and logs; and, found by the calibration in notes/2026-09-28-control-plane-persistence.md, the
-# volatile journal (/run/log/journal) and the systemd units kubelet rewrites as pods come and go
-# (/run/systemd/transient). Nothing else changed across two problems.
+# volatile journal (/run/log/journal), the systemd units kubelet rewrites as pods come and go
+# (/run/systemd/transient), and systemd's records of the scopes of pods that per-problem daemonsets start
+# on this node (/run/systemd/units). Nothing else changed, between problems or during five of them.
 CONTAINER_FS_SKIP = ("/proc", "/sys", "/dev/pts", "/var/lib/containerd", "/var/lib/kubelet", "/var/lib/etcd",
-                     "/var/log", "/run/containerd", "/run/log/journal", "/run/systemd/transient")
+                     "/var/log", "/run/containerd", "/run/log/journal", "/run/systemd/transient",
+                     "/run/systemd/units")
 
 
 def _docker(*args: str, timeout: int = 120) -> subprocess.CompletedProcess:
