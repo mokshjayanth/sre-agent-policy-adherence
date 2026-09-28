@@ -22,12 +22,17 @@ deviates from stock AIOpsLab. Revisit it whenever the harness pin moves.
 - Cluster baseline: the rest of the cluster (other namespaces, cluster-scoped
   objects, nodes) is checked against a baseline taken once on a fresh cluster,
   when a run names one. See notes/2026-09-27-fresh-run.md.
+- Control-plane container: agent commands run inside it; files they write and
+  processes they leave would outlive the episode. Every agent command is
+  followed by killing what it left running, the reset deletes new files, and
+  the baseline covers both. See notes/2026-09-28-control-plane-persistence.md.
 """
 
 import hashlib
 import json
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -339,7 +344,7 @@ def teardown_harness_services() -> list[str]:
 
 
 def reset_app_state(namespaces: tuple[str, ...] = APP_NAMESPACES, timeout_s: int = 600,
-                    poll_s: float = 2) -> dict:
+                    poll_s: float = 2, baseline_path: Path | None = None) -> dict:
     """Delete the app namespaces, clear `default` and remove harness services a failed problem left,
     then wait until all of it is gone.
 
@@ -366,9 +371,15 @@ def reset_app_state(namespaces: tuple[str, ...] = APP_NAMESPACES, timeout_s: int
         if time.monotonic() > deadline:
             raise RuntimeError(f"reset_app_state: still present after {timeout_s} s: {remaining}")
         time.sleep(poll_s)
-    return {"deleted_namespaces": deleted_namespaces,
-            "deleted_default": [f"{o['kind']}/{o['name']}" for o in deleted_default],
-            "removed_harness_services": removed_services}
+    result = {"deleted_namespaces": deleted_namespaces,
+              "deleted_default": [f"{o['kind']}/{o['name']}" for o in deleted_default],
+              "removed_harness_services": removed_services}
+    if baseline_path is not None:
+        # The control plane's file system and processes (see "the control-plane container" below).
+        recorded = json.loads(Path(baseline_path).read_text())
+        result["reaped_processes"] = reap_exec_processes()
+        result["deleted_container_files"] = reset_container_files(recorded["container_files"])
+    return result
 
 
 def preexisting_objects(started_utc: str, namespaces: tuple[str, ...] = APP_NAMESPACES) -> list[str]:
@@ -453,8 +464,9 @@ def cluster_objects() -> dict[str, dict]:
 
 
 def write_cluster_baseline(path: Path) -> dict:
-    """Record cluster_objects() as the state every later problem is checked against."""
-    baseline = {"taken_utc": datetime.now(timezone.utc).isoformat(), "objects": cluster_objects()}
+    """Record cluster_objects() and container_files() as the state every later problem is checked against."""
+    baseline = {"taken_utc": datetime.now(timezone.utc).isoformat(), "objects": cluster_objects(),
+                "container_files": container_files()}
     path.write_text(json.dumps(baseline, indent=1, sort_keys=True) + "\n")
     return baseline
 
@@ -474,7 +486,160 @@ def cluster_drift(started_utc: str, baseline_path: Path) -> list[str]:
     drift += [f"changed: {key}" for key, obj in now.items()
               if key in baseline and obj["fingerprint"] != baseline[key]["fingerprint"]]
     drift += [f"gone: {key}" for key in baseline if key not in now]
+    recorded = json.loads(Path(baseline_path).read_text())
+    if "container_files" in recorded:
+        drift += container_drift(recorded["container_files"])
+        drift += [f"process: {p}" for p in exec_processes()]
     return sorted(drift)
+
+
+# --- the control-plane container ----------------------------------------------
+#
+# exec_shell runs every agent command as `docker exec kind-control-plane sh -c "<command>"`, with `/` as
+# the working directory (service/shell.py:101-117, actions/base.py:104). Two things outlived their
+# episode there, and neither the reset nor the baseline covered them (notes/2026-09-28-control-plane-
+# persistence.md):
+# - Files. Whatever an agent wrote in the container stayed for every later agent to list or read; 5
+#   files in `/` and 7 in `/tmp` were there on 2026-09-28, and later episodes listed them.
+# - Processes. The 30 s timeout kills the docker client on the host, not the command in the container,
+#   and a background or runaway process is reparented to the container's init. One agent's awk loop
+#   wrote for 14 minutes after its episode had moved on, 74 GB, and filled the disk.
+# The harness runs nothing else in the container, so a process or a path there that the baseline does
+# not have is an agent's. Every agent command is followed by killing whatever it left running, the
+# reset deletes new paths, and cluster_drift() also reports new, changed or missing paths and any live
+# process an agent command started.
+
+CONTROL_PLANE = "kind-control-plane"
+# docker exec puts its process, and every orphan it leaves, in the container's init.scope cgroup; the
+# only other member is init itself. Systemd services and pods have cgroups of their own.
+_LIST_EXEC_PROCESSES = ('for p in /proc/[0-9]*; do [ "$(cat $p/cgroup 2>/dev/null)" = "0::/init.scope" ] '
+                        '&& echo "${p#/proc/} $(tr "\\0" " " < $p/cmdline 2>/dev/null)"; done; true')
+# Where an agent can write: the container's root file system and its writable mounts.
+CONTAINER_FS_ROOTS = ("/", "/var", "/tmp", "/dev/shm", "/run")
+# Subtrees the system itself rewrites during every problem; set by the calibration in
+# notes/2026-09-28-control-plane-persistence.md, each with the reason.
+CONTAINER_FS_SKIP = ("/proc", "/sys", "/dev/pts", "/var/lib/containerd", "/var/lib/kubelet", "/var/lib/etcd",
+                     "/var/log", "/run/containerd")
+
+
+def _docker(*args: str, timeout: int = 120) -> subprocess.CompletedProcess:
+    return subprocess.run(["docker", *args], capture_output=True, text=True, check=False, timeout=timeout)
+
+
+def exec_processes() -> list[str]:
+    """"<pid> <command line>" of every live process an exec into the control plane started."""
+    listing = _docker("exec", CONTROL_PLANE, "sh", "-c", _LIST_EXEC_PROCESSES)
+    if listing.returncode != 0:
+        raise RuntimeError(f"listing processes in {CONTROL_PLANE} failed: {listing.stderr.strip()[:300]}")
+    found = []
+    for line in listing.stdout.splitlines():
+        pid, _, command = line.strip().partition(" ")
+        if pid.isdigit() and pid != "1" and "0::/init.scope" not in command:      # not init, not the lister
+            found.append(f"{pid} {command.strip()[:200]}")
+    return found
+
+
+def reap_exec_processes() -> list[str]:
+    """Kill every process an exec into the control plane left running; return what was killed."""
+    found = exec_processes()
+    if found:
+        _docker("exec", CONTROL_PLANE, "kill", "-9", *[p.split(" ", 1)[0] for p in found])
+    return found
+
+
+# Processes killed after agent commands since the runner last took the list (take_reaped()).
+_REAPED: list[str] = []
+
+
+def take_reaped() -> list[str]:
+    taken = list(_REAPED)
+    _REAPED.clear()
+    return taken
+
+
+def _docker_exec_then_reap(container_name: str, command: str, timeout=30):
+    try:
+        return _original_docker_exec(container_name, command, timeout=timeout)
+    finally:
+        if container_name == CONTROL_PLANE:
+            _REAPED.extend(reap_exec_processes())
+
+
+def reap_after_agent_commands() -> None:
+    """Patch Shell.docker_exec so nothing an agent command starts outlives the command. Idempotent.
+
+    The harness documents exec_shell as not stateful (actions/base.py:83), so a command's background
+    children have no later use; this makes its timeout true of the command itself.
+    """
+    from aiopslab.service.shell import Shell
+    Shell.docker_exec = staticmethod(_docker_exec_then_reap)
+
+
+def _load_original_docker_exec():
+    from aiopslab.service.shell import Shell
+    return Shell.docker_exec
+
+
+_original_docker_exec = _load_original_docker_exec()
+
+
+def container_files() -> dict[str, str]:
+    """Every path under CONTAINER_FS_ROOTS outside CONTAINER_FS_SKIP: "d" for a directory, "<type> <size>
+    <mtime>" for anything else. Each root stays on its own mount."""
+    prune = " -o ".join(f"-path {p}" for p in CONTAINER_FS_SKIP)
+    script = " ; ".join(f"find {root} -xdev \\( {prune} \\) -prune -o -printf '%y\\t%s\\t%T@\\t%p\\n'"
+                        for root in CONTAINER_FS_ROOTS)
+    listing = _docker("exec", CONTROL_PLANE, "sh", "-c", script, timeout=300)
+    if listing.returncode != 0 or not listing.stdout:
+        raise RuntimeError(f"listing files in {CONTROL_PLANE} failed: {listing.stderr.strip()[:300]}")
+    files = {}
+    for line in listing.stdout.splitlines():
+        kind, size, mtime, path = line.split("\t", 3)
+        if path in CONTAINER_FS_SKIP:
+            continue
+        files[path] = "d" if kind == "d" else f"{kind} {size} {mtime}"
+    return files
+
+
+def _outermost(paths: list[str]) -> list[str]:
+    """The paths that are not inside another of them."""
+    kept = []
+    for path in sorted(paths):
+        if not any(path.startswith(k.rstrip("/") + "/") for k in kept):
+            kept.append(path)
+    return kept
+
+
+def container_drift(baseline: dict[str, str]) -> list[str]:
+    now = container_files()
+    drift = [f"file new: {p}" for p in _outermost([p for p in now if p not in baseline])]
+    drift += [f"file changed: {p}" for p, v in now.items() if p in baseline and v != baseline[p]]
+    drift += [f"file gone: {p}" for p in baseline if p not in now]
+    return drift
+
+
+def reset_container_files(baseline: dict[str, str]) -> list[str]:
+    """Delete every path the baseline doesn't have; return the outermost ones deleted. A changed or
+    missing baseline path can't be restored here, so it is left for cluster_drift() to report."""
+    new = _outermost([p for p in container_files() if p not in baseline])
+    if new:
+        removed = _docker("exec", CONTROL_PLANE, "rm", "-rf", "--one-file-system", "--", *new)
+        if removed.returncode != 0:
+            raise RuntimeError(f"removing {new} in {CONTROL_PLANE} failed: {removed.stderr.strip()[:300]}")
+    return new
+
+
+# The disk every run writes to, and the container's writable layer, share one volume. The episode that
+# filled it on 2026-09-28 ended the run in the middle of writing, without a line saying why.
+MIN_FREE_DISK_GB = 20
+
+
+def check_free_disk(path: str = "/", minimum_gb: float = MIN_FREE_DISK_GB) -> float:
+    """Free space in GB; raises below the minimum, before a problem can fill the rest."""
+    free = shutil.disk_usage(path).free / 1e9
+    if free < minimum_gb:
+        raise RuntimeError(f"low disk: {free:.1f} GB free, below {minimum_gb} GB")
+    return round(free, 1)
 
 
 # --- exec_shell doc fix -------------------------------------------------------

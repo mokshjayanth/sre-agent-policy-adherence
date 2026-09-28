@@ -8,8 +8,8 @@ import pytest
 from runner import run_plan, study_plan
 
 PLAN = {b["condition"]: b for b in study_plan.expand(1) + study_plan.expand(2, {"mitigation": 24, "diagnosis": 7})}
-COMBINED = PLAN["ladder2-qwen3-next-80b-combined-mitigation"]
-NOPOLICY = PLAN["main2-qwen3-next-80b-nopolicy"]
+COMBINED = PLAN["ladder3-qwen3-next-80b-combined-mitigation"]
+NOPOLICY = PLAN["main3-qwen3-next-80b-nopolicy"]
 
 
 def test_batch_env_drops_variables_left_from_another_arm(monkeypatch, tmp_path):

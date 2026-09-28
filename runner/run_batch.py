@@ -71,14 +71,17 @@ from aiopslab.orchestrator import Orchestrator  # noqa: E402
 from runner.harness_fixes import (  # noqa: E402
     BASELINE_VARIABLE,
     PINNED_OTEL_CHART_VERSION,
+    check_free_disk,
     cluster_drift,
     delete_failed_pods,
     fix_exec_shell_doc,
     pin_otel_chart,
     preexisting_objects,
+    reap_after_agent_commands,
     reset_app_state,
     stop_leaked_port_forwards,
     stop_orphaned_port_forwards,
+    take_reaped,
 )
 from runner.manifest import collect_cluster_images, collect_static_manifest  # noqa: E402
 from runner.problem_sets import TASK_TYPES, select_problems, task_type  # noqa: E402
@@ -120,8 +123,8 @@ ENV_KEYS = [
 ]
 
 # Batch labels are <purpose>-<agent>[-<variant>], lowercase; see CLAUDE.md.
-CONDITION_PURPOSES = ("smoke", "validation", "noise", "pilot", "main", "ladder", "main2", "ladder2", "b1", "b2",
-                      "b3", "t1", "t2")
+CONDITION_PURPOSES = ("smoke", "validation", "noise", "pilot", "main", "ladder", "main2", "ladder2", "main3",
+                      "ladder3", "b1", "b2", "b3", "t1", "t2")
 CONDITION_PATTERN = re.compile(
     rf"(?:{'|'.join(CONDITION_PURPOSES)})-[a-z0-9][a-z0-9.]*(?:-[a-z0-9][a-z0-9.]*)*"
 )
@@ -291,15 +294,20 @@ async def run_problem(
     if record["deleted_failed_pods"]:
         print(f"    deleted failed pod(s) left over from an earlier run: {record['deleted_failed_pods']}")
     exports_before = _snapshot_exports(workdir)
+    baseline = os.environ.get(BASELINE_VARIABLE)
+    take_reaped()                                   # anything reaped before this problem isn't its own
 
     orch = Orchestrator()
     orch.register_agent(agent_cls(), name=agent_name)
     results = None
     error = None
     try:
+        # A full disk ends a run without a word (notes/2026-09-28-control-plane-persistence.md).
+        record["free_disk_gb"] = check_free_disk()
         # Nothing an earlier episode created may be present: delete the app namespaces, clear
-        # `default` (notes/2026-09-27-cross-episode-contamination.md). Raises if it can't.
-        record["reset"] = reset_app_state()
+        # `default` (notes/2026-09-27-cross-episode-contamination.md), and with a baseline also the
+        # control plane's new files and leftover processes. Raises if it can't.
+        record["reset"] = reset_app_state(baseline_path=Path(baseline) if baseline else None)
         problem_desc, instructions, apis = orch.init_problem(problem_id)
         orch.agent.init_context(problem_desc, instructions, fix_exec_shell_doc(apis))
         # Deploy, fault injection and workload start are done, so the pods exist.
@@ -309,7 +317,6 @@ async def run_problem(
         if record["preexisting_objects"]:
             raise RuntimeError(f"episode would start next to earlier objects: {record['preexisting_objects']}")
         # The rest of the cluster, when the run names a baseline (runner/run_plan.py always does).
-        baseline = os.environ.get(BASELINE_VARIABLE)
         if baseline:
             record["cluster_baseline_sha256"] = hashlib.sha256(Path(baseline).read_bytes()).hexdigest()
             record["cluster_drift"] = cluster_drift(record["started_utc"], Path(baseline))
@@ -326,6 +333,8 @@ async def run_problem(
     finally:
         session = orch.session
         termination = termination_reason(error, results)
+        # Processes the agent's commands left running, killed after each command (harness_fixes).
+        record["reaped_after_commands"] = take_reaped()
         _write_json(
             problem_dir / "trajectory.json",
             _trajectory(problem_id, agent_name, batch_info, session, orch.agent, results, termination),
@@ -361,6 +370,7 @@ async def run_problem(
 def _start_or_resume(args) -> tuple[Path, dict, list[str], dict[str, str]]:
     """Create the batch folder or reopen it; return (batch dir, current run settings, problems, skipped)."""
     pin_otel_chart()
+    reap_after_agent_commands()
     pins = {
         "otel_demo_chart": PINNED_OTEL_CHART_VERSION,
         # A stable ID; the reason is in notes/2026-09-14-exec-shell-timeout-unreachable.md.

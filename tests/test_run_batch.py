@@ -32,8 +32,11 @@ def run(tmp_path, monkeypatch):
     monkeypatch.setattr(rb, "stop_orphaned_port_forwards", lambda: 0)
     monkeypatch.setattr(rb, "stop_leaked_port_forwards", lambda: 0)
     monkeypatch.setattr(rb, "delete_failed_pods", lambda: [])   # never touch a cluster from tests
-    monkeypatch.setattr(rb, "reset_app_state", lambda: {"deleted_namespaces": [], "deleted_default": []})
+    monkeypatch.setattr(rb, "reset_app_state", lambda **kw: {"deleted_namespaces": [], "deleted_default": []})
     monkeypatch.setattr(rb, "preexisting_objects", lambda started_utc: [])
+    monkeypatch.setattr(rb, "check_free_disk", lambda: 100.0)
+    monkeypatch.setattr(rb, "reap_after_agent_commands", lambda: None)
+    monkeypatch.delenv("RUNNER_CLUSTER_BASELINE", raising=False)
 
     def main(*argv):
         return rb.main([*argv, "--workdir", str(tmp_path / "work")])
@@ -207,8 +210,10 @@ rb.Orchestrator.init_problem = fail
 rb.stop_orphaned_port_forwards = lambda: 0
 rb.stop_leaked_port_forwards = lambda: 0
 rb.delete_failed_pods = lambda: []
-rb.reset_app_state = lambda: {{"deleted_namespaces": [], "deleted_default": []}}
+rb.reset_app_state = lambda **kw: {{"deleted_namespaces": [], "deleted_default": []}}
 rb.preexisting_objects = lambda started_utc: []
+rb.check_free_disk = lambda: 100.0
+rb.reap_after_agent_commands = lambda: None
 sys.exit(rb.main({argv!r}))
 """
 

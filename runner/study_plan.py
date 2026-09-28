@@ -2,8 +2,8 @@
 
 It runs in two stages, each its own plan file (notes/2026-09-27-fresh-run.md, Correction):
 
-    stage 1   main2 no-policy and policy arms, both rounds (24 batches, 384 episodes). A checkpoint.
-    stage 2   main2 budget and scored arms, both rounds, and the ladder at caps derived from stage 1's
+    stage 1   main3 no-policy and policy arms, both rounds (24 batches, 384 episodes). A checkpoint.
+    stage 2   main3 budget and scored arms, both rounds, and the ladder at caps derived from stage 1's
               policy arm (60 batches, 672 episodes).
 
     python -m runner.study_plan --stage 1 --write configs/study-plan-fresh-stage1.json
@@ -14,7 +14,8 @@ It runs in two stages, each its own plan file (notes/2026-09-27-fresh-run.md, Co
 
 The arms are the ones registered in notes/2026-09-20-main-study-preregistration.md (main: 4 arms,
 2 rounds) and notes/2026-09-23-ladder-round1-registration.md (ladder: 3 arms, 1 round). The purpose
-changes to `main2` and `ladder2`, so no fresh batch can pool with an earlier one by name.
+is `main3` and `ladder3`, so no fresh batch can pool with an earlier one by name (`main2` and `ladder2`
+were the first attempt, retired).
 
 Each arm carries the instructed texts, with the SHA-256 prefixes, that the earlier batches of that arm
 recorded in their batch.json. They are copied here by hand from those records, not computed from the
@@ -101,7 +102,8 @@ LADDER_ARMS = {
 # (study/round1_pending.sh).
 STAGE_MAIN_ARMS = {1: ("nopolicy", "policy"), 2: ("budget", "scored")}
 LADDER_ORDER = ("budgetmedian", "combined", "budgetonce")
-PURPOSE = {"main": "main2", "ladder": "ladder2"}
+# main2/ladder2 were stage 1's first attempt, retired (notes/2026-09-28-control-plane-persistence.md).
+PURPOSE = {"main": "main3", "ladder": "ladder3"}
 # The registered cap rule (notes/2026-09-23-baseline-replication.md, Finding 5): the median number of
 # actions a successful policy-arm episode took, per task type, pooled over both rounds; nearest integer,
 # a tie rounds down.

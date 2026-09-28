@@ -290,3 +290,127 @@ def test_a_failed_listing_raises_instead_of_reading_as_clean(monkeypatch):
         harness_fixes.preexisting_objects("2026-09-28T00:00:00+00:00")
     with pytest.raises(RuntimeError):
         harness_fixes.cluster_objects()
+
+
+# --- the control-plane container ----------------------------------------------------
+
+
+class FakeNode:
+    """Just enough of `docker exec kind-control-plane` for the process and file checks."""
+
+    def __init__(self, processes=(), files=None):
+        self.processes = dict(processes)              # pid -> command line
+        self.files = dict(files or {})                # path -> "d" or "f <size> <mtime>"
+        self.calls = []
+
+    def run(self, argv, **kwargs):
+        ok = lambda out="": types.SimpleNamespace(returncode=0, stdout=out, stderr="")
+        assert argv[:3] == ["docker", "exec", harness_fixes.CONTROL_PLANE], argv
+        args = argv[3:]
+        self.calls.append(args)
+        if args[:2] == ["sh", "-c"] and "init.scope" in args[2]:
+            lister = f"9999 sh -c {args[2]}"          # the lister lists itself, as the real one does
+            return ok("\n".join(["1 /sbin/init", *(f"{p} {c}" for p, c in self.processes.items()), lister]))
+        if args[:2] == ["sh", "-c"] and args[2].startswith("find"):
+            lines = [("d\t4096\t1.0\t" if v == "d" else f"{v.split()[0]}\t{v.split()[1]}\t{v.split()[2]}\t") + p
+                     for p, v in self.files.items()]
+            return ok("\n".join(lines) + "\n")
+        if args[:2] == ["kill", "-9"]:
+            for pid in args[2:]:
+                self.processes.pop(pid, None)
+            return ok()
+        if args[0] == "rm":
+            for path in args[args.index("--") + 1:]:
+                self.files = {p: v for p, v in self.files.items() if p != path and not p.startswith(path + "/")}
+            return ok()
+        raise AssertionError(f"unexpected docker exec: {args}")
+
+
+BASE_FILES = {"/": "d", "/etc": "d", "/etc/hosts": "f 200 1.0", "/tmp": "d", "/.dockerenv": "f 0 1.0"}
+
+
+def test_exec_processes_are_the_init_scope_members_but_init_and_the_lister(monkeypatch):
+    node = FakeNode({"72701": "sleep 300", "72702": "awk /spec:/ {print}"})
+    monkeypatch.setattr(harness_fixes.subprocess, "run", node.run)
+    assert harness_fixes.exec_processes() == ["72701 sleep 300", "72702 awk /spec:/ {print}"]
+    assert harness_fixes.reap_exec_processes() == ["72701 sleep 300", "72702 awk /spec:/ {print}"]
+    assert node.processes == {} and harness_fixes.exec_processes() == []
+
+
+def test_every_agent_command_is_followed_by_a_reap_even_when_it_times_out(monkeypatch):
+    node = FakeNode({"500": "awk runaway"})
+    monkeypatch.setattr(harness_fixes.subprocess, "run", node.run)
+    def timed_out(container, command, timeout=30):
+        raise RuntimeError("Failed to execute command in Docker container")
+    monkeypatch.setattr(harness_fixes, "_original_docker_exec", timed_out)
+    harness_fixes.take_reaped()
+    with pytest.raises(RuntimeError):
+        harness_fixes._docker_exec_then_reap(harness_fixes.CONTROL_PLANE, "awk ... > f.yaml")
+    assert node.processes == {} and harness_fixes.take_reaped() == ["500 awk runaway"]
+    assert harness_fixes.take_reaped() == []
+
+
+def test_the_patch_routes_the_harness_shell_through_the_reaper(monkeypatch):
+    from aiopslab.service.shell import Shell
+    monkeypatch.setattr(Shell, "docker_exec", Shell.docker_exec)
+    harness_fixes.reap_after_agent_commands()
+    assert Shell.docker_exec is harness_fixes._docker_exec_then_reap
+
+
+def test_container_files_drift_and_reset(monkeypatch):
+    node = FakeNode(files=BASE_FILES)
+    monkeypatch.setattr(harness_fixes.subprocess, "run", node.run)
+    baseline = harness_fixes.container_files()
+    assert harness_fixes.container_drift(baseline) == []
+    node.files.update({"/geo-deployment-fixed.yaml": "f 74434625536 5.0", "/tmp/work": "d",
+                       "/tmp/work/a.sh": "f 10 5.0", "/etc/hosts": "f 260 6.0"})
+    del node.files["/.dockerenv"]
+    assert sorted(harness_fixes.container_drift(baseline)) == [
+        "file changed: /etc/hosts", "file gone: /.dockerenv", "file new: /geo-deployment-fixed.yaml",
+        "file new: /tmp/work"]
+    assert harness_fixes.reset_container_files(baseline) == ["/geo-deployment-fixed.yaml", "/tmp/work"]
+    assert "/tmp/work/a.sh" not in node.files and "/geo-deployment-fixed.yaml" not in node.files
+    # what the reset cannot restore is still reported
+    assert sorted(harness_fixes.container_drift(baseline)) == ["file changed: /etc/hosts", "file gone: /.dockerenv"]
+
+
+def test_cluster_drift_reports_container_files_and_live_agent_processes(monkeypatch, tmp_path):
+    node = FakeNode(files=BASE_FILES)
+    monkeypatch.setattr(harness_fixes.subprocess, "run", node.run)
+    _cluster(monkeypatch, BASE_NS, BASE_SCOPED)
+    harness_fixes.write_cluster_baseline(tmp_path / "b.json")
+    assert harness_fixes.cluster_drift("2026-09-28T01:00:00+00:00", tmp_path / "b.json") == []
+    node.files["/pod.yaml"] = "f 4430 7.0"
+    node.processes["600"] = "sleep 300"
+    assert harness_fixes.cluster_drift("2026-09-28T01:00:00+00:00", tmp_path / "b.json") == [
+        "file new: /pod.yaml", "process: 600 sleep 300"]
+
+
+def test_reset_with_a_baseline_reaps_and_clears_the_control_plane(monkeypatch, tmp_path):
+    cluster = FakeCluster({"default"}, {"default": DEFAULT_NS[:3]})
+    node = FakeNode({"700": "sleep 300"}, files=BASE_FILES)
+    def run(argv, **kwargs):
+        return node.run(argv, **kwargs) if argv[0] == "docker" else cluster.run(argv, **kwargs)
+    monkeypatch.setattr(harness_fixes.subprocess, "run", run)
+    (tmp_path / "b.json").write_text(json.dumps({"objects": {}, "container_files": dict(BASE_FILES)}))
+    node.files["/rate-deployment.yaml"] = "f 3533 5.0"
+    result = harness_fixes.reset_app_state(poll_s=0, baseline_path=tmp_path / "b.json")
+    assert result["reaped_processes"] == ["700 sleep 300"]
+    assert result["deleted_container_files"] == ["/rate-deployment.yaml"]
+    assert node.files == BASE_FILES and node.processes == {}
+
+
+def test_a_failed_container_listing_raises(monkeypatch):
+    failed = types.SimpleNamespace(returncode=1, stdout="", stderr="container not running")
+    monkeypatch.setattr(harness_fixes.subprocess, "run", lambda *a, **k: failed)
+    for check in (harness_fixes.exec_processes, harness_fixes.container_files):
+        with pytest.raises(RuntimeError):
+            check()
+
+
+def test_low_disk_raises(monkeypatch):
+    monkeypatch.setattr(harness_fixes.shutil, "disk_usage", lambda p: types.SimpleNamespace(free=5e9))
+    with pytest.raises(RuntimeError, match="low disk: 5.0 GB free"):
+        harness_fixes.check_free_disk()
+    monkeypatch.setattr(harness_fixes.shutil, "disk_usage", lambda p: types.SimpleNamespace(free=70e9))
+    assert harness_fixes.check_free_disk() == 70.0

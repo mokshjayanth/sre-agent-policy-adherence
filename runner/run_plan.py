@@ -37,13 +37,13 @@ for _path in (AIOPSLAB_ROOT, REPO_ROOT):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
-from runner.harness_fixes import BASELINE_VARIABLE  # noqa: E402
+from runner.harness_fixes import BASELINE_VARIABLE, check_free_disk  # noqa: E402
 from runner.study_plan import AGENT_VARIABLES, render  # noqa: E402
 from runner.verify_plan import HARNESS_PIN, description_mismatches, find_batches, verify  # noqa: E402
 
 LOCK = Path.home() / ".run_plan.lock"
 # Index errors that mean the cluster itself is not clean; resuming would only repeat them.
-UNCLEAN = ("episode would start next to earlier objects", "cluster differs from its baseline")
+UNCLEAN = ("episode would start next to earlier objects", "cluster differs from its baseline", "low disk")
 # A reset that timed out (a namespace slow to terminate) is resumable: the next attempt waits again. This
 # many in one batch within one run means it is not going away.
 RESET_FAILURE = "reset_app_state"
@@ -170,6 +170,10 @@ def run_item(item: dict, baseline: Path, attempts: int, since: str) -> bool:
             _stop_if_unfixable(item, batches[0], rows, since)
         gate(item, baseline)
         wait_healthy()
+        try:
+            check_free_disk()
+        except RuntimeError as exc:
+            raise Stop(str(exc)) from exc
         log(f"{'resume' if batches else 'start'} {item['condition']} (run {attempt}/{attempts})")
         before = _records(batches[0] if batches else None)
         code = run_batch(item, baseline, batches[0] if batches else None)

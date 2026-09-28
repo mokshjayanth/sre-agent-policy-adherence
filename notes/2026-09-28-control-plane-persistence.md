@@ -1,0 +1,95 @@
+---
+date: 2026-09-28
+type: investigation
+status: current
+evidence:
+  - study/evidence/fs-2026-09-28/ (container file list with birth times, copies of every agent file, the runaway file's stat, head and tail, the runaway command, the end of the stage-1 log; SHA256SUMS; local, not in git)
+  - third_party/aiopslab/aiopslab/service/shell.py:20-26,98-117 (exec_shell runs `docker exec kind-control-plane sh -c`, timeout on the host side)
+  - third_party/aiopslab/aiopslab/orchestrator/actions/base.py:80-104 (exec_shell, "NOT A STATEFUL OR INTERACTIVE shell session")
+  - runs/2026-09-28T021806Z_main2-qwen3-next-80b-policy (user_unregistered_mongodb-mitigation-1, history[58]: the awk command)
+  - runs/2026-09-27T190525Z_main2-ministral3-3b-nopolicy through runs/2026-09-28T021806Z_main2-qwen3-next-80b-policy (stage 1's first attempt, 152 episodes)
+  - runner/harness_fixes.py (reap_after_agent_commands, exec_processes, container_files, reset_container_files, container_drift, check_free_disk)
+  - notes/2026-09-27-fresh-run.md (the run this stopped)
+---
+
+# Does anything outlive an episode inside the control-plane container, and what did it do to stage 1?
+
+## Question
+
+Stage 1 of the fresh run (notes/2026-09-27-fresh-run.md) stopped on 2026-09-28 with the host disk
+full. What filled it, does the same mechanism carry state from one episode to the next, and can the
+152 episodes that ran be kept?
+
+## What we checked
+
+- `df`, then `du` down to the kind node containers: the control-plane container's writable layer was
+  74.4 GB.
+- The container's root: `stat` of every file there and in `/tmp` newer than the container itself,
+  with birth times; copies of all of them (the large one as its first 64 KiB and last 4 KiB).
+- How the harness runs agent commands (shell.py, actions/base.py), and the processes and cgroups in
+  the container.
+- The stage-1 trajectories: which episodes named, in an observation they received, a file an earlier
+  episode had left. Matched as a whole path token against the files that survived; files written and
+  later deleted leave no trace and are not counted.
+- The end of study/stage1.log.
+
+## Findings
+
+1. **Agent commands run inside the control-plane container, and what they leave stays.** exec_shell
+   runs `docker exec kind-control-plane sh -c "<command>"` (shell.py:20-26, 101-117) with `/` as the
+   working directory. The reset and the cluster baseline covered Kubernetes objects only. On
+   2026-09-28 the container held 5 agent files in `/` (rate-deployment.yaml, pod.yaml,
+   deployment.yaml, geo-deployment.yaml, geo-deployment-fixed.yaml) and 7 in `/tmp`, created
+   2026-09-27T20:10Z to 2026-09-28T02:44Z (container-files.txt). The harness runs nothing else there
+   (actions/base.py:104 is its only call of Shell.exec), so every one is an agent's.
+2. **Later episodes saw them.** At least 4 of the 152 episodes received an observation naming a file
+   an earlier episode had left: three of runs/2026-09-27T203433Z_main2-ministral3-8b-nopolicy
+   (k8s_target_port-misconfig-mitigation-2, auth_miss_mongodb-mitigation-1,
+   wrong_bin_usage-mitigation-1: `rate-deployment.yaml`, and in the last also `pod.yaml`) and
+   user_unregistered_mongodb-mitigation-1 of runs/2026-09-28T021806Z_main2-qwen3-next-80b-policy
+   (`geo-deployment.yaml`). This is a lower bound: deleted files, and files an agent read without the
+   name appearing, are not counted. Only the 23 episodes that started before the first surviving file
+   are outside it, and even those can't be proven clean, since earlier files may have been deleted.
+3. **A command outlived its episode and filled the disk.** In user_unregistered_mongodb-mitigation-1
+   of the qwen3-next-80b policy batch (started 02:36:26Z), the agent ran
+   `kubectl get deployment geo ... -o yaml > geo-deployment.yaml && awk '/spec:/ { print; getline;
+   while($0 !~ /^  template:/) { print; getline } ...' ... > geo-deployment-fixed.yaml` (history[58];
+   runaway-command.txt). The `while` loop never ends at end of file, since `getline` then leaves `$0`
+   unchanged. The harness's 30 s timeout kills the `docker exec` client on the host
+   (shell.py:108-113); the process in the container is reparented to its init and keeps running. The
+   file was created at 02:39:28Z and last written at 02:53:15Z, at 74,434,625,536 bytes, when the host
+   volume was full. The run's driver then died writing an error file ("No space left on device"),
+   so study/stage1.log ends in a traceback, not a `STOPPED:` line.
+4. **The episodes that ran next to the runaway** (02:39Z to 02:53Z) shared the node with it.
+5. **Leftover processes can be told apart exactly.** A process started by `docker exec`, and every
+   orphan it leaves, is in the container's `0::/init.scope` cgroup; the only other member is init
+   (PID 1). Systemd services and pods have their own cgroups (checked with a planted `sleep 300`,
+   killed by that rule).
+
+## Decision
+
+- **Stage 1's first attempt is retired**: runs/*_main2-* (10 batches, 152 episodes) stay untouched in
+  `runs/` and are not used. Its Kubernetes checks all passed; the container was never checked, and
+  Finding 2 shows exposure.
+- **Harness fixes, all in runner/harness_fixes.py and applied by runner/run_batch.py:**
+  - `reap_after_agent_commands()`: after every exec into the control plane, success or timeout, every
+    process left in `init.scope` (but init) is killed, so no agent command outlives its call; what was
+    killed is recorded per episode (`reaped_after_commands`). This is the harness's own contract:
+    exec_shell is documented as not stateful (actions/base.py:83).
+  - The cluster baseline also records the container's files (`container_files`: every path under `/`,
+    `/var`, `/tmp`, `/dev/shm` and `/run`, each on its own mount, outside the system-managed subtrees
+    in `CONTAINER_FS_SKIP`). The reset deletes every path the baseline doesn't have and kills leftover
+    processes (`deleted_container_files`, `reaped_processes`); `cluster_drift` also reports new,
+    changed or missing paths and any live exec process, and a non-empty drift refuses the episode.
+  - `check_free_disk()`: a problem doesn't start with less than 20 GB free, and run_plan stops for a
+    person, before a disk can fill silently.
+- **The fresh run restarts at stage 1**, from a new cluster, under purposes `main3` and `ladder3`
+  (`main2` names are taken by the retired batches, and run folders are never renamed). Design,
+  plan contents and order are otherwise unchanged.
+
+## Open
+
+- Calibration of `CONTAINER_FS_SKIP` on the new cluster: which subtrees the system rewrites during a
+  normal problem (recorded below before launch).
+- An agent writing inside a skipped subtree (for example `/var/log`) is not detected; unverified
+  whether any ever did.
