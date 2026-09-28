@@ -209,3 +209,10 @@ retired from the paper's results. The design, hypotheses and analysis plan of th
 stand unchanged and apply to a fresh run of 1,056 episodes under conditions `main2-…` and `ladder2-…`,
 each proven clean and proven to be its arm by `runner/verify_plan.py`
 (`notes/2026-09-27-fresh-run.md`).
+
+## Correction (2026-09-28): the fresh run's conditions are main3 and ladder3
+
+The first attempt at the fresh run's stage 1 (`main2-…`) is retired: files agent commands left in the
+control-plane container reached later episodes (`notes/2026-09-28-control-plane-persistence.md`). The
+fresh run's conditions are `main3-…` and `ladder3-…`; its design is unchanged
+(`notes/2026-09-27-fresh-run.md`).

@@ -89,7 +89,37 @@ full. What filled it, does the same mechanism carry state from one episode to th
 
 ## Open
 
-- Calibration of `CONTAINER_FS_SKIP` on the new cluster: which subtrees the system rewrites during a
-  normal problem (recorded below before launch).
 - An agent writing inside a skipped subtree (for example `/var/log`) is not detected; unverified
   whether any ever did.
+
+## Calibration (2026-09-28)
+
+On a new cluster (created 2026-09-28T06:47:53Z from configs/kind-config-x86.yaml), with the scripted
+agent, at 7069ba7:
+
+1. **What the system changes by itself.** The container's files right after creation against after a
+   warm-up (runs/2026-09-28T064828Z_smoke-scripted-warmup2, one problem per app): nothing new or gone;
+   changed only `/run/log/journal/*/system.journal` and two files under `/run/systemd/transient`. Both
+   subtrees were added to `CONTAINER_FS_SKIP` (33abbc1).
+2. **Mid-problem.** Under a baseline taken after a reset, all 5 problems of
+   runs/2026-09-28T065631Z_smoke-scripted-baseline2 were refused before the agent's first action:
+   `file new: /run/systemd/units/invocation:cri-containerd-<id>.scope`, two per problem, systemd's
+   records of the scopes of the pods per-problem daemonsets start on this node, which exist only
+   while a problem runs, so the between-problems snapshot of step 1 could not see them. They were the
+   only drift. `/run/systemd/units` was added to the skips (7069ba7) and the baseline retaken; the
+   next reset also removed the Prometheus and OpenEBS the refused problems had left.
+3. **Under that baseline**, runs/2026-09-28T070945Z_smoke-scripted-baseline3, the same 5 problems:
+   all `ok`, nothing preexisting, no drift, nothing reaped or deleted.
+4. **The reaper, through the harness's own shell** (`Shell.exec`, with and without the patch): stock,
+   `sleep 300 &` stayed running after the call; patched, a background `sleep 301` was killed when the
+   call returned, and a `sleep 100` that hit the 30 s timeout was killed with its shell; an ordinary
+   command's output was unchanged and nothing was reaped.
+5. **Planted leftovers.** Files in `/`, `/root`, `/var/tmp` and a directory in `/tmp`, and a detached
+   `sleep 900`: the next problem's reset (runs/2026-09-28T072347Z_smoke-scripted-planted-fs) deleted all
+   four paths and killed the process, and the problem started clean.
+6. **A changed baseline file.** A line appended to `/etc/issue.net`: the next problem
+   (runs/2026-09-28T072612Z_smoke-scripted-changed-fs) was refused before the agent's first action
+   with `file changed: /etc/issue.net`.
+7. **Final baseline**, configs/cluster-baseline-fresh.json, taken 2026-09-28T07:28:47Z right after a
+   reset (242 objects, 8,319 container paths), with the file restored; two problems under it
+   (runs/2026-09-28T072850Z_smoke-scripted-final-baseline): both `ok`, clean, no drift.
