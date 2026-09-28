@@ -607,9 +607,12 @@ CONTAINER_FS_ROOTS = ("/", "/var", "/tmp", "/dev/shm", "/run")
 # volatile journal (/run/log/journal), the systemd units kubelet rewrites as pods come and go
 # (/run/systemd/transient), and systemd's records of the scopes of pods that per-problem daemonsets start
 # on this node (/run/systemd/units). Nothing else changed, between problems or during five of them.
+# Pod networking's own state for pods on this node, rewritten whenever one starts or stops: IP
+# allocations (/run/cni-ipam-state), network namespaces (/run/netns) and CNI results (/var/lib/cni).
+# Found when a restored coredns rolled out on this node: the reset deleted the live pods' IP records.
 CONTAINER_FS_SKIP = ("/proc", "/sys", "/dev/pts", "/var/lib/containerd", "/var/lib/kubelet", "/var/lib/etcd",
                      "/var/log", "/run/containerd", "/run/log/journal", "/run/systemd/transient",
-                     "/run/systemd/units")
+                     "/run/systemd/units", "/run/cni-ipam-state", "/run/netns", "/var/lib/cni")
 
 
 def _docker(*args: str, timeout: int = 120) -> subprocess.CompletedProcess:

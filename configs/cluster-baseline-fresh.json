@@ -8322,7 +8322,7 @@
  },
  "container_snapshot": {
   "file": "study/baselines/cluster-baseline-fresh.files.tar",
-  "sha256": "72e9ef583d6d60308e9735f41ed21fc5a5e2699dac16e7ceb3ba80471d6af95b"
+  "sha256": "601abb82b609afac6786de5304c72230145069e6ec4d2e979cae19d914f405f9"
  },
  "objects": {
   "APIService/v1.": {
@@ -9294,5 +9294,9 @@
    "fingerprint": "fb3f33c9a46f5f38"
   }
  },
- "taken_utc": "2026-09-28T19:05:23.160855+00:00"
+ "objects_snapshot": {
+  "file": "study/baselines/cluster-baseline-fresh.objects.json",
+  "sha256": "487bb0f9e589f788cbff3fb76d5ca4b34500b080a2f24ccfe58e7cd1bf05769f"
+ },
+ "taken_utc": "2026-09-28T23:07:34.596817+00:00"
 }
