@@ -158,3 +158,33 @@ k8s_target_port-misconfig-mitigation and wrong_bin_usage-localization-1), which 
 - **Tests** in tests/test_harness_fixes.py reached the real node through docker since fc9c1fa (three
   baseline tests); an autouse fixture now sends every docker call to a fake node, and a
   `docker events` trace of a full test run showed no exec.
+
+## Correction (2026-09-28, later): the cluster's own objects are restored too
+
+The reset restored the container's files but only deleted Kubernetes objects. Stage 1's third attempt
+(`main4-…`, launched 19:14:37Z at 5a31e8f) stopped at 23:03:00Z (study/stage1-main4.log): in
+runs/2026-09-28T222537Z_main4-ministral3-14b-nopolicy, k8s_target_port-misconfig-mitigation-2, the agent
+ran `kubectl rollout restart -n kube-system daemonset/kube-proxy` (history[46]), a real change outside the
+app namespaces, and the next 15 problems were refused (`changed: kube-system/DaemonSet/kube-proxy`).
+Such writes are rare: 3 of 1,491 trajectories in runs/ (this one, and two to Prometheus's `observe`
+namespace, which the reset reinstalls), from a regex scan of agent commands (unverified beyond it).
+
+- **Fix (533204a):** the baseline also stores a manifest of every object cluster_objects() covers
+  (study/baselines/cluster-baseline-fresh.objects.json, sha256 in the baseline). The reset deletes
+  objects the baseline doesn't have, `kubectl replace`s changed ones and `kubectl create`s missing ones,
+  waiting for Deployments, DaemonSets and StatefulSets to roll out. Undoing the agent's restart by hand
+  gave kube-proxy exactly its baseline fingerprint (451420edcf7954b6).
+- **A bug the calibration caught (0cedd53):** a restored coredns rolled out on the control plane, and
+  the file reset took the node's pod-networking state for agent leftovers: it deleted the live pods' IP
+  records under `/run/cni-ipam-state` and failed on `/run/netns`
+  (runs/2026-09-28T230807Z_smoke-scripted-restore-objects; the reset raised before either agent ran). `/run/cni-ipam-state`, `/run/netns` and `/var/lib/cni` joined the skips. The coredns pods were
+  deleted so their IPs were allocated afresh (they now run on kind-worker), and DNS resolved from a
+  test pod. No episode ran in between.
+- **Calibration** (runs/2026-09-28T231010Z_smoke-scripted-restore-objects2), baseline retaken
+  2026-09-28T23:09:58Z at 0cedd53: kube-proxy and coredns restarted, a ConfigMap created in kube-system,
+  kind-worker labelled, kube-public/ConfigMap/cluster-info deleted, plus kubectl's cache refreshed, a
+  line appended to `/etc/issue.net`, a planted file and a detached process. The first reset deleted the
+  ConfigMap, replaced the node, kube-proxy and coredns, recreated cluster-info, restored the 25 files,
+  deleted the planted one and killed the process; all three problems started with no drift and ran `ok`.
+- **`main4` retired** (4 complete batches, 64 verified episodes, and 1 of batch 5, at 5a31e8f); the fresh
+  run is `main5-…` and `ladder5-…`.

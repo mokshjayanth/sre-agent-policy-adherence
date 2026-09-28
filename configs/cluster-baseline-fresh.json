@@ -1340,13 +1340,6 @@
   "/root/.ssh": "d",
   "/run": "d",
   "/run/agetty.reload": "f 0 1790578067.0150176590",
-  "/run/cni-ipam-state": "d",
-  "/run/cni-ipam-state/kindnet": "d",
-  "/run/cni-ipam-state/kindnet/10.244.0.2": "f 70 1790578093.2372167510",
-  "/run/cni-ipam-state/kindnet/10.244.0.3": "f 70 1790578093.2474613200",
-  "/run/cni-ipam-state/kindnet/10.244.0.4": "f 70 1790578093.2565404630",
-  "/run/cni-ipam-state/kindnet/last_reserved_ip.0": "f 10 1790578093.2565404630",
-  "/run/cni-ipam-state/kindnet/lock": "f 0 1790578093.2355404710",
   "/run/credentials": "d",
   "/run/credentials/systemd-sysctl.service": "d",
   "/run/credentials/systemd-sysusers.service": "d",
@@ -1356,10 +1349,6 @@
   "/run/lock": "d",
   "/run/log": "d",
   "/run/mount": "d",
-  "/run/netns": "d",
-  "/run/netns/cni-312931f3-b07b-2225-59dc-d0c2dbf4ac66": "f 0 1790578093.2284581010",
-  "/run/netns/cni-579ec99a-ab6a-5aea-f6de-fe9ead67adc0": "f 0 1790578093.2485757270",
-  "/run/netns/cni-8e4600e4-e15a-fbba-eb96-993e0d90fcec": "f 0 1790578093.2406436130",
   "/run/rpcbind": "d",
   "/run/sendsigs.omit.d": "d",
   "/run/shm": "l 8 1790578066.8605501200",
@@ -7379,14 +7368,6 @@
   "/var/lib/apt/mirrors": "d",
   "/var/lib/apt/mirrors/partial": "d",
   "/var/lib/apt/periodic": "d",
-  "/var/lib/cni": "d",
-  "/var/lib/cni/results": "d",
-  "/var/lib/cni/results/cni-loopback-838e90edd7911c7f94fa0b87ff5e37e8817e8030a812e43fc1d2d5722b5dc3b3-lo": "f 1268 1790578093.2355404710",
-  "/var/lib/cni/results/cni-loopback-ac060ea701287fc65823966cd1a0db89f891a8a75b01612848ad86817bcf6d5b-lo": "f 1348 1790578093.2555404630",
-  "/var/lib/cni/results/cni-loopback-c353df660745de2f309840ccf99b4eb437e9920494005365fe0ffcd7c8bf9835-lo": "f 1268 1790578093.2455404670",
-  "/var/lib/cni/results/kindnet-838e90edd7911c7f94fa0b87ff5e37e8817e8030a812e43fc1d2d5722b5dc3b3-eth0": "f 1753 1790578093.2435404680",
-  "/var/lib/cni/results/kindnet-ac060ea701287fc65823966cd1a0db89f891a8a75b01612848ad86817bcf6d5b-eth0": "f 1833 1790578093.2655404600",
-  "/var/lib/cni/results/kindnet-c353df660745de2f309840ccf99b4eb437e9920494005365fe0ffcd7c8bf9835-eth0": "f 1753 1790578093.2565404630",
   "/var/lib/dpkg": "d",
   "/var/lib/dpkg/alternatives": "d",
   "/var/lib/dpkg/alternatives/arptables": "f 201 1733995484.0000000000",
@@ -8322,7 +8303,7 @@
  },
  "container_snapshot": {
   "file": "study/baselines/cluster-baseline-fresh.files.tar",
-  "sha256": "601abb82b609afac6786de5304c72230145069e6ec4d2e979cae19d914f405f9"
+  "sha256": "888e89f8895b5b73ea3370ed3bd0f96c228a3a77f6bef7a6d847562966e3cb05"
  },
  "objects": {
   "APIService/v1.": {
@@ -8958,7 +8939,7 @@
    "fingerprint": "fb3f33c9a46f5f38"
   },
   "kube-public/ConfigMap/cluster-info": {
-   "created": "2026-09-28T06:47:54Z",
+   "created": "2026-09-28T23:08:09Z",
    "fingerprint": "09c971a7727b772c"
   },
   "kube-public/ConfigMap/kube-root-ca.crt": {
@@ -9296,7 +9277,7 @@
  },
  "objects_snapshot": {
   "file": "study/baselines/cluster-baseline-fresh.objects.json",
-  "sha256": "487bb0f9e589f788cbff3fb76d5ca4b34500b080a2f24ccfe58e7cd1bf05769f"
+  "sha256": "2ada09dd0733407a0f24ebf9aa69248a52e5002c20b5f6996edf96f13369744b"
  },
- "taken_utc": "2026-09-28T23:07:34.596817+00:00"
+ "taken_utc": "2026-09-28T23:09:58.345149+00:00"
 }
