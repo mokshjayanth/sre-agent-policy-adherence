@@ -557,3 +557,17 @@ def test_the_baseline_stores_manifests_without_server_fields(monkeypatch, tmp_pa
     assert all(set(m["metadata"]) <= {"name", "namespace", "labels", "annotations"} and "status" not in m
                for m in stored.values())
     assert all(set(v) == {"created", "fingerprint"} for v in baseline["objects"].values())
+
+
+def test_bootstrap_tokens_and_their_signatures_are_not_compared(monkeypatch):
+    token = {**_item("Secret", "bootstrap-token-abcdef", "kube-system"), "type": "bootstrap.kubernetes.io/token"}
+    signed = {**_item("ConfigMap", "cluster-info", "kube-public"), "data": {"kubeconfig": "k", "jws-kubeconfig-abcdef": "s"}}
+    _cluster(monkeypatch, [token, signed], [])
+    before = harness_fixes.cluster_objects()
+    assert list(before) == ["kube-public/ConfigMap/cluster-info"]
+    unsigned = {**signed, "data": {"kubeconfig": "k"}}                     # the token expired
+    _cluster(monkeypatch, [unsigned], [])
+    assert harness_fixes.cluster_objects() == before
+    edited = {**signed, "data": {"kubeconfig": "agent"}}                   # anything else still counts
+    _cluster(monkeypatch, [edited], [])
+    assert harness_fixes.cluster_objects() != before

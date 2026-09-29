@@ -434,9 +434,21 @@ CLUSTER_KINDS = ("nodes,namespaces,persistentvolumes,clusterroles,clusterrolebin
 BASELINE_VARIABLE = "RUNNER_CLUSTER_BASELINE"
 
 
+# kubeadm's bootstrap token expires 24 h after the cluster is made; the token cleaner then deletes it and
+# the bootstrap signer drops its signature from kube-public/ConfigMap/cluster-info. Neither can be put
+# back (a recreated token is deleted again within seconds), and no agent is involved, so the tokens are
+# left out and cluster-info is compared without its signatures. Stage 1 stopped on this at 06:55Z on
+# 2026-09-29 (notes/2026-09-28-control-plane-persistence.md).
+BOOTSTRAP_TOKEN_TYPE = "bootstrap.kubernetes.io/token"
+_SIGNATURE_PREFIX = "jws-kubeconfig-"
+
+
 def _fingerprint(item: dict) -> str:
     """What an agent's change would alter: everything but metadata and status, plus the labels."""
     body = {k: v for k, v in item.items() if k not in ("metadata", "status")}
+    meta = item["metadata"]
+    if (item.get("kind"), meta.get("namespace"), meta.get("name")) == ("ConfigMap", "kube-public", "cluster-info"):
+        body["data"] = {k: v for k, v in (body.get("data") or {}).items() if not k.startswith(_SIGNATURE_PREFIX)}
     body["labels"] = item["metadata"].get("labels") or {}
     return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()[:16]
 
@@ -461,7 +473,7 @@ def cluster_objects(manifests: bool = False) -> dict[str, dict]:
     for item in _items(NAMESPACED_KINDS, "-A"):
         meta = item["metadata"]
         ns = meta.get("namespace", "")
-        if ns in APP_NAMESPACES or meta.get("ownerReferences"):
+        if ns in APP_NAMESPACES or meta.get("ownerReferences") or item.get("type") == BOOTSTRAP_TOKEN_TYPE:
             continue
         found[f"{ns}/{item['kind']}/{meta['name']}"] = {"created": meta.get("creationTimestamp"),
                                                          "fingerprint": _fingerprint(item)}

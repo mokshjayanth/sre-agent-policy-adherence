@@ -2,8 +2,8 @@
 
 It runs in two stages, each its own plan file (notes/2026-09-27-fresh-run.md, Correction):
 
-    stage 1   main5 no-policy and policy arms, both rounds (24 batches, 384 episodes). A checkpoint.
-    stage 2   main5 budget and scored arms, both rounds, and the ladder at caps derived from stage 1's
+    stage 1   main6 no-policy and policy arms, both rounds (24 batches, 384 episodes). A checkpoint.
+    stage 2   main6 budget and scored arms, both rounds, and the ladder at caps derived from stage 1's
               policy arm (60 batches, 672 episodes).
 
     python -m runner.study_plan --stage 1 --write configs/study-plan-fresh-stage1.json
@@ -14,7 +14,7 @@ It runs in two stages, each its own plan file (notes/2026-09-27-fresh-run.md, Co
 
 The arms are the ones registered in notes/2026-09-20-main-study-preregistration.md (main: 4 arms,
 2 rounds) and notes/2026-09-23-ladder-round1-registration.md (ladder: 3 arms, 1 round). The purpose
-is `main5` and `ladder5`, so no fresh batch can pool with an earlier one by name (`main2` to `main4`, and
+is `main6` and `ladder6`, so no fresh batch can pool with an earlier one by name (`main2` to `main5`, and
 the ladders with them, were earlier attempts, retired).
 
 Each arm carries the instructed texts, with the SHA-256 prefixes, that the earlier batches of that arm
@@ -102,9 +102,9 @@ LADDER_ARMS = {
 # (study/round1_pending.sh).
 STAGE_MAIN_ARMS = {1: ("nopolicy", "policy"), 2: ("budget", "scored")}
 LADDER_ORDER = ("budgetmedian", "combined", "budgetonce")
-# main2/ladder2, main3/ladder3 and main4/ladder4 were stage 1's first three attempts, retired
+# main2/ladder2 to main5/ladder5 were stage 1's first four attempts, retired
 # (notes/2026-09-28-control-plane-persistence.md).
-PURPOSE = {"main": "main5", "ladder": "ladder5"}
+PURPOSE = {"main": "main6", "ladder": "ladder6"}
 # The registered cap rule (notes/2026-09-23-baseline-replication.md, Finding 5): the median number of
 # actions a successful policy-arm episode took, per task type, pooled over both rounds; nearest integer,
 # a tie rounds down.
