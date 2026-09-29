@@ -8303,7 +8303,7 @@
  },
  "container_snapshot": {
   "file": "study/baselines/cluster-baseline-fresh.files.tar",
-  "sha256": "888e89f8895b5b73ea3370ed3bd0f96c228a3a77f6bef7a6d847562966e3cb05"
+  "sha256": "e048d91c68885ccc36a619ce2009de1b71959bbbbe22afe3937644dbb489059d"
  },
  "objects": {
   "APIService/v1.": {
@@ -8939,8 +8939,8 @@
    "fingerprint": "fb3f33c9a46f5f38"
   },
   "kube-public/ConfigMap/cluster-info": {
-   "created": "2026-09-28T23:08:09Z",
-   "fingerprint": "09c971a7727b772c"
+   "created": "2026-09-28T23:10:12Z",
+   "fingerprint": "5f024ff3609464d4"
   },
   "kube-public/ConfigMap/kube-root-ca.crt": {
    "created": "2026-09-28T06:48:01Z",
@@ -9077,10 +9077,6 @@
   "kube-system/RoleBinding/system:controller:token-cleaner": {
    "created": "2026-09-28T06:47:54Z",
    "fingerprint": "baaacb85e27cf576"
-  },
-  "kube-system/Secret/bootstrap-token-abcdef": {
-   "created": "2026-09-28T06:47:54Z",
-   "fingerprint": "53f92e24ca3dddc1"
   },
   "kube-system/Service/kube-dns": {
    "created": "2026-09-28T06:47:55Z",
@@ -9277,7 +9273,7 @@
  },
  "objects_snapshot": {
   "file": "study/baselines/cluster-baseline-fresh.objects.json",
-  "sha256": "2ada09dd0733407a0f24ebf9aa69248a52e5002c20b5f6996edf96f13369744b"
+  "sha256": "b4221029fb1a7651114fdac9e620275baa1ffbc603cedf56bc61d7f7066a8524"
  },
- "taken_utc": "2026-09-28T23:09:58.345149+00:00"
+ "taken_utc": "2026-09-29T06:58:34.225495+00:00"
 }

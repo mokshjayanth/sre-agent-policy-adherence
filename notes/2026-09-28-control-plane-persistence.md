@@ -188,3 +188,30 @@ namespace, which the reset reinstalls), from a regex scan of agent commands (unv
   deleted the planted one and killed the process; all three problems started with no drift and ran `ok`.
 - **`main4` retired** (4 complete batches, 64 verified episodes, and 1 of batch 5, at 5a31e8f); the fresh
   run is `main5-…` and `ladder5-…`.
+
+## Correction (2026-09-29): a 24-hour token the cluster deletes by itself
+
+Stage 1's fourth attempt (`main5-…`, launched 2026-09-28T23:20:08Z at b3cd4b9) stopped at 06:55:35Z on
+2026-09-29 (study/stage1-main5.log), with no agent involved. kind's kubeadm bootstrap token
+kube-system/Secret/bootstrap-token-abcdef expires 24 h after the cluster was made (its `expiration`,
+from study/baselines/cluster-baseline-fresh.objects.json: 2026-09-29T06:47:54Z); the token cleaner
+deleted it and the bootstrap signer dropped its `jws-kubeconfig-abcdef` signature from
+kube-public/ConfigMap/cluster-info. The reset recreated both from the baseline and the cleaner deleted
+the token again within seconds, so the last four problems of
+runs/2026-09-29T060916Z_main5-qwen3-next-80b-nopolicy were refused (`gone:
+kube-system/Secret/bootstrap-token-abcdef`, `changed: kube-public/ConfigMap/cluster-info`).
+
+- **Fix (128e78c):** Secrets of type `bootstrap.kubernetes.io/token` are left out of cluster_objects(),
+  and cluster-info is fingerprinted without its `jws-kubeconfig-*` keys; any other change to it still
+  counts (tests/test_harness_fixes.py, test_bootstrap_tokens_and_their_signatures_are_not_compared).
+- **Other timers, checked:** the cluster's certificates expire on 2027-09-28 (CA 2036); the node's only
+  systemd timer is systemd-tmpfiles-clean (daily, 07:02:55Z), which fired during the calibration below
+  without any drift; no other baseline object carries an expiry (a scan of the stored manifests for
+  expiry, TTL and timestamp fields found only TTL controller names and settings).
+- **Baseline retaken** 2026-09-29T06:58:34Z; against the one it replaced it differs only in the token
+  (now left out) and cluster-info's fingerprint (now without signatures); files identical.
+- **Calibration** (runs/2026-09-29T065855Z_smoke-scripted-token-expiry): a token created with
+  `kubeadm token create --ttl 2m` and signed into cluster-info gave no drift; it expired and was deleted
+  during two problems, both of which started with no drift and ran `ok`.
+- **`main5` retired** (8 complete batches, 128 verified episodes, at b3cd4b9); the fresh run is `main6-…`
+  and `ladder6-…`.

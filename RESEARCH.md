@@ -226,3 +226,8 @@ The second attempt (`main3-…`) is retired as well; the fresh run's conditions 
 
 `main4-…` is retired as well; the fresh run's conditions are `main5-…` and `ladder5-…`, design unchanged
 (`notes/2026-09-28-control-plane-persistence.md`).
+
+## Correction (2026-09-29): the fresh run's conditions are main6 and ladder6
+
+`main5-…` is retired as well; the fresh run's conditions are `main6-…` and `ladder6-…`, design unchanged
+(`notes/2026-09-28-control-plane-persistence.md`).
