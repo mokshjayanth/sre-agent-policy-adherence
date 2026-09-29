@@ -210,7 +210,7 @@ kube-system/Secret/bootstrap-token-abcdef`, `changed: kube-public/ConfigMap/clus
   expiry, TTL and timestamp fields found only TTL controller names and settings).
 - **Baseline retaken** 2026-09-29T06:58:34Z; against the one it replaced it differs only in the token
   (now left out) and cluster-info's fingerprint (now without signatures); files identical.
-- **Calibration** (runs/2026-09-29T065855Z_smoke-scripted-token-expiry): a token created with
+- **Calibration** (runs/2026-09-29T065854Z_smoke-scripted-token-expiry): a token created with
   `kubeadm token create --ttl 2m` and signed into cluster-info gave no drift; it expired and was deleted
   during two problems, both of which started with no drift and ran `ok`.
 - **`main5` retired** (8 complete batches, 128 verified episodes, at b3cd4b9); the fresh run is `main6-…`
