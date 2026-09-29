@@ -9,7 +9,8 @@ It runs in two stages, each its own plan file (notes/2026-09-27-fresh-run.md, Co
     python -m runner.study_plan --stage 1 --write configs/study-plan-fresh-stage1.json
     python -m runner.study_plan --derive-caps configs/study-plan-fresh-stage1.json \\
         --baseline configs/cluster-baseline-fresh.json --write configs/ladder-caps-fresh.json
-    python -m runner.study_plan --stage 2 --write configs/study-plan-fresh-stage2.json
+    python -m runner.study_plan --stage 2a --write configs/study-plan-fresh-stage2a.json   (needs no caps)
+    python -m runner.study_plan --stage 2b --write configs/study-plan-fresh-stage2b.json   (the ladder)
     python -m runner.study_plan --stage N --check <plan file>      (fail if it drifted from this file)
 
 The arms are the ones registered in notes/2026-09-20-main-study-preregistration.md (main: 4 arms,
@@ -170,14 +171,16 @@ def load_caps(path: Path = CAPS_FILE) -> dict:
     return {"mitigation": int(data["caps"]["mitigation"]), "diagnosis": int(data["caps"]["diagnosis"])}
 
 
-def expand(stage: int, caps: dict | None = None) -> list[dict]:
-    """Every batch of one stage, in the order it runs. Stage 2 needs the derived caps."""
+def expand(stage: int | str, caps: dict | None = None) -> list[dict]:
+    """Every batch of one stage, in the order it runs. Stage 2 is stage "2a" (its main arms, which need no
+    caps) followed by stage "2b" (the ladder, at the derived caps); either half alone is that part of it."""
     batches = []
-    arms = STAGE_MAIN_ARMS[stage]
-    for round_, order in ((1, arms), (2, tuple(reversed(arms)))):
-        for model, label in MODELS:
-            batches += [_main(arm, model, label, round_) for arm in order]
-    if stage == 2:
+    if stage in (1, 2, "2a"):
+        arms = STAGE_MAIN_ARMS[1 if stage == 1 else 2]
+        for round_, order in ((1, arms), (2, tuple(reversed(arms)))):
+            for model, label in MODELS:
+                batches += [_main(arm, model, label, round_) for arm in order]
+    if stage in (2, "2b"):
         caps = caps or load_caps()
         for arm in LADDER_ORDER:
             for model, label in MODELS:
@@ -185,7 +188,7 @@ def expand(stage: int, caps: dict | None = None) -> list[dict]:
     return batches
 
 
-def render(stage: int, caps: dict | None = None) -> str:
+def render(stage: int | str, caps: dict | None = None) -> str:
     batches = expand(stage, caps)
     return json.dumps({"plan": f"fresh run of the main study and the ladder, stage {stage}",
                        "note": "notes/2026-09-27-fresh-run.md", "stage": stage,
@@ -234,7 +237,7 @@ def caps_from(episodes: list[dict]) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--stage", type=int, choices=(1, 2))
+    parser.add_argument("--stage", choices=("1", "2", "2a", "2b"))
     parser.add_argument("--derive-caps", type=Path, metavar="STAGE1_PLAN")
     parser.add_argument("--baseline", type=Path)
     group = parser.add_mutually_exclusive_group(required=True)
@@ -244,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.derive_caps:
         text = json.dumps(derive_caps(json.loads(args.derive_caps.read_text()), args.baseline), indent=1) + "\n"
     elif args.stage:
-        text = render(args.stage)
+        text = render(int(args.stage) if args.stage.isdigit() else args.stage)
     else:
         parser.error("give --stage or --derive-caps")
     if args.write:

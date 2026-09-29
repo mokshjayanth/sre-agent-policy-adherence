@@ -142,3 +142,16 @@ def test_committed_stage_1_plan_matches_the_renderer():
 
 def test_sha12_is_the_agents_hash():
     assert sha12("x") == openai_compatible._entry("policy", None, "x", None)["sha256"]
+
+
+def test_stage_2a_and_2b_are_stage_2_split_where_the_caps_are_first_needed(monkeypatch):
+    caps = {"mitigation": 22, "diagnosis": 9}
+    def no_caps_file():
+        raise AssertionError("stage 2a must not read the caps")
+    monkeypatch.setattr(study_plan, "load_caps", no_caps_file)
+    first, second = study_plan.expand("2a"), study_plan.expand("2b", caps)
+    assert first + second == study_plan.expand(2, caps)
+    assert {i["arm"] for i in first} == {"budget", "scored"} and all(i["condition"].startswith("main") for i in first)
+    assert all(i["condition"].startswith("ladder") for i in second)
+    assert len(first) == 24 and len(second) == 36
+    assert json.loads(study_plan.render("2a"))["stage"] == "2a"
