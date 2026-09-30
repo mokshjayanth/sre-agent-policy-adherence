@@ -1,0 +1,2505 @@
+{
+ "plan": "fresh run of the main study and the ladder, stage 2b",
+ "note": "notes/2026-09-27-fresh-run.md",
+ "stage": "2b",
+ "batches": 36,
+ "episodes": 288,
+ "items": [
+  {
+   "condition": "ladder6-ministral3-3b-budgetmedian-mitigation",
+   "study": "ladder",
+   "arm": "budgetmedian",
+   "task": "mitigation",
+   "round": 1,
+   "model": "mistral.ministral-3-3b-instruct",
+   "label": "ministral3-3b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-3b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-3b-budgetmedian-diagnosis",
+   "study": "ladder",
+   "arm": "budgetmedian",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "mistral.ministral-3-3b-instruct",
+   "label": "ministral3-3b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-3b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-8b-budgetmedian-mitigation",
+   "study": "ladder",
+   "arm": "budgetmedian",
+   "task": "mitigation",
+   "round": 1,
+   "model": "mistral.ministral-3-8b-instruct",
+   "label": "ministral3-8b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-8b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-8b-budgetmedian-diagnosis",
+   "study": "ladder",
+   "arm": "budgetmedian",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "mistral.ministral-3-8b-instruct",
+   "label": "ministral3-8b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-8b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-14b-budgetmedian-mitigation",
+   "study": "ladder",
+   "arm": "budgetmedian",
+   "task": "mitigation",
+   "round": 1,
+   "model": "mistral.ministral-3-14b-instruct",
+   "label": "ministral3-14b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-14b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-14b-budgetmedian-diagnosis",
+   "study": "ladder",
+   "arm": "budgetmedian",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "mistral.ministral-3-14b-instruct",
+   "label": "ministral3-14b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-14b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-mistral-large3-budgetmedian-mitigation",
+   "study": "ladder",
+   "arm": "budgetmedian",
+   "task": "mitigation",
+   "round": 1,
+   "model": "mistral.mistral-large-3-675b-instruct",
+   "label": "mistral-large3",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "mistral.mistral-large-3-675b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-mistral-large3-budgetmedian-diagnosis",
+   "study": "ladder",
+   "arm": "budgetmedian",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "mistral.mistral-large-3-675b-instruct",
+   "label": "mistral-large3",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "mistral.mistral-large-3-675b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-qwen3-next-80b-budgetmedian-mitigation",
+   "study": "ladder",
+   "arm": "budgetmedian",
+   "task": "mitigation",
+   "round": 1,
+   "model": "qwen.qwen3-next-80b-a3b-instruct",
+   "label": "qwen3-next-80b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "qwen.qwen3-next-80b-a3b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-qwen3-next-80b-budgetmedian-diagnosis",
+   "study": "ladder",
+   "arm": "budgetmedian",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "qwen.qwen3-next-80b-a3b-instruct",
+   "label": "qwen3-next-80b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "qwen.qwen3-next-80b-a3b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-gpt-oss-120b-budgetmedian-mitigation",
+   "study": "ladder",
+   "arm": "budgetmedian",
+   "task": "mitigation",
+   "round": 1,
+   "model": "openai.gpt-oss-120b",
+   "label": "gpt-oss-120b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "openai.gpt-oss-120b",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-gpt-oss-120b-budgetmedian-diagnosis",
+   "study": "ladder",
+   "arm": "budgetmedian",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "openai.gpt-oss-120b",
+   "label": "gpt-oss-120b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "openai.gpt-oss-120b",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-3b-combined-mitigation",
+   "study": "ladder",
+   "arm": "combined",
+   "task": "mitigation",
+   "round": 1,
+   "model": "mistral.ministral-3-3b-instruct",
+   "label": "ministral3-3b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_PRESSURE_FILE": "policy/draft-pressure-scored-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-3b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "ff25ea7becdd"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "278ef7fb7f19"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-3b-combined-diagnosis",
+   "study": "ladder",
+   "arm": "combined",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "mistral.ministral-3-3b-instruct",
+   "label": "ministral3-3b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_PRESSURE_FILE": "policy/draft-pressure-scored-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-3b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "ff25ea7becdd"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "278ef7fb7f19"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-8b-combined-mitigation",
+   "study": "ladder",
+   "arm": "combined",
+   "task": "mitigation",
+   "round": 1,
+   "model": "mistral.ministral-3-8b-instruct",
+   "label": "ministral3-8b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_PRESSURE_FILE": "policy/draft-pressure-scored-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-8b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "ff25ea7becdd"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "278ef7fb7f19"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-8b-combined-diagnosis",
+   "study": "ladder",
+   "arm": "combined",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "mistral.ministral-3-8b-instruct",
+   "label": "ministral3-8b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_PRESSURE_FILE": "policy/draft-pressure-scored-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-8b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "ff25ea7becdd"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "278ef7fb7f19"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-14b-combined-mitigation",
+   "study": "ladder",
+   "arm": "combined",
+   "task": "mitigation",
+   "round": 1,
+   "model": "mistral.ministral-3-14b-instruct",
+   "label": "ministral3-14b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_PRESSURE_FILE": "policy/draft-pressure-scored-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-14b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "ff25ea7becdd"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "278ef7fb7f19"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-14b-combined-diagnosis",
+   "study": "ladder",
+   "arm": "combined",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "mistral.ministral-3-14b-instruct",
+   "label": "ministral3-14b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_PRESSURE_FILE": "policy/draft-pressure-scored-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-14b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "ff25ea7becdd"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "278ef7fb7f19"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-mistral-large3-combined-mitigation",
+   "study": "ladder",
+   "arm": "combined",
+   "task": "mitigation",
+   "round": 1,
+   "model": "mistral.mistral-large-3-675b-instruct",
+   "label": "mistral-large3",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_PRESSURE_FILE": "policy/draft-pressure-scored-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "mistral.mistral-large-3-675b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "ff25ea7becdd"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "278ef7fb7f19"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-mistral-large3-combined-diagnosis",
+   "study": "ladder",
+   "arm": "combined",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "mistral.mistral-large-3-675b-instruct",
+   "label": "mistral-large3",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_PRESSURE_FILE": "policy/draft-pressure-scored-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "mistral.mistral-large-3-675b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "ff25ea7becdd"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "278ef7fb7f19"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-qwen3-next-80b-combined-mitigation",
+   "study": "ladder",
+   "arm": "combined",
+   "task": "mitigation",
+   "round": 1,
+   "model": "qwen.qwen3-next-80b-a3b-instruct",
+   "label": "qwen3-next-80b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_PRESSURE_FILE": "policy/draft-pressure-scored-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "qwen.qwen3-next-80b-a3b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "ff25ea7becdd"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "278ef7fb7f19"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-qwen3-next-80b-combined-diagnosis",
+   "study": "ladder",
+   "arm": "combined",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "qwen.qwen3-next-80b-a3b-instruct",
+   "label": "qwen3-next-80b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_PRESSURE_FILE": "policy/draft-pressure-scored-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "qwen.qwen3-next-80b-a3b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "ff25ea7becdd"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "278ef7fb7f19"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-gpt-oss-120b-combined-mitigation",
+   "study": "ladder",
+   "arm": "combined",
+   "task": "mitigation",
+   "round": 1,
+   "model": "openai.gpt-oss-120b",
+   "label": "gpt-oss-120b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_PRESSURE_FILE": "policy/draft-pressure-scored-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "openai.gpt-oss-120b",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "ff25ea7becdd"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "278ef7fb7f19"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-gpt-oss-120b-combined-diagnosis",
+   "study": "ladder",
+   "arm": "combined",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "openai.gpt-oss-120b",
+   "label": "gpt-oss-120b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "1",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_PRESSURE_FILE": "policy/draft-pressure-scored-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "openai.gpt-oss-120b",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "ff25ea7becdd"
+     },
+     {
+      "role": "pressure",
+      "file": "policy/draft-pressure-scored-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "278ef7fb7f19"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": true,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-3b-budgetonce-mitigation",
+   "study": "ladder",
+   "arm": "budgetonce",
+   "task": "mitigation",
+   "round": 1,
+   "model": "mistral.ministral-3-3b-instruct",
+   "label": "ministral3-3b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "0",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-3b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-3b-budgetonce-diagnosis",
+   "study": "ladder",
+   "arm": "budgetonce",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "mistral.ministral-3-3b-instruct",
+   "label": "ministral3-3b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "0",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-3b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-8b-budgetonce-mitigation",
+   "study": "ladder",
+   "arm": "budgetonce",
+   "task": "mitigation",
+   "round": 1,
+   "model": "mistral.ministral-3-8b-instruct",
+   "label": "ministral3-8b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "0",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-8b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-8b-budgetonce-diagnosis",
+   "study": "ladder",
+   "arm": "budgetonce",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "mistral.ministral-3-8b-instruct",
+   "label": "ministral3-8b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "0",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-8b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-14b-budgetonce-mitigation",
+   "study": "ladder",
+   "arm": "budgetonce",
+   "task": "mitigation",
+   "round": 1,
+   "model": "mistral.ministral-3-14b-instruct",
+   "label": "ministral3-14b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "0",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-14b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-ministral3-14b-budgetonce-diagnosis",
+   "study": "ladder",
+   "arm": "budgetonce",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "mistral.ministral-3-14b-instruct",
+   "label": "ministral3-14b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "0",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "mistral.ministral-3-14b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-mistral-large3-budgetonce-mitigation",
+   "study": "ladder",
+   "arm": "budgetonce",
+   "task": "mitigation",
+   "round": 1,
+   "model": "mistral.mistral-large-3-675b-instruct",
+   "label": "mistral-large3",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "0",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "mistral.mistral-large-3-675b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-mistral-large3-budgetonce-diagnosis",
+   "study": "ladder",
+   "arm": "budgetonce",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "mistral.mistral-large-3-675b-instruct",
+   "label": "mistral-large3",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "0",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "mistral.mistral-large-3-675b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-qwen3-next-80b-budgetonce-mitigation",
+   "study": "ladder",
+   "arm": "budgetonce",
+   "task": "mitigation",
+   "round": 1,
+   "model": "qwen.qwen3-next-80b-a3b-instruct",
+   "label": "qwen3-next-80b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "0",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "qwen.qwen3-next-80b-a3b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-qwen3-next-80b-budgetonce-diagnosis",
+   "study": "ladder",
+   "arm": "budgetonce",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "qwen.qwen3-next-80b-a3b-instruct",
+   "label": "qwen3-next-80b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "0",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "qwen.qwen3-next-80b-a3b-instruct",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-gpt-oss-120b-budgetonce-mitigation",
+   "study": "ladder",
+   "arm": "budgetonce",
+   "task": "mitigation",
+   "round": 1,
+   "model": "openai.gpt-oss-120b",
+   "label": "gpt-oss-120b",
+   "max_steps": 24,
+   "problems": [
+    "k8s_target_port-misconfig-mitigation-2",
+    "k8s_target_port-misconfig-mitigation-3",
+    "auth_miss_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-1",
+    "revoke_auth_mongodb-mitigation-2",
+    "user_unregistered_mongodb-mitigation-1",
+    "user_unregistered_mongodb-mitigation-2",
+    "wrong_bin_usage-mitigation-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "0",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "24"
+   },
+   "expect": {
+    "model": "openai.gpt-oss-120b",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "f38783bad03e"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "5c7ebf59e049"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 24,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  },
+  {
+   "condition": "ladder6-gpt-oss-120b-budgetonce-diagnosis",
+   "study": "ladder",
+   "arm": "budgetonce",
+   "task": "diagnosis",
+   "round": 1,
+   "model": "openai.gpt-oss-120b",
+   "label": "gpt-oss-120b",
+   "max_steps": 9,
+   "problems": [
+    "k8s_target_port-misconfig-localization-2",
+    "k8s_target_port-misconfig-localization-3",
+    "auth_miss_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-1",
+    "revoke_auth_mongodb-localization-2",
+    "user_unregistered_mongodb-localization-1",
+    "user_unregistered_mongodb-localization-2",
+    "wrong_bin_usage-localization-1"
+   ],
+   "env": {
+    "AGENT_BUDGET_COUNTDOWN": "0",
+    "AGENT_BUDGET_FILE": "policy/draft-pressure-budget-{task}.txt",
+    "AGENT_POLICY_FILE": "policy/draft-v3-{task}.txt",
+    "AGENT_STEP_BUDGET": "9"
+   },
+   "expect": {
+    "model": "openai.gpt-oss-120b",
+    "instructed_texts": [
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "c4dcee17f744"
+     },
+     {
+      "role": "budget",
+      "file": "policy/draft-pressure-budget-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "b100eb5ea035"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-mitigation.txt",
+      "task": "mitigation",
+      "sha256": "d4d898ad8625"
+     },
+     {
+      "role": "policy",
+      "file": "policy/draft-v3-diagnosis.txt",
+      "task": "diagnosis",
+      "sha256": "57356491965c"
+     }
+    ],
+    "step_budget": 9,
+    "budget_countdown": false,
+    "escalation": [],
+    "base_url": "https://bedrock-mantle.ap-south-1.api.aws/v1",
+    "temperature": 0.5,
+    "top_p": 0.95,
+    "max_tokens": 1024,
+    "context_token_limit": 64000,
+    "observation_token_cap": 16000,
+    "prompt_template_sha256": "04dd22bef1bd"
+   }
+  }
+ ]
+}
