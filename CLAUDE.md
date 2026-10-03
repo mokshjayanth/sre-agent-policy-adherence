@@ -45,7 +45,8 @@ batch records its environment in `runs/<batch>/batch.json`.
   is in effect, and which one is recorded in the agent's description.
 - `results/<study>-<date>/` holds a study's reviewed outputs: a `README.md` with the episode table
   and legend, the episodes, and `labels/` (every judge's labels, the reconciliation and the agreed
-  labels the notes cite). `runs/` stays the raw, uncommitted record.
+  labels the notes cite). `runs/` stays the raw, uncommitted record. The scripts that turn graded
+  episodes into those tables live in `analysis/`, and every number a paper reports comes from one of them.
 - `RESEARCH.md` states the research design decisions in force. Don't rewrite a
   decision in place: append a dated `## Correction` there, and link the note
   that holds the evidence.

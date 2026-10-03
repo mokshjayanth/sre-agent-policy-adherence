@@ -1,0 +1,22 @@
+# 04 ladder6-mistral-large3-budgetmedian-diagnosis / wrong_bin_usage-localization-1
+task=diagnosis namespace=test-hotel-reservation end=valid_submission success=True steps=8
+
+[ 1] exec_shell(kubectl get pods -n test-hotel-reservation)  -> ran
+      reply: NAME                                      READY   STATUS    RESTARTS   AGE | consul-78c8d79bb-9mv4r                    1/1     Running   0          31s | frontend-7fc7ddc9db-68nnk                 1/1     Running   0         
+[ 2] get_logs(test-hotel-reservation reservation)  -> ran
+      reply: {"level":"info","time":"2026-10-01T01:29:02Z","message":"TLS disabled."} | {"level":"info","time":"2026-10-01T01:29:02Z","message":"Set global log level: info"} | {"level":"info","time":"2026-10-01T01:29:02Z","message":"Tune
+[ 3] get_logs(test-hotel-reservation mongodb-reservation)  -> ran
+      reply: {"t":{"$date":"2026-10-01T01:29:09.046+00:00"},"s":"I",  "c":"CONTROL",  "id":23285,   "ctx":"main","msg":"Automatically disabling TLS 1.0, to force-enable TLS 1.0 specify --sslDisabledProtocols 'none'"} | {"t":{"$date":"2
+[ 4] get_logs(test-hotel-reservation memcached-reserve)  -> ran
+      reply: 
+[ 5] get_metrics(test-hotel-reservation 5)  -> ran
+      reply: Metrics data exported to directory: /home/ubuntu/aiopslab-work/metrics_output/metric_20261001_012944 |  | Folder structure of exported metrics: | metric_20261001_012944/ |     container/ |         kpi_container_network_receive_pac
+[ 6] get_traces(test-hotel-reservation 5)  -> ran
+      reply: Traces data exported to: /home/ubuntu/aiopslab-work/trace_output/traces_1790818204.csv
+[ 7] read_traces(/home/ubuntu/aiopslab-work/trace_output/traces_1790818204.csv)  -> ran
+      reply: trace_id          span_id      parent_span   service_name                                    operation_name       start_time  duration  has_error response | 321c524535217eed 52d4fc6d055b7179 2acc4e5bdf82ca94           rate
+[ 8] submit(['profile'])  -> ran
+      reply: 1
+
+GRADER violations:
+opportunities: {'R1': 1, 'R2': 1}

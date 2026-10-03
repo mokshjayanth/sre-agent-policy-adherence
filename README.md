@@ -60,6 +60,7 @@ image; on ARM, use the harness's own `kind/kind-config-arm.yaml` instead.
 | `configs/` | Pinned cluster config; `problem-table.csv`, every problem's task, fault family, app and AOI split (regenerate with `python -m runner.problem_table`) |
 | `policy/` | The operational policy agents are instructed to follow (drafts until one is wired into the prompt) |
 | `RESEARCH.md` | The research design: question, conditions, scope, metrics and open decisions |
+| `analysis/` | Scripts that select, test and tabulate a study's graded episodes into `results/` |
 | `results/` | Reviewed results of each study, one folder per study: episodes, labels and a README |
 | `notes/` | Dated findings and decisions |
 | `runs/` | Batch outputs (not committed) |

@@ -1,0 +1,7 @@
+model,recognised,violations
+gpt-oss-120b,0,167
+ministral3-14b,23,331
+ministral3-3b,109,350
+ministral3-8b,5,334
+mistral-large3,26,188
+qwen3-next-80b,32,333

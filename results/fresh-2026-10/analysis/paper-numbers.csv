@@ -1,0 +1,61 @@
+name,value,note
+r3_violations,346,
+r3_near_misses,23,
+r3_primary_policy_minus_nopolicy,"-8.2 [-19.7, -0.2]",
+r3_sensitivity_policy_minus_nopolicy,"-4.7 [-14.5, +1.9]",
+r3_primary_budget_minus_policy,"+9.8 [+0.8, +20.6]",
+r3_sensitivity_budget_minus_policy,"+10.5 [+1.4, +21.4]",
+r3_primary_scored_minus_policy,"+8.8 [+3.2, +16.6]",
+r3_sensitivity_scored_minus_policy,"+7.7 [+1.7, +15.5]",
+r3_primary_budgetonce_minus_policy,"-2.9 [-13.8, +8.1]",
+r3_sensitivity_budgetonce_minus_policy,"-3.3 [-15.1, +9.3]",
+r3_primary_budgetmedian_minus_policy,"+0.8 [-11.2, +11.3]",
+r3_sensitivity_budgetmedian_minus_policy,"+0.7 [-13.0, +12.2]",
+r3_primary_combined_minus_policy,"+2.4 [-6.3, +14.3]",
+r3_sensitivity_combined_minus_policy,"+2.2 [-5.2, +12.4]",
+h5_clean_mitigation_without_change,59/97,61%
+h5_changed_violating_success,59/325,18%
+h5_changed_clean_success,11/38,29%
+success_diagnosis_nopolicy_minus_policy,"-6.2 [-16.7, +5.2]",65.6% -> 59.4%
+success_diagnosis_budget_minus_policy,"+0.0 [-10.4, +9.4]",65.6% -> 65.6%
+success_diagnosis_budgetonce_minus_policy,"-30.2 [-44.8, -13.5]",65.6% -> 35.4%
+success_diagnosis_budgetmedian_minus_policy,"-13.5 [-31.3, +6.2]",65.6% -> 52.1%
+success_diagnosis_scored_minus_policy,"-2.1 [-9.4, +6.2]",65.6% -> 63.5%
+success_diagnosis_combined_minus_policy,"-7.3 [-19.8, +2.1]",65.6% -> 58.3%
+success_mitigation_nopolicy_minus_policy,"-4.2 [-12.5, +7.3]",22.9% -> 18.8%
+success_mitigation_budget_minus_policy,"-18.8 [-30.2, -10.4]",22.9% -> 4.2%
+success_mitigation_budgetonce_minus_policy,"-10.4 [-16.7, -4.2]",22.9% -> 12.5%
+success_mitigation_budgetmedian_minus_policy,"-4.2 [-12.5, +4.2]",22.9% -> 18.8%
+success_mitigation_scored_minus_policy,"-2.1 [-10.4, +5.2]",22.9% -> 20.8%
+success_mitigation_combined_minus_policy,"-4.2 [-13.5, +8.3]",22.9% -> 18.8%
+step_limit_endings_nopolicy,71/192,
+step_limit_endings_policy,57/192,
+step_limit_endings_budget,89/192,
+step_limit_endings_budgetonce,54/96,
+step_limit_endings_budgetmedian,45/96,
+step_limit_endings_scored,62/192,
+step_limit_endings_combined,34/96,
+changes_per_mitigation_episode_nopolicy,3.6,
+changes_per_mitigation_episode_policy,3.1,
+changes_per_mitigation_episode_budget,1.4,
+changes_per_mitigation_episode_budgetonce,2.4,
+changes_per_mitigation_episode_budgetmedian,3.1,
+changes_per_mitigation_episode_scored,3.9,
+changes_per_mitigation_episode_combined,2.5,
+R5_nopolicy,11/74,violations/opportunities
+R6_nopolicy,73/125,violations/opportunities
+R9_nopolicy,24/71,violations/opportunities
+R5_policy,7/11,violations/opportunities
+R6_policy,8/124,violations/opportunities
+R9_policy,15/67,violations/opportunities
+r7_by_third_policy,29/48 (60%)  90/135 (67%)  88/118 (75%),"limit 30, first/middle/last third"
+r7_by_third_budget,0/0  31/49 (63%)  54/84 (64%),"limit 15, first/middle/last third"
+r7_by_third_budgetmedian,3/4 (75%)  35/65 (54%)  64/80 (80%),"limit 24, first/middle/last third"
+r7_by_third_combined,3/4 (75%)  35/55 (64%)  43/60 (72%),"limit 24, first/middle/last third"
+model_calls,17757,
+calls_with_capped_observation,168,0.9% in 156 episodes
+calls_not_sending_last_message_in_full,0,
+episodes_seeking_get_metrics_output_from_shell,187,
+get_logs_calls_rejected,1450/3489,42%
+actions,16461,
+parse_failure_actions,1296,"7.9%, 485 episodes"

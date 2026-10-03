@@ -1,0 +1,4 @@
+rule,violating_n,violating_median_tokens,compliant_n,compliant_median_tokens
+R3,329,20302,1124,13923.5
+R7,1076,14911.0,377,14260
+R8,348,14621.5,1105,14799

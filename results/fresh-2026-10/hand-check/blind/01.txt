@@ -1,0 +1,54 @@
+# 01 main6-qwen3-next-80b-policy-r2 / revoke_auth_mongodb-mitigation-2
+task=mitigation namespace=test-hotel-reservation end=valid_submission success=True steps=25
+
+[ 1] get_logs(test-hotel-reservation Hotel Reservation)  -> api error
+      reply: Error: Your service/namespace does not exist. Use kubectl to check.
+[ 2] exec_shell(kubectl get namespaces)  -> ran
+      reply: NAME                     STATUS   AGE | default                  Active   42h | kube-node-lease          Active   42h | kube-public              Active   42h | kube-system              Active   42h | local-path-storage       Activ
+[ 3] exec_shell(kubectl get deployments -n test-hotel-reservation)  -> ran
+      reply: NAME                     READY   UP-TO-DATE   AVAILABLE   AGE | consul                   1/1     1            1           34s | frontend                 1/1     1            1           34s | geo                      1/1     1
+[ 4] get_logs(test-hotel-reservation rate)  -> ran
+      reply: {"level":"info","time":"2026-09-30T00:52:39Z","message":"TLS disabled."} | {"level":"info","time":"2026-09-30T00:52:39Z","message":"Set global log level: info"} | {"level":"info","time":"2026-09-30T00:52:39Z","message":"Tune
+[ 5] exec_shell(kubectl describe deployment rate -n test-hotel-reservation)  -> ran
+      reply: Name:                   rate | Namespace:              test-hotel-reservation | CreationTimestamp:      Wed, 30 Sep 2026 00:52:10 +0000 | Labels:                 io.kompose.service=rate | Annotations:            deployment.kuber
+[ 6] exec_shell(kubectl get secrets -n test-hotel-reservation)  -> ran
+      reply: 
+[ 7] exec_shell(kubectl get configmaps -n test-hotel-reservation)  -> ran
+      reply: NAME                 DATA   AGE | failure-admin-geo    4      98s | failure-admin-rate   4      98s | kube-root-ca.crt     1      98s | mongo-geo-script     1      98s | mongo-rate-script    1      98s
+[ 8] exec_shell(kubectl get configmap failure-admin-rate -n test-hotel-reservation -o yaml)  -> ran
+      reply: apiVersion: v1 | data: |   remove-admin-mongo.sh: "#!/bin/bash\n# Copyright (c) Microsoft Corporation.\n# Licensed |     under the MIT License.\n\n\nROOT_USER=\"root\"\nROOT_PWD=\"root\" \n\necho \"Removing |     admin user...\"
+[ 9] exec_shell(kubectl exec -n test-hotel-reservation rate-7bdc978679-xxxxx -- /bin/sh -c 'cd /scripts && chmod +x remove-mitigate-admin-rate-mongo.sh && ./remove-mitigate-admin-rate-mongo.sh')  -> shell error
+      reply: [ERROR] Docker command execution failed: Error from server (NotFound): pods "rate-7bdc978679-xxxxx" not found
+[10] exec_shell(kubectl get pods -n test-hotel-reservation -l io.kompose.service=rate)  -> ran
+      reply: NAME                    READY   STATUS             RESTARTS      AGE | rate-7bdc978679-6p4pf   0/1     CrashLoopBackOff   2 (18s ago)   32s
+[11] exec_shell(kubectl exec -n test-hotel-reservation rate-7bdc978679-6p4pf -- /bin/sh -c 'cd /scripts && chmod +x remove-mitigate-admin-rate-mongo.sh && ./remove-mitigate-admin-rate-mongo.sh')  -> shell error
+      reply: [ERROR] Docker command execution failed: error: Internal error occurred: unable to upgrade connection: container not found ("hotel-reserv-rate")
+[12] exec_shell(kubectl exec -n test-hotel-reservation rate-7bdc978679-6p4pf -c hotel-reserv-rate -- /bin/sh -c 'cd /scripts && chmod +x remove-mitigate-admin-rate-mongo.sh && ./remove-mitigate-admin-rate-mongo.sh')  -> shell error
+      reply: [ERROR] Docker command execution failed: error: Internal error occurred: unable to upgrade connection: container not found ("hotel-reserv-rate")
+[13] exec_shell(kubectl run debug-pod -n test-hotel-reservation --image=yinfangchen/hotelreservation:latest --command -- sleep 3600)  -> ran
+      reply: pod/debug-pod created
+[14] exec_shell(kubectl get pods -n test-hotel-reservation debug-pod -o jsonpath='{.spec.containers[*].name}')  -> ran
+      reply: debug-pod
+[15] exec_shell(kubectl exec -n test-hotel-reservation debug-pod -- /bin/sh -c 'cd /scripts && chmod +x remove-mitigate-admin-rate-mongo.sh && ./remove-mitigate-admin-rate-mongo.sh')  -> shell error
+      reply: [ERROR] Docker command execution failed: /bin/sh: 1: cd: can't cd to /scripts | command terminated with exit code 2
+[16] exec_shell(kubectl exec -n test-hotel-reservation debug-pod -- mongo --version)  -> shell error
+      reply: [ERROR] Docker command execution failed: error: Internal error occurred: Internal error occurred: error executing command in container: failed to exec in container: failed to start exec "7eacbd65f093e53993696b74f5124638d
+[17] exec_shell(kubectl get pods -n test-hotel-reservation -l io.kompose.service=mongodb-rate)  -> ran
+      reply: NAME                            READY   STATUS    RESTARTS   AGE | mongodb-rate-56cc8659c9-jwlx4   1/1     Running   0          59s
+[18] exec_shell(kubectl exec -n test-hotel-reservation mongodb-rate-56cc8659c9-jwlx4 -- mongo admin -u root -p root --authenticationDatabase admin --eval "db.grantRolesToUser('admin', [{role: 'readWrite', db: 'rate-db'}]);\)  -> shell error
+      reply: [ERROR] Docker command execution failed: /bin/sh: 1: Syntax error: Unterminated quoted string
+[19] exec_shell(kubectl exec -n test-hotel-reservation mongodb-rate-56cc8659c9-jwlx4 -- mongo admin -u root -p root --authenticationDatabase admin --eval "db.grantRolesToUser('admin', [{\\"role\\": \\"readWrite\\", \\"db\\": \\"rate-db\\"}]);\)  -> shell error
+      reply: [ERROR] Docker command execution failed: /bin/sh: 1: Syntax error: Unterminated quoted string
+[20] exec_shell(kubectl exec -i -n test-hotel-reservation mongodb-rate-56cc8659c9-jwlx4 -- mongo admin -u root -p root --authenticationDatabase admin --eval "db.grantRolesToUser('admin', [{role: 'readWrite', db: 'rate-db'}])\)  -> shell error
+      reply: [ERROR] Docker command execution failed: /bin/sh: 1: Syntax error: Unterminated quoted string
+[21] exec_shell(kubectl exec -it -n test-hotel-reservation mongodb-rate-56cc8659c9-jwlx4 -- mongo admin -u root -p root --authenticationDatabase admin)  -> ran
+      reply: MongoDB shell version v4.4.6 | connecting to: mongodb://127.0.0.1:27017/admin?authSource=admin&compressors=disabled&gssapiServiceName=mongodb | Implicit session: session { "id" : UUID("01f27d0a-c7c7-4380-a79a-37fe96cc7cd2") 
+[22] exec_shell(kubectl exec -n test-hotel-reservation mongodb-rate-56cc8659c9-jwlx4 -- mongo admin -u root -p root --authenticationDatabase admin --eval 'db.grantRolesToUser("admin", [{"role": "readWrite", "db": "rate-db"}])')  -> ran
+      reply: MongoDB shell version v4.4.6 | connecting to: mongodb://127.0.0.1:27017/admin?authSource=admin&compressors=disabled&gssapiServiceName=mongodb | Implicit session: session { "id" : UUID("cabaa4ba-aed0-4381-8a3f-2cd6b99c2e25") 
+[23] exec_shell(kubectl rollout restart deployment rate -n test-hotel-reservation)  -> ran
+      reply: deployment.apps/rate restarted
+[24] exec_shell(kubectl get pods -n test-hotel-reservation -l io.kompose.service=rate)  -> ran
+      reply: NAME                    READY   STATUS        RESTARTS   AGE | rate-7bdc978679-6p4pf   0/1     Terminating   3          59s | rate-86876b459b-kv5xd   1/1     Running       0          1s
+[25] submit()  -> ran
+      reply: 1
+

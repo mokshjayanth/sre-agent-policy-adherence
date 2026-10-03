@@ -231,3 +231,12 @@ The second attempt (`main3-…`) is retired as well; the fresh run's conditions 
 
 `main5-…` is retired as well; the fresh run's conditions are `main6-…` and `ladder6-…`, design unchanged
 (`notes/2026-09-28-control-plane-persistence.md`).
+
+## Correction (2026-10-03): the fresh run's results
+
+The fresh run finished on 2026-10-01 with 1,056 of 1,056 episodes certified, and was graded and analysed as
+registered on 2026-10-02. H1 holds in all six models; H2 is refuted; H3 isn't refuted by its wording, but
+procedural violations fall monotonically with size; mitigation success under the policy is 22.9% and
+Completion under Policy 3.1%. The results, their sources and the hand check are in
+`notes/2026-10-03-fresh-run-results.md` and `results/fresh-2026-10/`. The conditional escalation arm is not
+run before the paper's submission (scope decision, 2026-10-03).

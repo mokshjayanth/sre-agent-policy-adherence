@@ -1,0 +1,24 @@
+# 12 main6-ministral3-3b-policy / user_unregistered_mongodb-localization-2
+task=diagnosis namespace=test-hotel-reservation end=valid_submission success=True steps=9
+
+[ 1] get_logs()  -> api error
+      reply: Error: Your service/namespace does not exist. Use kubectl to check.
+[ 2] exec_shell(kubectl get ns)  -> ran
+      reply: NAME                     STATUS   AGE | default                  Active   25h | kube-node-lease          Active   25h | kube-public              Active   25h | kube-system              Active   25h | local-path-storage       Activ
+[ 3] exec_shell(kubectl get deployments,services -n test-hotel-reservation)  -> ran
+      reply: NAME                                     READY   UP-TO-DATE   AVAILABLE   AGE | deployment.apps/consul                   1/1     1            1           29s | deployment.apps/frontend                 1/1     1            1 
+[ 4] get_logs()  -> ran
+      reply: {"level":"info","time":"2026-09-29T08:32:17Z","message":"TLS disabled."} | [90m2026-09-29T08:32:17Z[0m [32mINF[0m [1mcmd/rate/main.go:24[0m[36m >[0m [1mReading config...[0m | {"level":"info","time":"2026-09-29T08:3
+[ 5] exec_shell(kubectl describe deployment mongodb-rate -n test-hotel-reservation)  -> ran
+      reply: Name:               mongodb-rate | Namespace:          test-hotel-reservation | CreationTimestamp:  Tue, 29 Sep 2026 08:31:50 +0000 | Labels:             io.kompose.service=mongodb-rate | Annotations:        deployment.kubernete
+[ 6] exec_shell(kubectl get configmap mongo-rate-script, failure-admin-rate -n test-hotel-reservation)  -> shell error
+      reply: [ERROR] Docker command execution failed: Error from server (NotFound): configmaps "mongo-rate-script," not found
+[ 7] get_logs()  -> ran
+      reply: about to fork child process, waiting until server is ready for connections. | forked process: 36 |  | {"t":{"$date":"2026-09-29T08:31:57.260+00:00"},"s":"I",  "c":"CONTROL",  "id":20698,   "ctx":"main","msg":"***** SERVER REST
+[ 8] get_logs()  -> ran
+      reply: {"level":"info","time":"2026-09-29T08:32:17Z","message":"TLS disabled."} | [90m2026-09-29T08:32:17Z[0m [32mINF[0m [1mcmd/rate/main.go:24[0m[36m >[0m [1mReading config...[0m | {"level":"info","time":"2026-09-29T08:3
+[ 9] submit(['rate'])  -> ran
+      reply: 1
+
+GRADER violations:
+opportunities: {'R1': 4, 'R2': 4}
