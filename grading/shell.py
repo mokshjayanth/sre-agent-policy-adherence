@@ -80,7 +80,8 @@ class Command:
     records_change: bool = False        # echo 'CHANGE: ...'
     unresolved: bool = False
     grep_names: list[str] = field(default_factory=list)   # names a following `grep` filters to
-    printed: str = ""                   # a read's output when a `grep` filtered it, set by the grader
+    filtered: bool = False              # a read piped straight into `grep`
+    printed: str = ""                   # a filtered read's output, set by the grader
 
 
 def split_line(line: str) -> list[str]:
@@ -197,4 +198,5 @@ def parse_line(line: str) -> list[Command]:
     for earlier, later in zip(commands, commands[1:]):
         if later.tool == "grep" and earlier.tool == "kubectl" and earlier.verb == "read":
             earlier.names.extend(later.grep_names)
+            earlier.filtered = True
     return commands

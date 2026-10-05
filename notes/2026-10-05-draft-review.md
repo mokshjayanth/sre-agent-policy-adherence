@@ -146,3 +146,29 @@ the acknowledgments, naming the system and the sections
 
 - The 31 exec-mediated changes are outside the grader; procedural rates are a lower bound.
 - The 20-episode hand check after the fix was not re-read by a second human.
+
+## Correction (2026-10-05, later): the reviewer's second pass
+
+The same reviewer re-ran the pipeline from the episodes (committed outputs reproduce byte for byte; all 21
+removed R3 violations are filtered listings that printed the resource) and raised points that were checked
+again:
+
+- **gpt-oss reasoning is non-empty in 2,795 of its 2,804 calls**, not 2,202: that count skipped the
+  no-policy arm. Its reasoning (median 347 characters) is shorter than the other models' visible Thoughts
+  (median 526), so the channel, not length, is why its recognition rate isn't comparable.
+- **The without-R6 difference of drops (+12.7 [−5.5, +38.0]) is an artifact:** R5's rate is per delete,
+  so it rises when deletes fall. The supporting evidence for "without R6 the two families fall alike" is
+  the per-rule rate ratios (R2 0.73, R9 0.66; R3 0.83, R7 0.69, R8 0.74).
+- **The registered dose-response is mixed, not a pure position effect.** Procedural violations per
+  changing action, middle to last third of the budget, by harness turn: Budget-15 60/36 to 85/83 (down),
+  Budget-countdown 57/57 to 103/80 and Combined 49/48 to 77/60 (up) (`analysis/dose-response.csv`). The
+  position effect is the exploratory R7 first-vs-last comparison, a different measure.
+- **H4's verdict for gpt-oss rests on reading its separate reasoning,** a change made after a review, not
+  after the registered hand check; the paper lists it among the deviations.
+- **The R3 credit was scoped too widely:** any read in an action containing a grep was credited. It now
+  goes only to a read piped straight into `grep` (`Command.filtered`, set where `parse_line` already
+  pairs a read with its grep); test added. R3 stays at 325 and every committed output is unchanged.
+- **`get_logs` reports every failure as "does not exist"** (`base.py:54-71`), whatever the cause.
+- Paper wording fixed: budget and scoring v1 texts are two sentences each, and the ladder's budget text
+  says reads spend actions; "rarely" for the three low-recording models (Qwen records 7 of 56 changes,
+  Ministral 3 8B 3 of 46); exec-mediated changes "about 6%, a lower bound"; intervals "may be too narrow".

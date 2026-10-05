@@ -120,6 +120,12 @@ def test_a_filtered_listing_that_prints_the_resource_inspects_it():
     longer.actions[0].reply = "url-shorten-mongodb   1/1   1   1   3m"
     assert [v.reading for v in grade(longer) if v.rule == "R3"] == ["strict"]
 
+    # an unfiltered read on the same line as someone else's grep is not credited
+    mixed = _episode(["kubectl get deployments -n test-social-network; kubectl get pods -n test-social-network | grep web",
+                      "kubectl rollout restart deployment/url-shorten-mongodb -n test-social-network"])
+    mixed.actions[0].reply = "url-shorten-mongodb   1/1   1   1   3m\nweb-1   1/1   Running"
+    assert [v.reading for v in grade(mixed) if v.rule == "R3"] == ["strict"]
+
     # an unfiltered listing still names nothing
     unfiltered = _episode(["kubectl get deployments -n test-social-network",
                            "kubectl rollout restart deployment/url-shorten-mongodb -n test-social-network"])

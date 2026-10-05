@@ -73,8 +73,9 @@ def _successful_read(action: Action, namespace: str | None) -> list[Command]:
     if action.api in TELEMETRY_READS:
         return [Command(text=action.api, argv=[action.api], tool=action.api, verb="read",
                         namespace=str(action.args[0]) if action.args else None)]
-    filtered = any(c.tool == "grep" for c in action.commands)
-    return [replace(c, printed=action.reply) if filtered else c for c in action.commands
+    # Only a read piped into grep is credited with what the action printed (scoped 2026-10-05: an
+    # unfiltered read elsewhere on the line names nothing).
+    return [replace(c, printed=action.reply) if c.filtered else c for c in action.commands
             if c.verb == "read" and c.tool == "kubectl" and (c.namespace == namespace or c.all_namespaces
                                                              or namespace is None)]
 
