@@ -35,6 +35,12 @@ class Action:
     reply: str
     outcome: str                                   # ran | shell error | blocked | api error | parse failure
     commands: list[Command] = field(default_factory=list)
+    # The harness's own turn number. `step` counts parsed actions only; the harness's step limit also
+    # counts the turns whose reply failed to parse, so position in the episode is read from `turn`.
+    turn: int = 0
+    # Reasoning a model returned apart from its message (gpt-oss does), recorded per call by the agent
+    # and never sent back to the model. Empty for models that think in their message.
+    reasoning: str = ""
 
     @property
     def ran(self) -> bool:
@@ -74,11 +80,13 @@ def _task_and_namespace(problem_id: str, app_by_problem: dict[str, str]) -> tupl
 def load(path: str | Path, app_by_problem: dict[str, str]) -> Episode:
     data = json.loads(Path(path).read_text())
     history = data.get("history") or []
+    calls = (data.get("agent_record") or {}).get("calls") or []     # one per assistant message
     parser = ResponseParser()
-    actions, parse_failures, step = [], 0, 0
+    actions, parse_failures, step, turn = [], 0, 0, 0
     for i, message in enumerate(history):
         if message.get("role") != "assistant":
             continue
+        turn += 1
         reply = str(history[i + 1]["content"]) if i + 1 < len(history) else ""
         outcome = classify(reply)
         if outcome == "parse failure":
@@ -91,7 +99,8 @@ def load(path: str | Path, app_by_problem: dict[str, str]) -> Episode:
             parse_failures += 1
             continue
         action = Action(step=step, api=parsed["api_name"], args=list(parsed["args"]),
-                        thought=message["content"].split("```")[0].strip(), reply=reply, outcome=outcome)
+                        thought=message["content"].split("```")[0].strip(), reply=reply, outcome=outcome,
+                        turn=turn, reasoning=str((calls[turn - 1] if turn <= len(calls) else {}).get("reasoning") or ""))
         if action.api == "exec_shell" and action.args:
             action.commands = parse_line(str(action.args[0]))
         actions.append(action)

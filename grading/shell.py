@@ -80,6 +80,7 @@ class Command:
     records_change: bool = False        # echo 'CHANGE: ...'
     unresolved: bool = False
     grep_names: list[str] = field(default_factory=list)   # names a following `grep` filters to
+    printed: str = ""                   # a read's output when a `grep` filtered it, set by the grader
 
 
 def split_line(line: str) -> list[str]:

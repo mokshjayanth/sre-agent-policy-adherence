@@ -108,3 +108,39 @@ submission (scope decision, MJ, 2026-10-03) and is stated as future work.
   pool both rounds; the paper flags it.
 - Changes made through `kubectl exec` inside containers are outside the policy's definition of a change
   and aren't graded; how often they occur is unmeasured.
+
+## Correction (2026-10-05)
+
+An independent review of the paper draft found errors that this note shares; each was checked again
+(`notes/2026-10-05-draft-review.md`), and the grader and analysis were changed for every condition.
+Figures above that changed:
+
+- **Finding 7 (H4) was wrong about gpt-oss.** Its reasoning is recorded per call
+  (`agent_record.calls[].reasoning`); read with its Thought, 80 of its 167 violations cite a rule or the
+  policy (47.9%). H4 holds in all six models. The other models are unchanged (14B 23/330, 3B 107/344,
+  Large 3 26/186 after the R3 fix below). Only 24 of the 161 violations whose reasoning names a rule
+  number name the rule being broken.
+- **R3 (Findings 1, 3, 5, 12).** The grader now applies the pilot rubric in full: a `get | grep` that
+  prints the resource inspects it. R3 violations fall from 346 to 325. The policy's R3 effect is now
+  inconclusive (no policy 25.7%, policy 21.4%; no policy minus policy +4.3 [−2.3, +14.0]); Budget-15
+  +10.2 [+1.0, +20.6] and Scored +7.6 [+1.7, +15.5] still exclude 0, but each rises in 6 of 8 problems
+  (sign test p = 0.29) and Budget-15's rests mostly on one. Pooled procedures: policy 41.5%; Budget-15
+  +1.8 [−7.6, +11.6], Scored +0.4 [−6.9, +6.3]; H2's verdict is unchanged. Ministral 3 3B procedures
+  66.1% (H3 unchanged). Ladder R3: −3.7, +0.3, +1.8, all intervals include 0.
+- **Finding 8 (H5)** should have stated the registered verdict per task: violating episodes succeed less
+  in 28 of 34 diagnosis cells, but not in mitigation (more in 10, less in 9, equal in 13); "29% vs 18%"
+  among episodes that changed something is post hoc (Fisher p = 0.13).
+- **Findings 9 and 10 (H6, dose-response)** indexed model calls and positions by the grader's step, which
+  skips parse failures; 25.6% of actions are affected. By harness turn H6 is unchanged (R3 20.3K vs
+  14.5K tokens; R7 15.6K vs 14.4K; R8 15.0K vs 15.3K). The R7-by-thirds figures are retired; the
+  replacement compares an episode's first and last change (`analysis/exploratory.csv`) and reaches the
+  same conclusion, a position effect: with or without a countdown, about 60% of last changes go
+  unrecorded against 6–13% of first ones.
+- **Finding 11 (manipulation check)** now reads gpt-oss's reasoning too: the budget is named in 15.6%
+  (Budget-15), 12.5% (Budget-once), 16.7% (Budget-countdown) and 13.5% (Combined) of episodes; the
+  scoring in 8.9% (Scored).
+- **Finding 13 (hand check):** that reading was Claude's, and the author's 4 were blind. After the R3
+  fix only episode 08 changes, and the grader agrees with all 32 of its remaining calls.
+- **Finding 15:** parse failures are 1,296 of 17,757 model calls (7.3%), not 7.9%.
+- **Finding 1, R5:** of the 74 deletes without the policy, 62 were pod deletes (R6); protected deletes
+  (R5) went from 11 to 7.

@@ -114,10 +114,11 @@ for r in rows:
     for v in r["violations"]:
         bad[v.rule].add(v.step)
     for a in ep.actions:
-        if not any(is_change(c) for c in a.commands) or a.step - 1 >= len(tokens) or tokens[a.step - 1] is None:
+        # the call that produced this action is the action's harness turn (parse failures included)
+        if not any(is_change(c) for c in a.commands) or a.turn > len(tokens) or tokens[a.turn - 1] is None:
             continue
         for rule in ("R3", "R7", "R8"):
-            ctx[rule]["violating" if a.step in bad[rule] else "compliant"].append(tokens[a.step - 1])
+            ctx[rule]["violating" if a.step in bad[rule] else "compliant"].append(tokens[a.turn - 1])
 h6 = []
 for rule, d in ctx.items():
     mv, mc = statistics.median(d["violating"]), statistics.median(d["compliant"])
@@ -138,7 +139,7 @@ for r in rows:
     for a in ep.actions:
         if not any(is_change(c) for c in a.commands):
             continue
-        left = (cap - a.step + 1) / cap
+        left = (cap - a.turn + 1) / cap          # the countdown counts harness turns
         band = "first third" if left > 2 / 3 else "middle third" if left > 1 / 3 else "last third"
         dose[(r["arm"], band)][0] += bad[a.step]
         dose[(r["arm"], band)][1] += 1

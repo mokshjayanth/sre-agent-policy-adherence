@@ -1,7 +1,9 @@
 """The paper's two figures, drawn from the committed tables in results/fresh-2026-10/.
 
 Fig. 1: violations per opportunity by rule, without and with the policy (all models, both rounds).
-Fig. 2: prohibitions against procedures under the policy, per model, models by size.
+Fig. 2: per model, the share of mitigation episodes that changed something and broke a prohibition, and
+a procedure, without and with the policy (episode level; replaced the per-opportunity family plot on
+2026-10-05, notes/2026-10-05-draft-review.md).
 Needs only matplotlib (not the harness environment):
     python analysis/paper_figures.py OUT_DIR
 """
@@ -92,19 +94,40 @@ fig.tight_layout(pad=0.2)
 fig.savefig(OUT / "fig1-policy-by-rule.pdf", metadata={"Creator": None, "Producer": None})
 
 # Fig. 2 ------------------------------------------------------------------------------------------
-h1 = {(r["model"], r["rule"]): r for r in rows(RESULTS / "analysis/h1-policy-arm-family-by-model.csv")}
-MODELS = [("ministral3-3b", "Ministral 3 3B"), ("ministral3-8b", "Ministral 3 8B"),
+# Episode level: of the mitigation episodes that executed a change, the share that broke a prohibition
+# (R4, R5, R6, R9) and the share that broke a procedure (R3, R7, R8), without and with the policy.
+acted = {(r["arm"], r["model"]): r for r in rows(RESULTS / "analysis/episodes-acted-by-model.csv")}
+MODELS = [("all", "All models"), ("ministral3-3b", "Ministral 3 3B"), ("ministral3-8b", "Ministral 3 8B"),
           ("ministral3-14b", "Ministral 3 14B"), ("qwen3-next-80b", "Qwen3-Next 80B-A3B"),
-          ("gpt-oss-120b", "gpt-oss-120b"), ("mistral-large3", "Mistral Large 3 (675B)")]
-fig, ax = plt.subplots(figsize=(3.45, 1.95))
-dumbbell(ax, [label for _, label in MODELS],
-         [triple(h1[(m, "prohibitions")]) for m, _ in MODELS],
-         [triple(h1[(m, "procedures")]) for m, _ in MODELS],
-         ("Prohibitions", VIOLET, "s", True), ("Procedures", GREEN, "o", False))
-style(ax)
-ax.set_xlabel("Violations per opportunity, policy arm (%)")
-ax.legend(loc="lower center", bbox_to_anchor=(0.42, 1.0), ncol=2, frameon=False, handletextpad=0.3,
-          columnspacing=1.2, borderaxespad=0.2)
-fig.tight_layout(pad=0.2)
-fig.savefig(OUT / "fig2-family-by-model.pdf", metadata={"Creator": None, "Producer": None})
-print("written", OUT / "fig1-policy-by-rule.pdf", OUT / "fig2-family-by-model.pdf")
+          ("gpt-oss-120b", "gpt-oss-120b"), ("mistral-large3", "Mistral Large 3")]
+fig, axes = plt.subplots(1, 2, figsize=(3.45, 2.45), sharey=True)
+ys = [6.6] + list(range(5, -1, -1))           # a gap under the pooled row
+for ax, column, title in ((axes[0], "broke_prohibition", "Broke a prohibition"),
+                          (axes[1], "broke_procedure", "Broke a procedure")):
+    share = {arm: [100 * int(acted[(arm, m)][column]) / int(acted[(arm, m)]["acted"]) for m, _ in MODELS]
+             for arm in ("nopolicy", "policy")}
+    for y, a_, b_ in zip(ys, share["nopolicy"], share["policy"]):
+        ax.plot([a_, b_], [y, y], color=GRID, linewidth=2.2, zorder=1, solid_capstyle="round")
+    ax.scatter(share["nopolicy"], ys, s=24, marker="o", facecolor="white", edgecolor=ORANGE, linewidth=1.1,
+               zorder=3, label="No policy")
+    ax.scatter(share["policy"], ys, s=24, marker="s", facecolor=BLUE, edgecolor=BLUE, zorder=3, label="Policy")
+    ax.set_xlim(-5, 105)
+    ax.set_xticks([0, 50, 100])
+    ax.xaxis.grid(True, color=GRID, linewidth=0.6)
+    ax.set_axisbelow(True)
+    for side in ("top", "right", "left"):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+    ax.set_title(title, fontsize=8, color=INK, pad=3)
+    ax.axhline(5.8, color=MUTED, linewidth=0.5, linestyle=(0, (2, 2)))
+axes[0].set_yticks(ys)
+axes[0].set_yticklabels([f"{label} ({acted[('nopolicy', m)]['acted']}/{acted[('policy', m)]['acted']})"
+                         for m, label in MODELS])
+axes[0].set_ylim(-0.6, 7.2)
+fig.supxlabel("Share of mitigation episodes that changed something (%)", fontsize=8, y=0.02)
+handles, labels = axes[0].get_legend_handles_labels()
+fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.62, 1.0), ncol=2, frameon=False,
+           handletextpad=0.3, columnspacing=1.2, fontsize=7.5)
+fig.tight_layout(pad=0.2, w_pad=0.6, rect=(0, 0, 1, 0.9))
+fig.savefig(OUT / "fig2-episodes-by-model.pdf", metadata={"Creator": None, "Producer": None})
+print("written", OUT / "fig1-policy-by-rule.pdf", OUT / "fig2-episodes-by-model.pdf")

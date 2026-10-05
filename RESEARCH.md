@@ -240,3 +240,13 @@ procedural violations fall monotonically with size; mitigation success under the
 Completion under Policy 3.1%. The results, their sources and the hand check are in
 `notes/2026-10-03-fresh-run-results.md` and `results/fresh-2026-10/`. The conditional escalation arm is not
 run before the paper's submission (scope decision, 2026-10-03).
+
+## Correction (2026-10-05): three grader changes, applied to every condition
+
+A review of the paper draft found that the grader required a `get | grep` pattern to equal the resource's
+name before it counted as inspecting it, where the pilot rubric counts any filtered listing that prints
+the resource; that it read only the message, missing reasoning gpt-oss returns separately; and that
+positions in an episode were counted in parsed actions, not the harness's turns. All three are fixed and
+every episode graded again, as the registration requires of a grader change
+(`notes/2026-10-05-draft-review.md`). No registered verdict changes except H4, which now holds in all six
+models.
